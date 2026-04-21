@@ -1,0 +1,13 @@
+node_modules/
+.env
+.env.local
+build/
+dist/
+__pycache__/
+*.pyc
+*.pkl
+venv/
+env/
+.vscode/
+.DS_Store
+*.log

@@ -1,0 +1,32 @@
+python main.py
+     ↓
+(you manually call uvicorn)
+     ↓
+uvicorn.run()
+
+vs
+
+uvicorn main:app --reload
+     ↓
+(directly runs uvicorn)
+
+
+
+
+
+___________________________________________________
+
+
+PERFORMANCE:
+
+Add DB indexing
+
+Optimize queries
+
+Use background tasks for heavy processing
+
+
+
+--------------------------------------------------
+
+Semantic matching using embeddings (BERT or similar) later

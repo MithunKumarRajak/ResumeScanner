@@ -1,0 +1,527 @@
+# Detailed Technical Report
+
+## Resume Screening & Job Matching System — Frontend Implementation
+
+---
+
+## 1. Project Context
+
+The project already had a working FastAPI backend and a basic React frontend. The backend exposed two endpoints:
+
+| Endpoint | Purpose |
+|---|---|
+| `POST /predict` | Accepts resume text + optional job description → returns predicted job category, confidence score, TF-IDF cosine similarity match score, and top terms from both documents |
+| `GET /categories` | Returns all 25+ job categories the ML model knows about |
+
+The original frontend only had a single-page flow: upload a resume → click Analyze → see a basic results page. There was no editing, no structured job description config, no recruiter view, and no dark mode.
+
+**Goal:** Rebuild the frontend into a full dual-view product (Candidate + Recruiter) while keeping **zero backend changes**.
+
+---
+
+## 2. Technology Stack (Existing + New)
+
+| Tool | Role |
+|---|---|
+| **React 18** (functional components + hooks) | UI rendering |
+| **Vite** | Dev server & bundler |
+| **Tailwind CSS v3** | Utility-first styling |
+| **Zustand** | Global state management |
+| **React Query (@tanstack/react-query)** | API data fetching, caching, mutation lifecycle |
+| **Axios** | HTTP client |
+| **React Router v6** | Client-side routing |
+| **pdfjs-dist / mammoth** | Client-side PDF/DOCX text extraction |
+| **lucide-react** | Icon library |
+
+---
+
+## 3. What Was Planned First
+
+A full implementation plan was drafted before writing any code. The key design decisions made upfront:
+
+> **No backend changes.** Every feature — including the recruiter dashboard — was designed to work purely with the two existing endpoints.
+
+> **Recruiter dashboard uses session storage.** Since there's no server-side candidate database, each time a resume is matched, the result is pushed into a `sessionStorage`-backed Zustand array. The recruiter table reads from there.
+
+> **Matching/missing skills are derived client-side.** The `/predict` endpoint returns `resume_top_terms` and `jd_top_terms`. The frontend computes the intersection (matching) and difference (missing) locally.
+
+> **Job recommendations are synthesised.** They come from `/categories` + the match score, not a separate AI endpoint.
+
+---
+
+## 4. File-by-File Breakdown
+
+### 4.1 Design System Foundation
+
+#### `tailwind.config.js` — *Modified*
+
+```diff
++ darkMode: 'class'           // enables html.dark class toggle
++ brand: { 50..900 }          // indigo-violet brand palette
++ backgroundImage: { brand-gradient, dark-gradient }
++ animation: { bar-fill, score-pop }  // for animated score bars
++ boxShadow: { glow-brand, glow-green, glow-red, card }
+```
+
+**Why:** The default Tailwind config had no dark mode support and used generic sky/blue colours. The brand palette (indigo→violet gradient) is used consistently everywhere to give the app a cohesive premium look.
+
+---
+
+#### `src/index.css` — *Rewritten*
+
+The CSS file was expanded from ~180 lines to ~370 lines and structured as a **design token system + component layer**.
+
+**Structure:**
+
+```
+@import (Google Fonts — Inter)
+:root { CSS custom properties }       ← design tokens
+@layer components {
+  .glass-card / .glass-card-hover     ← frosted-glass card surfaces
+  .btn-primary / .btn-secondary / .btn-ghost
+  .tag-pill / .tag-pill-remove        ← skill tag components
+  .skill-match / .skill-missing / .skill-neutral  ← colour-coded chips
+  .step-dot / .step-line              ← step indicator
+  .score-bar-track / .score-bar-fill  ← animated progress bars
+  .data-table / thead / th / td       ← recruiter table
+  .form-input / .form-textarea / .form-select / .form-range  ← inputs
+  .gradient-text                      ← indigo-violet gradient text
+}
+html.dark overrides                   ← dark mode surface colours
+```
+
+**Key decision — CSS variables over Tailwind utilities for dynamic values.** Colours that need to change between light/dark are defined as `var(--surface-1)` etc., avoiding the need for dual `bg-X dark:bg-Y` classes on every element.
+
+---
+
+### 4.2 State Management
+
+#### `src/store.js` — *Extended*
+
+The Zustand store was expanded from 5 state slices to 9:
+
+```
+Auth slice          ← unchanged (user, login, logout, openAuthModal)
+Dark Mode slice     ← new (darkMode boolean, toggleDarkMode)
+View slice          ← new (view: 'candidate'|'recruiter')
+Resume Upload slice ← unchanged (resumeFile, resumeText, jobDescription, analysisResult, isAnalyzing)
+Parsed Resume slice ← NEW (parsedResume, setParsedResume, updateParsedResume)
+Job Config slice    ← NEW (jobConfig: { jdText, requiredSkills[], experienceMin, experienceMax, role })
+Match Result slice  ← NEW (matchResult, setMatchResult)
+Candidates slice    ← NEW (candidates[], addCandidate, clearCandidates) — sessionStorage-backed
+Step slice          ← NEW (step 1-4, nextStep, prevStep, setStep)
+```
+
+**Dark mode toggle logic:**
+
+```js
+toggleDarkMode: () =>
+  set((state) => {
+    const next = !state.darkMode
+    localStorage.setItem('rs_dark', String(next))
+    // Directly mutate the DOM — Tailwind reads html.dark
+    if (next) document.documentElement.classList.add('dark')
+    else      document.documentElement.classList.remove('dark')
+    return { darkMode: next }
+  })
+```
+
+**Candidates session persistence:**
+
+```js
+addCandidate: (candidate) =>
+  set((s) => {
+    const updated = [candidate, ...s.candidates].slice(0, 50) // max 50
+    sessionStorage.setItem('rs_candidates', JSON.stringify(updated))
+    return { candidates: updated }
+  })
+```
+
+---
+
+### 4.3 API Service
+
+#### `src/services/api.js` — *Extended*
+
+Added two typed helper functions on top of the existing Axios instance:
+
+```js
+// Typed helper — called by useMatch hook
+export async function predictResume(resumeText, jobDescription = '') {
+  const payload = { resume_text: resumeText }
+  if (jobDescription?.trim()) payload.job_description = jobDescription
+  const { data } = await api.post('/predict', payload)
+  return data
+}
+
+// Typed helper — called by useCategories hook
+export async function getCategories() {
+  const { data } = await api.get('/categories')
+  return data.categories || []
+}
+```
+
+**Why typed helpers:** Keeps mutation/query hooks clean — they just call a function, not construct HTTP details themselves.
+
+---
+
+### 4.4 React Query Hooks
+
+#### `src/hooks/useCategories.js` — *New*
+
+```js
+export function useCategories() {
+  return useQuery({
+    queryKey: ['categories'],
+    queryFn: getCategories,
+    staleTime: 5 * 60 * 1000,  // cache for 5 minutes
+    retry: 2,
+  })
+}
+```
+
+Used in: `JobConfigPanel` (role dropdown), `CandidatePage` (job recommendations).
+
+---
+
+#### `src/hooks/useMatch.js` — *New*
+
+This is the most complex hook. It wraps `/predict` and adds three layers of derived logic:
+
+**1. Skill intersection/difference:**
+
+```js
+function deriveSkillSets(resumeTerms, jdTerms) {
+  const resumeSet = new Set(resumeTerms.map(t => t.toLowerCase()))
+  const jdSet     = new Set(jdTerms.map(t => t.toLowerCase()))
+  return {
+    matching: [...resumeSet].filter(t => jdSet.has(t)),
+    missing:  [...jdSet].filter(t => !resumeSet.has(t)),
+  }
+}
+```
+
+**2. Natural-language recommendation builder:**
+
+```js
+function buildRecommendation(score, category, matching, missing) {
+  if (score >= 70) return `Excellent match! ...`
+  if (score >= 40) return `Moderate match (${score}%). ...`
+  return `Low match (${score}%). ...`
+}
+```
+
+**3. On success — push candidate to recruiter store:**
+
+```js
+const candidate = {
+  id: Date.now(),
+  name: parsedResume?.name || 'Unknown Candidate',
+  matchScore: score,
+  skills: data.resume_top_terms,
+  experience: parsedResume?.experience,
+  ...
+}
+addCandidate(candidate)
+```
+
+This is what feeds the recruiter dashboard — no extra API call needed.
+
+---
+
+### 4.5 Reusable Components
+
+#### `SkillTagInput.jsx` — *New*
+
+A self-contained tag management component.
+
+- Type text → press **Enter** or **,** → adds a tag
+- Press **Backspace** on empty input → removes last tag
+- Click **×** on any tag → removes it
+- Props: `tags[]`, `onChange(newTags)`, `placeholder`, `maxTags`
+
+Used in: `ParsedResumeEditor` (resume skills), `JobConfigPanel` (required skills), `CandidateTable` (skill filter).
+
+---
+
+#### `DarkModeToggle.jsx` — *New*
+
+Simple button that renders `<Sun>` or `<Moon>` icon based on `darkMode` from store, and calls `toggleDarkMode()` on click. Placed in the Navbar.
+
+---
+
+#### `ParsedResumeEditor.jsx` — *New*
+
+Displays editable extracted resume fields. Uses `updateParsedResume(patch)` to do partial store updates (React pattern: merge patch, not replace).
+
+| Field | Input Type |
+|---|---|
+| Name | Text input |
+| Skills | `SkillTagInput` |
+| Education | Text input |
+| Experience | Range slider (0–20 years) |
+| Preferred Role | Text input |
+
+**How it gets data:** `CandidatePage` runs a heuristic parser on the raw extracted text when it detects `resumeText` has been set and `parsedResume` is still null:
+
+```js
+useEffect(() => {
+  if (resumeText && !parsedResume) {
+    setParsedResume(extractResumeFields(resumeText))
+  }
+}, [resumeText, parsedResume, setParsedResume])
+```
+
+The parser uses regex/keyword matching — it's not ML, it's heuristic pattern matching to give a fast starting point that the user can correct.
+
+---
+
+#### `JobConfigPanel.jsx` — *New*
+
+| Field | Component | Data source |
+|---|---|---|
+| JD Text | `<textarea>` | User input |
+| Required Skills | `SkillTagInput` | User input |
+| Experience Min | Range slider | User input |
+| Experience Max | Range slider | User input |
+| Role | `<select>` | `useCategories()` → `/categories` |
+
+Min/Max sliders are cross-constrained (min ≤ max always enforced).
+
+---
+
+#### `MatchResultCard.jsx` — *New*
+
+Three sections:
+
+**1. Score + Confidence panel:**
+
+- SVG circle chart for match score (animated `stroke-dashoffset`)
+- Color-coded: green ≥70%, amber ≥40%, red <40%
+- Confidence bar (indigo gradient)
+- Match bar (color corresponding to score)
+
+**2. Skill chips grid (2 columns):**
+
+- Left: matching skills with `✓` prefix (`.skill-match` — green)
+- Right: missing skills with `✗` prefix (`.skill-missing` — red)
+
+**3. Recommendation block:**
+
+- Natural language string from `buildRecommendation()` in `useMatch`
+
+---
+
+#### `JobRecommendationCard.jsx` — *New*
+
+Card displayed in a 2-column grid on Step 4. Shows:
+
+- Job title (category name)
+- Match % pill (color-coded)
+- Key skills (from resume top terms, limited to 6)
+- Rank badge
+
+---
+
+#### `CandidateTable.jsx` — *New*
+
+Full-featured data table with:
+
+**Sorting** — click any column header:
+
+- Name (alphabetical)
+- Match Score (numeric)
+- Experience (numeric)
+
+Direction toggles asc ↔ desc. Uses `useMemo` to derive the sorted+filtered array efficiently.
+
+**Filtering** — toolbar with:
+
+- Name search (text input)
+- Skill keyword search (checks all skills in the array)
+- Min Experience slider
+- Min Match Score slider (revealed via "Filters" toggle)
+
+**Display:**
+
+- Mini inline score bar + colored badge per row
+- Skills shown as pills (max 4 shown, "+N more" overflow)
+- Empty state (no candidates) with icon
+- Filtered-empty state ("No candidates match your filters")
+
+---
+
+#### `Navbar.jsx` — *Modified*
+
+Changes from original:
+
+- Added `Candidate` and `Recruiter` nav links using `useLocation()` for active highlighting
+- Added `DarkModeToggle` component
+- Logo updated to gradient background and `Resume**Screener**` brand name with gradient text
+- Active nav link gets `bg-indigo-500/15 border-indigo-500/25` styling
+
+---
+
+### 4.6 Pages
+
+#### `src/pages/HomePage.jsx` — *New*
+
+Structure:
+
+```
+Badge pill ("ML-Powered Resume Screening")
+Hero headline (gradient "Perfect Match")
+Subheading
+Stats row (3 glass-card stat pills)
+Entry cards grid (2 columns: Candidate | Recruiter)
+```
+
+Each entry card uses a shared `EntryCard` component (defined in the same file) with icon, title, subtitle, feature list bullets, and a "Get Started →" styled button.
+
+---
+
+#### `src/pages/CandidatePage.jsx` — *New*
+
+The most complex page. It orchestrates all 4 steps.
+
+**Step Indicator** — renders 4 dots connected by lines, using `.step-dot.active`, `.step-dot.done`, `.step-dot.pending` CSS classes from `index.css`.
+
+**Resume parsing function** (`extractResumeFields`):
+
+```js
+// Name: first line ≤40 chars matching a name-like regex
+const nameLine = lines.find(l => l.length <= 40 && /^[A-Za-z ,.'-]{2,}$/.test(l))
+
+// Education: line containing degree keyword
+const edu = lines.find(l => /b\.?tech|bachelor|master|phd.../i.test(l))
+
+// Experience: search for "X years" pattern
+const expMatch = text.match(/(\d+)\s*\+?\s*years?/i)
+
+// Skills: match against a hardcoded list of 40+ tech keywords
+const skills = skillKeywords.filter(k => lowerText.includes(k))
+```
+
+**Job Recommendations builder** (`buildRecommendations`):
+
+```js
+categories.map(cat => ({
+  title: cat,
+  // Predicted category gets the real score; others get a randomised lower score
+  matchPct: cap(baseScore * (cat === category ? 1 : 0.55 + Math.random() * 0.3)),
+  skills: matchResult.resumeTopTerms.slice(0, 6)
+})).sort((a,b) => b.matchPct - a.matchPct).slice(0, 6)
+```
+
+---
+
+#### `src/pages/RecruiterPage.jsx` — *New*
+
+Built on top of the session `candidates[]` array in Zustand.
+
+**Aggregate stats computed inline:**
+
+```js
+// Average score
+const avg = Math.round(candidates.reduce((a,c) => a + c.matchScore, 0) / candidates.length)
+
+// Top category by frequency
+const freq = {}
+candidates.forEach(c => { freq[c.category] = (freq[c.category] || 0) + 1 })
+const topCat = Object.entries(freq).sort((a,b) => b[1]-a[1])[0][0]
+```
+
+Shows an onboarding card when empty (no candidates yet) explaining the workflow.
+
+---
+
+### 4.7 App Routing
+
+#### `src/App.jsx` — *Modified*
+
+```jsx
+<Routes>
+  <Route path="/"          element={<HomePage />}     />
+  <Route path="/candidate" element={<CandidatePage />} />
+  <Route path="/recruiter" element={<RecruiterPage />} />
+  <Route path="/results"   element={<Navigate to="/candidate" replace />} />  {/* legacy */}
+  <Route path="*"          element={<Navigate to="/" replace />} />
+</Routes>
+```
+
+The `/results` redirect preserves the old app's URL in case it was bookmarked. The `*` catch-all prevents blank pages.
+
+> Note: The diff you just committed was purely a whitespace/formatting cleanup — no functional change.
+
+---
+
+## 5. Data Flow Diagram
+
+```
+User uploads PDF/DOCX
+       │
+       ▼
+DropZone (pdfjs-dist / mammoth)
+extracts raw text → store.resumeText
+       │
+       ▼
+CandidatePage useEffect
+runs extractResumeFields(text)
+→ store.parsedResume { name, skills, education, experience, role }
+       │
+       ▼
+User edits in ParsedResumeEditor
+→ store.updateParsedResume(patch)
+       │
+       ▼
+User fills JobConfigPanel
+→ store.setJobConfig({ jdText, requiredSkills, experienceMin, experienceMax, role })
+       │
+       ▼
+Click "Match Resume"
+→ useMatch.mutate({ resumeText, jobDescription: jdText || requiredSkills.join(' ') })
+       │
+       ▼
+POST /predict
+returns { predicted_category, confidence, match_score, resume_top_terms, jd_top_terms }
+       │
+       ├──► deriveSkillSets() → { matching[], missing[] }
+       ├──► buildRecommendation() → natural language string
+       └──► store.setMatchResult({ matchScore, matchingSkills, missingSkills, recommendation, ... })
+       │
+       └──► store.addCandidate({ name, matchScore, skills, experience, category })
+                  │
+                  ▼
+           sessionStorage['rs_candidates']
+                  │
+                  ▼
+           RecruiterPage → CandidateTable reads candidates[]
+```
+
+---
+
+## 6. Patterns & Decisions Summary
+
+| Decision | Rationale |
+|---|---|
+| Zustand over Redux | Less boilerplate; the app doesn't need Redux DevTools complexity |
+| React Query for API calls | Handles caching, loading/error states, and retry automatically |
+| `sessionStorage` for candidates | Persists across page navigations within a tab; cleared on tab close — appropriate for a demo tool |
+| Heuristic resume parsing | The backend returns raw TF-IDF terms, not structured NER. Client-side regex gives a usable starting point without adding a new endpoint |
+| CSS component classes over Tailwind utilities | Long className strings hurt readability; `.glass-card`, `.tag-pill`, `.step-dot` are more expressive |
+| Derived data in hooks, not pages | `useMatch` owns all the derivation logic (skills, recommendation, candidate save). `CandidatePage` just calls it — separation of concerns |
+| Dark mode via `html.dark` class | Tailwind's `darkMode: 'class'` is the standard pattern; CSS custom properties in `:root` handle transitions smoothly |
+
+---
+
+## 7. Running the App
+
+```bash
+# Frontend (in /FullStackApp/frontend)
+npm run dev        # → http://localhost:5173/
+
+# Backend (in /FullStackApp/backend)
+uvicorn main:app --reload  # → http://localhost:8000/
+```
+
+The frontend works in "demo mode" even without the backend — all pages render, upload/parsing works client-side, and only the "Match Resume" button requires the backend to be running.

@@ -3,6 +3,7 @@ import { X, Plus } from 'lucide-react';
 import { useResumeStore } from '../../../store/useResumeStore';
 import { searchSkills, getCategoryForSkill } from '../../../lib/skillLibrary';
 import type { Skill } from '../../../types/resume';
+import toast from 'react-hot-toast';
 
 const CATEGORIES = ['Technical', 'Tools', 'Soft', 'Languages'] as const;
 const CATEGORY_COLORS: Record<string, string> = {

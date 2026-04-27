@@ -4,6 +4,7 @@ const useStore = create((set) => ({
   // ── Auth ─────────────────────────────────────────────────
   user: JSON.parse(localStorage.getItem('rs_user') || 'null'),
   isAuthModalOpen: false,
+  selectedModel: 'ResumeModel_v2',
 
   login: (userData) => {
     localStorage.setItem('rs_user', JSON.stringify(userData))
@@ -19,6 +20,7 @@ const useStore = create((set) => ({
   },
   openAuthModal:  () => set({ isAuthModalOpen: true }),
   closeAuthModal: () => set({ isAuthModalOpen: false }),
+  setSelectedModel: (model) => set({ selectedModel: model }),
 
   // ── Dark Mode ────────────────────────────────────────────
   darkMode: localStorage.getItem('rs_dark') === 'true',

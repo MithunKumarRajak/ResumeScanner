@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { Cpu, Users, Zap, Shield, BarChart3, FileSearch } from 'lucide-react'
+import { Cpu, Users, Zap, Shield, BarChart3, FileSearch, ArrowRight, Sparkles } from 'lucide-react'
 
 function EntryCard({ id, icon: Icon, title, subtitle, accent, onClick, features }) {
   return (
@@ -27,7 +27,7 @@ function EntryCard({ id, icon: Icon, title, subtitle, accent, onClick, features 
       </ul>
 
       <div className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold ${accent.btn} transition-all group-hover:gap-3`}>
-        Get Started →
+        Get Started <ArrowRight className="h-4 w-4" />
       </div>
     </button>
   )
@@ -120,6 +120,17 @@ export default function HomePage() {
             ]}
             onClick={() => navigate('/recruiter')}
           />
+        </div>
+
+        {/* Quick CTA */}
+        <div className="mt-10 animate-slide-up" style={{ animationDelay: '0.25s' }}>
+          <button
+            onClick={() => navigate('/candidate')}
+            className="btn-primary flex items-center gap-2 px-8 py-3 text-base"
+            id="home-start-btn"
+          >
+            <Sparkles className="h-5 w-5" /> Start Scanning
+          </button>
         </div>
       </div>
     </div>

@@ -10,7 +10,7 @@ import re
 import os
 
 # Initialize FastAPI app
-app = FastAPI(title="Resume Screener", version="1.0")
+app = FastAPI(title="Resume Screener", version="2.0")
 
 # Enable CORS for frontend communication
 app.add_middleware(
@@ -25,53 +25,91 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Global variables to store model and preprocessors
-model = None
-tfidf = None
-label_encoder = None
+# ── Multi-model support ──────────────────────────────────────────────────────
+# Each model version stores its own (model, tfidf, label_encoder) tuple
+loaded_models = {}   # { "v2": {...}, "v3": {...} }
 nlp = None
+
+# Model metadata for the /models endpoint
+MODEL_REGISTRY = {
+    "ResumeModel_v2": {
+        "dir": "..",          # relative to backend/
+        "description": "Base model — KNN + OneVsRest (TF-IDF 5K features)",
+        "algorithm": "OneVsRestClassifier(KNeighborsClassifier)",
+        "badge": "Active",
+    },
+    "ResumeModel_v3": {
+        "dir": os.path.join("..", "v3"),
+        "description": "Enhanced — Linear SVM + balanced classes (TF-IDF 10K features)",
+        "algorithm": "OneVsRestClassifier(CalibratedClassifierCV(SGDClassifier))",
+        "badge": "New",
+    },
+}
+
+
+def _load_single_model(version_id: str, model_dir: str):
+    """Load a single model's artifacts from the given directory."""
+    base = os.path.dirname(__file__)
+    artifacts = {}
+    try:
+        model_path   = os.path.join(base, model_dir, "model.pkl")
+        tfidf_path   = os.path.join(base, model_dir, "tfidf.pkl")
+        encoder_path = os.path.join(base, model_dir, "encoder.pkl")
+
+        artifacts["model"]         = joblib.load(model_path)
+        artifacts["tfidf"]         = joblib.load(tfidf_path)
+        artifacts["label_encoder"] = joblib.load(encoder_path)
+
+        print(f"  ✓ {version_id} loaded from {model_dir}")
+        return artifacts
+    except FileNotFoundError as e:
+        print(f"  ⚠ {version_id} NOT loaded ({e})")
+        return None
+    except Exception as e:
+        print(f"  ⚠ {version_id} error: {e}")
+        return None
 
 
 @app.on_event("startup")
 def load_models():
-    """Load model and preprocessors on app startup"""
-    global model, tfidf, label_encoder, nlp
+    """Load all registered model versions on app startup."""
+    global nlp
 
-    try:
-        # Load the model from parent directory
-        model_path = os.path.join(os.path.dirname(
-            __file__), "..", "model.pkl")
-        model = joblib.load(model_path)
-        print(f" Model loaded from {model_path}")
+    # Load spaCy (shared across all models)
+    nlp = spacy.load("en_core_web_sm")
+    print("spaCy model loaded")
 
-        # Load TF-IDF Vectorizer
-        tfidf_path = os.path.join(os.path.dirname(
-            __file__), "..", "tfidf.pkl")
-        tfidf = joblib.load(tfidf_path)
-        print(f" TF-IDF loaded")
+    # Load each registered model version
+    for version_id, meta in MODEL_REGISTRY.items():
+        arts = _load_single_model(version_id, meta["dir"])
+        if arts is not None:
+            loaded_models[version_id] = arts
 
-        # Load Label Encoder
-        encoder_path = os.path.join(os.path.dirname(
-            __file__), "..", "encoder.pkl")
-        label_encoder = joblib.load(encoder_path)
-        print(f" Label Encoder loaded")
+    if not loaded_models:
+        print("ERROR: No model versions could be loaded!")
+    else:
+        print(f"Loaded model versions: {list(loaded_models.keys())}")
 
-        # Load spaCy model
-        nlp = spacy.load("en_core_web_sm")
-        print(f" spaCy model loaded")
 
-    except FileNotFoundError as e:
-        print(f"ERROR: {e}")
-        print("Make sure model.pkl, tfidf.pkl, and encoder.pkl are in the FullStackApp directory")
-    except Exception as e:
-        print(f"ERROR loading models: {str(e)}")
-        print("This could be due to corrupted pkl files or version incompatibilities")
+def _resolve_model(version_id: Optional[str] = None):
+    """
+    Return the (model, tfidf, label_encoder) dict for the requested version.
+    Falls back to ResumeModel_v2 when version_id is None or unavailable.
+    """
+    if version_id and version_id in loaded_models:
+        return loaded_models[version_id]
+    # fallback
+    for fallback in ("ResumeModel_v2", "ResumeModel_v3"):
+        if fallback in loaded_models:
+            return loaded_models[fallback]
+    return None
 
 
 # Request/Response models
 class ResumeInput(BaseModel):
     resume_text: str
     job_description: Optional[str] = None
+    model_version: Optional[str] = None   # e.g. "ResumeModel_v2" or "ResumeModel_v3"
 
 
 class PredictionOutput(BaseModel):
@@ -118,11 +156,32 @@ def read_root():
     return {
         "message": "Resume Classification API",
         "status": "running",
+        "loaded_models": list(loaded_models.keys()),
         "endpoints": {
             "predict": "POST /predict",
+            "models": "GET /models",
+            "categories": "GET /categories",
             "docs": "/docs"
         }
     }
+
+
+@app.get("/models")
+def get_models():
+    """Return metadata about all registered model versions."""
+    result = []
+    for version_id, meta in MODEL_REGISTRY.items():
+        entry = {
+            "id": version_id,
+            "description": meta["description"],
+            "algorithm": meta["algorithm"],
+            "badge": meta["badge"],
+            "available": version_id in loaded_models,
+        }
+        if version_id in loaded_models:
+            entry["categories"] = len(loaded_models[version_id]["label_encoder"].classes_)
+        result.append(entry)
+    return {"models": result}
 
 
 @app.post("/predict", response_model=PredictionOutput)
@@ -137,11 +196,16 @@ def predict_resume(input_data: ResumeInput):
         Predicted category and confidence score
     """
 
-    # Validate that all models are loaded
-    if model is None or tfidf is None or label_encoder is None or nlp is None:
+    # Resolve the requested model version
+    resolved = _resolve_model(input_data.model_version)
+    if resolved is None or nlp is None:
         raise HTTPException(
             status_code=500,
-            detail="Models not loaded. Please check backend logs and ensure model.pkl, tfidf.pkl, and encoder.pkl exist in the FullStackApp directory")
+            detail="No model versions loaded. Please check backend logs.")
+
+    model         = resolved["model"]
+    tfidf         = resolved["tfidf"]
+    label_encoder = resolved["label_encoder"]
 
     if not input_data.resume_text or len(input_data.resume_text.strip()) == 0:
         raise HTTPException(
@@ -196,11 +260,12 @@ def predict_resume(input_data: ResumeInput):
 
 
 @app.get("/categories")
-def get_categories():
-    """Get all available job categories"""
-    if label_encoder is not None:
-        categories = label_encoder.classes_.tolist()
-        return {"categories": sorted(categories)}
+def get_categories(model_version: Optional[str] = None):
+    """Get all available job categories for the specified model version."""
+    resolved = _resolve_model(model_version)
+    if resolved is not None:
+        categories = resolved["label_encoder"].classes_.tolist()
+        return {"categories": sorted(categories), "model_version": model_version or "default"}
     return {"categories": []}
 
 

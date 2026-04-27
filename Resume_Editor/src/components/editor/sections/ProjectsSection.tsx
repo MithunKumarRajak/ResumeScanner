@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2, ChevronDown, ChevronUp, GripVertical, Sparkles, RefreshCw, ExternalLink } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, ChevronUp, GripVertical, Sparkles, RefreshCw, ExternalLink, X } from 'lucide-react';
 import { useResumeStore } from '../../../store/useResumeStore';
 import { improveBullets } from '../../../lib/aiService';
 import type { Project } from '../../../types/resume';

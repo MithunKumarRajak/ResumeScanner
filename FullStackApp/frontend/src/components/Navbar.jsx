@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { ScanLine, LogIn, LogOut, User, ChevronDown, Cpu, Users } from 'lucide-react'
+import { ScanLine, LogIn, LogOut, User, ChevronDown, Home, Cpu, Users, FileEdit, Wand2, Menu, X } from 'lucide-react'
 import DarkModeToggle from './DarkModeToggle'
 import useStore from '../store'
 
@@ -12,18 +12,28 @@ export default function Navbar() {
   const navigate       = useNavigate()
   const location       = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
 
   const handleLogoClick = () => {
     clearAnalysis()
     navigate('/')
   }
 
+  const NAV_LINKS = [
+    { to: '/',            label: 'Home',         icon: Home    },
+    { to: '/candidate',   label: 'Candidate',    icon: Cpu     },
+    { to: '/recruiter',   label: 'Recruiter',    icon: Users   },
+    { to: '/resume-build', label: 'Resume Build', icon: FileEdit },
+    { to: '/ai-generator',  label: 'AI Generator',  icon: Wand2 },
+  ]
+
   const navLink = (to, label, Icon, id) => {
     const active = location.pathname === to
     return (
       <button
         id={id}
-        onClick={() => navigate(to)}
+        key={to}
+        onClick={() => { navigate(to); setMobileOpen(false) }}
         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer border-none
           ${active
             ? 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/25'
@@ -31,13 +41,13 @@ export default function Navbar() {
           }`}
       >
         <Icon className="h-4 w-4" />
-        <span className="hidden sm:inline">{label}</span>
+        <span>{label}</span>
       </button>
     )
   }
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-slate-800/70 bg-[rgba(15,23,42,0.9)] backdrop-blur-md">
+    <nav className="sticky top-0 z-50 border-b border-slate-800/70 bg-[rgba(15,23,42,0.92)] backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
 
         {/* Logo */}
@@ -50,14 +60,15 @@ export default function Navbar() {
             <ScanLine className="h-5 w-5" />
           </div>
           <span className="hidden text-base font-bold text-white sm:inline tracking-tight">
-            Resume<span className="gradient-text">Screener</span>
+            Resume<span className="gradient-text">Scanner</span>
           </span>
         </button>
 
-        {/* Center nav links */}
-        <div className="flex items-center gap-1">
-          {navLink('/candidate', 'Candidate', Cpu,   'nav-candidate')}
-          {navLink('/recruiter', 'Recruiter', Users, 'nav-recruiter')}
+        {/* Center nav links – Desktop */}
+        <div className="hidden lg:flex items-center gap-1 rounded-2xl bg-slate-800/30 border border-slate-700/40 px-2 py-1 backdrop-blur-sm">
+          {NAV_LINKS.map((l) =>
+            navLink(l.to, l.label, l.icon, `nav-${l.label.toLowerCase().replace(' ', '-')}`)
+          )}
         </div>
 
         {/* Right side */}
@@ -94,16 +105,35 @@ export default function Navbar() {
           ) : (
             <button
               onClick={openAuthModal}
-              className="flex items-center gap-2 rounded-xl border border-slate-700/60 bg-slate-900/60 px-4 py-2 text-sm font-medium text-slate-200 cursor-pointer hover:bg-slate-800/80 transition-colors"
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 px-4 py-2 text-sm font-semibold text-white cursor-pointer hover:opacity-90 transition-all shadow-md shadow-indigo-500/25"
               id="nav-signin-btn"
             >
               <LogIn className="h-4 w-4" />
               <span className="hidden sm:inline">Sign in</span>
             </button>
           )}
-        </div>
 
+          {/* Mobile hamburger */}
+          <button
+            onClick={() => setMobileOpen(!mobileOpen)}
+            className="lg:hidden flex h-9 w-9 items-center justify-center rounded-xl border border-slate-700/50 bg-transparent text-slate-400 hover:text-white cursor-pointer transition-colors"
+            id="nav-mobile-toggle"
+          >
+            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
       </div>
+
+      {/* Mobile Dropdown */}
+      {mobileOpen && (
+        <div className="lg:hidden border-t border-slate-800/60 bg-[rgba(15,23,42,0.97)] backdrop-blur-xl animate-fade-in">
+          <div className="flex flex-col gap-1 p-3">
+            {NAV_LINKS.map((l) =>
+              navLink(l.to, l.label, l.icon, `nav-mobile-${l.label.toLowerCase().replace(' ', '-')}`)
+            )}
+          </div>
+        </div>
+      )}
     </nav>
   )
 }

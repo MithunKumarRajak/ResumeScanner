@@ -1,4 +1,4 @@
-import { Sun, Moon, Download, Sparkles, Settings, Clock, Undo2, Redo2, LayoutDashboard, Smartphone, Monitor, Save } from 'lucide-react';
+import { Sun, Moon, Download, Sparkles, Settings, Clock, Undo2, Redo2, LayoutDashboard, Smartphone, Monitor, Save, Target } from 'lucide-react';
 import { useResumeStore } from '../../store/useResumeStore';
 import toast from 'react-hot-toast';
 

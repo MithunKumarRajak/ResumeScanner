@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import {
   Sparkles, Zap, Copy, Save, Send, Briefcase, MapPin,
-  Clock, FileText, Settings2, Wand2, ChevronDown, Check
+  Clock, FileText, Settings2, Wand2, ChevronDown, Check, AlertCircle, Loader2
 } from 'lucide-react'
+import { aiGenerateJD, aiRefineJD } from '../services/api'
 
 /* ── Constants ──────────────────────────────────────────── */
 const DEPARTMENTS  = ['Engineering', 'Design', 'Product', 'Marketing', 'Data Science', 'DevOps', 'Sales']
@@ -66,14 +67,43 @@ export default function AIGeneratorPage() {
   const [generated,   setGenerated]   = useState(null)
   const [refineText,  setRefineText]  = useState('')
   const [copied,      setCopied]      = useState(false)
+  const [error,       setError]       = useState('')
+  const [isRefining,  setIsRefining]  = useState(false)
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
+    if (!jobTitle.trim()) { setError('Please enter a job title'); return }
+    setError('')
     setIsGenerating(true)
-    // Simulate AI generation delay
-    setTimeout(() => {
+    try {
+      const result = await aiGenerateJD({ jobTitle, department, expLevel, workMode, rawNotes, tone, focusArea })
+      setGenerated(result)
+    } catch (err) {
+      const detail = err.response?.data?.detail || 'Generation failed'
+      if (err.response?.status === 503) {
+        setError(detail)
+      } else {
+        setError(detail)
+      }
+      // Fallback to sample output if API fails
       setGenerated(sampleOutput(jobTitle, department, expLevel, workMode))
+    } finally {
       setIsGenerating(false)
-    }, 1500)
+    }
+  }
+
+  const handleRefine = async () => {
+    if (!refineText.trim() || !generated) return
+    setIsRefining(true)
+    const instruction = refineText
+    setRefineText('')
+    try {
+      const result = await aiRefineJD(generated, instruction)
+      setGenerated(result)
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Refinement failed. Please try again.')
+    } finally {
+      setIsRefining(false)
+    }
   }
 
   const handleCopy = () => {
@@ -223,6 +253,14 @@ export default function AIGeneratorPage() {
             </div>
           </div>
 
+          {/* Error Banner */}
+          {error && !generated && (
+            <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm animate-fade-in">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
           {/* Generate Button */}
           <button
             onClick={handleGenerate}
@@ -365,20 +403,33 @@ export default function AIGeneratorPage() {
             {/* Refinement Input (floating) */}
             {generated && (
               <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-[rgba(15,23,42,0.98)] via-[rgba(15,23,42,0.95)] to-transparent pt-14">
+                {error && (
+                  <div className="flex items-center gap-2 px-3 py-2 mb-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs animate-fade-in">
+                    <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">{error}</span>
+                    <button onClick={() => setError('')} className="ml-auto text-amber-400/60 hover:text-amber-300 cursor-pointer shrink-0">✕</button>
+                  </div>
+                )}
                 <div className="flex items-center gap-2 rounded-xl border border-slate-700/60 bg-slate-800/70 backdrop-blur-md px-3 py-2 focus-within:border-indigo-500/50 focus-within:ring-1 focus-within:ring-indigo-500/20 transition-all shadow-lg shadow-black/30">
-                  <Wand2 className="h-4 w-4 text-indigo-400 flex-shrink-0" />
+                  {isRefining ? (
+                    <Loader2 className="h-4 w-4 text-indigo-400 flex-shrink-0 animate-spin" />
+                  ) : (
+                    <Wand2 className="h-4 w-4 text-indigo-400 flex-shrink-0" />
+                  )}
                   <input
                     type="text"
                     value={refineText}
                     onChange={(e) => setRefineText(e.target.value)}
-                    placeholder="Ask AI to adjust... (e.g. 'Make the benefits section more exciting')"
+                    placeholder={isRefining ? 'Refining...' : "Ask AI to adjust... (e.g. 'Add a benefits section')"}
                     className="flex-1 bg-transparent border-none outline-none text-sm text-slate-200 placeholder:text-slate-500"
                     id="ai-refine-input"
-                    onKeyDown={(e) => { if (e.key === 'Enter' && refineText.trim()) { setRefineText('') } }}
+                    disabled={isRefining}
+                    onKeyDown={(e) => { if (e.key === 'Enter' && refineText.trim() && !isRefining) handleRefine() }}
                   />
                   <button
+                    onClick={handleRefine}
                     className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500 text-white hover:bg-indigo-600 transition-colors cursor-pointer flex-shrink-0 disabled:opacity-40"
-                    disabled={!refineText.trim()}
+                    disabled={!refineText.trim() || isRefining}
                     id="ai-refine-btn"
                   >
                     <Send className="h-4 w-4" />
@@ -389,6 +440,21 @@ export default function AIGeneratorPage() {
           </div>
         </div>
       </div>
+
+      {/* API Key Setup Banner */}
+      {error && error.includes('API key') && (
+        <div className="glass-card p-5 border-amber-500/20 animate-fade-in">
+          <h4 className="text-sm font-bold text-amber-400 mb-2 flex items-center gap-2">
+            <Settings2 className="h-4 w-4" /> Setup Required
+          </h4>
+          <ol className="text-sm text-slate-300 space-y-1.5 list-decimal list-inside">
+            <li>Go to <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" className="text-indigo-400 hover:text-indigo-300 underline">aistudio.google.com/apikey</a> and create a free API key</li>
+            <li>Open <code className="text-xs px-1.5 py-0.5 rounded bg-slate-800 text-indigo-300">backend/.env</code> file</li>
+            <li>Set <code className="text-xs px-1.5 py-0.5 rounded bg-slate-800 text-indigo-300">GEMINI_API_KEY=your_key_here</code></li>
+            <li>Restart the backend server</li>
+          </ol>
+        </div>
+      )}
     </div>
   )
 }

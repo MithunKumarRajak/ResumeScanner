@@ -42,8 +42,8 @@ export function useMatch() {
   const parsedResume    = useStore((s) => s.parsedResume)
 
   return useMutation({
-    mutationFn: ({ resumeText, jobDescription }) =>
-      predictResume(resumeText, jobDescription),
+    mutationFn: ({ resumeText, jobDescription, modelVersion }) =>
+      predictResume(resumeText, jobDescription, modelVersion),
 
     onMutate: () => {
       setIsAnalyzing(true)
@@ -63,6 +63,7 @@ export function useMatch() {
         matchScore:      score,
         category:        data.predicted_category,
         confidence:      data.confidence,
+        modelVersion:    data.model_version || null,
         matchingSkills:  matching,
         missingSkills:   missing,
         resumeTopTerms:  data.resume_top_terms || [],
@@ -77,6 +78,7 @@ export function useMatch() {
         id: Date.now(),
         name: parsedResume?.name || 'Unknown Candidate',
         category:    data.predicted_category,
+        modelVersion: data.model_version || null,
         matchScore:  score ?? 0,
         skills:      data.resume_top_terms || [],
         experience:  parsedResume?.experience || 0,

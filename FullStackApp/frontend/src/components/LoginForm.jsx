@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { Mail, Lock, ArrowRight, Loader2 } from 'lucide-react'
+import { Mail, Lock, ArrowRight, Loader2, AlertCircle } from 'lucide-react'
 import useStore from '../store'
+import { apiLogin } from '../services/api'
 
 export default function LoginForm() {
   const login = useStore((s) => s.login)
@@ -19,21 +20,22 @@ export default function LoginForm() {
     }
 
     setLoading(true)
-    // Simulate API call
-    await new Promise((r) => setTimeout(r, 800))
-
-    login({
-      name: email.split('@')[0],
-      email,
-      token: 'mock_token_' + Date.now(),
-    })
-    setLoading(false)
+    try {
+      const userData = await apiLogin(email, password)
+      login(userData)
+    } catch (err) {
+      const detail = err.response?.data?.detail || 'Login failed. Please check your credentials.'
+      setError(detail)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
-        <div className="px-4 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+          <AlertCircle className="h-4 w-4 shrink-0" />
           {error}
         </div>
       )}

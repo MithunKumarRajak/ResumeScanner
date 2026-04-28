@@ -81,6 +81,7 @@ export default function MatchResultCard({ result }) {
     matchScore,
     category,
     confidence,
+    modelVersion,
     matchingSkills = [],
     missingSkills  = [],
     recommendation,
@@ -113,6 +114,7 @@ export default function MatchResultCard({ result }) {
             <div>
               <p className="text-xs uppercase tracking-wider text-slate-500 mb-1">Predicted Category</p>
               <p className="text-xl font-bold text-white">{category}</p>
+              {modelVersion && <p className="text-xs text-slate-400 mt-1">Model: {modelVersion}</p>}
             </div>
 
             {/* Confidence bar */}

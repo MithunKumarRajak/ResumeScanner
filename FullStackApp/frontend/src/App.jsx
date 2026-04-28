@@ -7,6 +7,7 @@ import CandidatePage from './pages/CandidatePage'
 import RecruiterPage from './pages/RecruiterPage'
 import ResumeBuildPage from './pages/ResumeBuildPage'
 import AIGeneratorPage from './pages/AIGeneratorPage'
+import ProfilePage from './pages/ProfilePage'
 
 export default function App() {
   const location = useLocation()
@@ -22,6 +23,7 @@ export default function App() {
           <Route path="/recruiter" element={<RecruiterPage />} />
           <Route path="/resume-build" element={<ResumeBuildPage />} />
           <Route path="/ai-generator" element={<AIGeneratorPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
           <Route path="/results" element={<Navigate to="/candidate" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

@@ -7,13 +7,34 @@ import {
 import MatchResultCard from '../components/MatchResultCard'
 import ParsedResumeEditor from '../components/ParsedResumeEditor'
 import { useMatch } from '../hooks/useMatch'
+import { getModels } from '../services/api'
 import useStore from '../store'
 
 const ALLOWED = ['application/pdf','application/vnd.openxmlformats-officedocument.wordprocessingml.document']
 const MAX_SIZE = 5 * 1024 * 1024
-const MODELS = [
+const FALLBACK_MODELS = [
+  { id: 'ResumeModel_v5', name: 'Model v5 (Latest)', desc: 'Hybrid adaptive model with semantic support' },
   { id: 'ResumeModel_v2', name: 'Model v2 (Base)', desc: 'KNN + OneVsRest classifier' },
   { id: 'ResumeModel_v3', name: 'Model v3 (New ✨)', desc: 'Enhanced Linear SVM pipeline' },
+]
+const ROLE_KEYWORDS = [
+  'software engineer',
+  'full stack engineer',
+  'frontend engineer',
+  'backend engineer',
+  'java developer',
+  'python developer',
+  'web developer',
+  'mobile developer',
+  'data scientist',
+  'data analyst',
+  'machine learning engineer',
+  'devops engineer',
+  'qa engineer',
+  'product manager',
+  'project manager',
+  'business analyst',
+  'ui ux designer',
 ]
 const ACTIONS = [
   { id: 'checker', icon: ClipboardCheck, title: 'Resume Checker', sub: 'with AI Feedback', color: 'indigo', needs: 'resume' },
@@ -62,18 +83,27 @@ function MiniDropZone({ file, onFile, onClear }) {
   )
 }
 
-function CardModelSelector({ value, onChange }) {
+function CardModelSelector({ value, onChange, models }) {
   const [open, setOpen] = useState(false)
-  const cur = MODELS.find(m=>m.id===value)||MODELS[0]
+  const dropRef = useRef(null)
+  const safeModels = models?.length ? models : FALLBACK_MODELS
+  const cur = safeModels.find(m=>m.id===value) || safeModels[0]
+
+  useEffect(() => {
+    const handler = (e) => { if (dropRef.current && !dropRef.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
   return (
-    <div className="relative mt-4">
+    <div className="relative mt-4" ref={dropRef} style={{ zIndex: open ? 60 : 'auto', overflow: 'visible' }}>
       <button onClick={()=>setOpen(!open)} className="flex w-full items-center justify-between rounded-xl border border-slate-700/60 bg-slate-900/50 px-4 py-2.5 text-sm cursor-pointer transition-all hover:border-slate-600" id="candidate-model-selector">
         <div className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-indigo-400" /><span className="font-medium text-slate-200">{cur.name}</span></div>
         <ChevronDown className={`h-4 w-4 text-slate-500 transition-transform ${open?'rotate-180':''}`} />
       </button>
       {open && (
-        <div className="absolute left-0 right-0 top-full mt-1.5 rounded-xl border border-slate-700/80 bg-[rgba(15,23,42,0.97)] p-1.5 shadow-xl shadow-black/60 backdrop-blur-xl z-50 animate-fade-in">
-          {MODELS.map(m=>(
+        <div className="absolute left-0 right-0 bottom-full mb-1.5 rounded-xl border border-slate-700/80 bg-[rgba(15,23,42,0.99)] p-1.5 shadow-2xl shadow-black/80 backdrop-blur-xl animate-fade-in" style={{ zIndex: 100 }}>
+          {safeModels.map(m=>(
             <button key={m.id} onClick={()=>{onChange(m.id);setOpen(false)}}
               className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm cursor-pointer border-none transition-all ${value===m.id?'bg-indigo-500/15 text-indigo-300':'bg-transparent text-slate-400 hover:bg-white/5 hover:text-white'}`}>
               <div><p className="font-semibold">{m.name}</p><p className="text-[11px] opacity-60 mt-0.5">{m.desc}</p></div>
@@ -172,15 +202,75 @@ async function extractFileText(file) {
 }
 
 function extractResumeFields(text = '') {
-  const lines = text.split('\n').map(l=>l.trim()).filter(Boolean)
-  const nameLine = lines.find(l=>l.length<=40&&/^[A-Za-z ,.'-]{2,}$/.test(l))||''
-  const edu = lines.find(l=>/b\.?s\.?c|b\.?e\.?|b\.?tech|m\.?s\.?c|m\.?tech|bachelor|master|phd|degree|diploma|engineer/i.test(l))||''
+  // Split on newlines AND common delimiters (pipes, bullets) to handle PDF flat text
+  const rawLines = text.split('\n').map(l=>l.trim()).filter(Boolean)
+  // Break long lines by pipe/bullet separators into shorter segments
+  const lines = []
+  for (const line of rawLines) {
+    if (line.length > 120) {
+      const parts = line.split(/\s*[|•·]\s*/).map(p=>p.trim()).filter(Boolean)
+      if (parts.length > 1) { lines.push(...parts) } else { lines.push(line) }
+    } else {
+      lines.push(line)
+    }
+  }
+  const cleanedLines = lines.map((line) => line.replace(/[|•·]/g, ' ').replace(/\s+/g, ' ').trim())
+
+  // ── Name extraction ──
+  // Try short lines in header first
+  const headerLines = cleanedLines.slice(0, 12)
+  let nameLine = headerLines.find((line) => {
+    const words = line.split(' ')
+    const looksLikeName = words.length >= 2 && words.length <= 5 && /^[A-Za-z ,.'-]{2,50}$/.test(line) && line.length <= 50
+    const hasRoleWord = ROLE_KEYWORDS.some((keyword) => line.toLowerCase().includes(keyword))
+    const hasContactWord = /@|\b(phone|email|linkedin|github|portfolio|resume|cv|summary|skill|project|experience|education)\b/i.test(line)
+    return looksLikeName && !hasRoleWord && !hasContactWord
+  }) || ''
+  // Fallback: try regex on full text for a name pattern at the start
+  if (!nameLine) {
+    const nameRegex = text.match(/^[\s|•]*([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3})/m)
+    if (nameRegex && nameRegex[1].length <= 40) nameLine = nameRegex[1]
+  }
+
+  // Contact info
+  const emailMatch = text.match(/[\w.+-]+@[\w-]+\.[\w.]+/i)
+  const email = emailMatch ? emailMatch[0] : ''
+  const phoneMatch = text.match(/(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/)
+  const phone = phoneMatch ? phoneMatch[0].trim() : ''
+  const linkedinMatch = text.match(/linkedin\.com\/in\/[\w-]+/i)
+  const linkedin = linkedinMatch ? `https://${linkedinMatch[0]}` : ''
+  const githubMatch = text.match(/github\.com\/[\w-]+/i)
+  const github = githubMatch ? `https://${githubMatch[0]}` : ''
+
+  // ── Education (regex on full text, extract just the degree phrase) ──
+  const eduRegex = text.match(/((?:B\.?\s?Tech|B\.?S\.?c|B\.?E|M\.?\s?Tech|M\.?S\.?c|M\.?CA|Bachelor'?s?|Master'?s?|Ph\.?D|Diploma)\b[^|•\n]{0,100})/i)
+  const edu = eduRegex ? eduRegex[1].replace(/\s+/g, ' ').trim().slice(0, 150) : ''
+
   const expMatch = text.match(/(\d+)\s*\+?\s*years?/i)
   const experience = expMatch ? Math.min(parseInt(expMatch[1]),20) : 0
   const skillKeywords = ['python','java','javascript','react','node','angular','vue','typescript','sql','mysql','postgresql','mongodb','aws','azure','docker','kubernetes','git','linux','machine learning','deep learning','tensorflow','pytorch','flask','django','fastapi','c++','c#','html','css','rest','api']
   const lower = text.toLowerCase()
   const skills = skillKeywords.filter(k=>lower.includes(k))
-  return { name: nameLine, skills, education: edu, experience, role: '' }
+
+  // ── Role (only match short lines, not giant text blobs) ──
+  const shortLines = cleanedLines.filter(l => l.length < 80)
+  const roleLine = shortLines.find((line) => ROLE_KEYWORDS.some((keyword) => line.toLowerCase().includes(keyword))) || ''
+  const roleMatch = roleLine || text.match(/((?:Senior|Junior|Lead|Principal)?\s*(?:Software|Full[- ]Stack|Frontend|Backend|Java|Python|Web|Mobile|Data|Machine Learning|DevOps|QA|Product|Project|Business|UI\/?UX)?\s*(?:Engineer|Developer|Scientist|Analyst|Manager|Designer|Consultant|Specialist))/i)?.[1] || ''
+  const role = roleMatch.replace(/\s+/g, ' ').trim()
+
+  // ── Summary ──
+  const summaryMatch = text.match(/(?:SUMMARY|OBJECTIVE|ABOUT\s*ME|PROFILE)\s*[:\s\n]+([\s\S]+?)(?=\s*(?:SKILLS?|EDUCATION|EXPERIENCE|PROJECTS?|CERTIF|TECHNI|LANGUAGES?\b))/i)
+  const summary = summaryMatch ? summaryMatch[1].replace(/\s+/g, ' ').trim().slice(0, 500) : ''
+
+  // ── Projects ──
+  const projectsMatch = text.match(/(?:PROJECTS?)\s*[:\s\n]+([\s\S]+?)(?=\s*(?:EDUCATION|CERTIF|SKILLS?|ACHIEVEMENTS?\b|$))/i)
+  const projects = projectsMatch ? projectsMatch[1].trim().slice(0, 800) : ''
+
+  // ── Certifications ──
+  const certMatch = text.match(/(?:CERTIFICATIONS?|CERTIFICATES?)\s*[:\s\n]+([\s\S]+?)(?=\s*(?:PROJECTS?|EDUCATION|SKILLS?|ACHIEVEMENTS?\b|$))/i)
+  const certifications = certMatch ? certMatch[1].trim().slice(0, 500) : ''
+
+  return { name: nameLine, email, phone, linkedin, github, skills, education: edu, experience, role, summary, projects, certifications }
 }
 
 // ════════════════════════════════════════
@@ -208,10 +298,52 @@ export default function CandidatePage() {
   const [processing, setProcessing] = useState(false)
   const [missingFor, setMissingFor] = useState(null)
   const [extractError, setExtractError] = useState('')
+  const [availableModels, setAvailableModels] = useState(FALLBACK_MODELS)
+  const [modelLoadError, setModelLoadError] = useState('')
 
   const hasResume = !!resumeFile
   const hasJD = !!jobDesc.trim()
   const canProcess = hasResume || hasJD
+
+  useEffect(() => {
+    let mounted = true
+
+    async function loadModelOptions() {
+      try {
+        const models = await getModels()
+        const normalized = models
+          .filter((m) => m.available)
+          .map((m) => ({
+            id: m.id,
+            name: `${m.id}${m.badge ? ` (${m.badge})` : ''}`,
+            desc: m.description || m.algorithm || 'Model available',
+          }))
+
+        if (!mounted) return
+
+        if (normalized.length > 0) {
+          setAvailableModels(normalized)
+          setModelLoadError('')
+        } else {
+          setAvailableModels(FALLBACK_MODELS)
+          setModelLoadError('No active backend model metadata found, using fallback list.')
+        }
+      } catch {
+        if (!mounted) return
+        setAvailableModels(FALLBACK_MODELS)
+        setModelLoadError('Could not fetch model list from backend, using fallback list.')
+      }
+    }
+
+    loadModelOptions()
+    return () => { mounted = false }
+  }, [])
+
+  useEffect(() => {
+    if (!availableModels.some((m) => m.id === selectedModel)) {
+      setSelectedModel(availableModels[0]?.id || 'ResumeModel_v5')
+    }
+  }, [availableModels, selectedModel, setSelectedModel])
 
   // Extract text when file is set
   const handleFileSet = useCallback(async (file) => {
@@ -219,12 +351,13 @@ export default function CandidatePage() {
     setExtractError('')
     try {
       const text = await extractFileText(file)
-      if (!text) { setExtractError('Could not extract text from this file.'); return }
+      if (!text) { setExtractError('Could not extract text from this file.'); return null }
       setResumeText(text)
       storeSetResumeFile(file)
       storeSetResumeText(text)
       setParsedResume(extractResumeFields(text))
-    } catch { setExtractError('Failed to extract text.') }
+      return text
+    } catch { setExtractError('Failed to extract text.'); return null }
   }, [storeSetResumeFile, storeSetResumeText, setParsedResume])
 
   const handleFileClear = () => {
@@ -241,25 +374,36 @@ export default function CandidatePage() {
     setPhase('dashboard')
   }
 
-  const handleAction = (action) => {
-    if (action.needs==='both'&&(!hasResume||!hasJD)) { setMissingFor(action); return }
-    if (action.needs==='resume'&&!hasResume) { setMissingFor(action); return }
-    setActiveAction(action.id)
-    if (action.id==='match'||action.id==='scores') {
-      runMatch({ resumeText, jobDescription: jobDesc })
+  const executeAction = (actionId, rtText, jdText) => {
+    setActiveAction(actionId)
+    if (actionId==='checker'||actionId==='match'||actionId==='scores') {
+      runMatch({ resumeText: rtText, jobDescription: jdText, modelVersion: selectedModel })
     }
     setPhase('result')
   }
 
+  const handleAction = (action) => {
+    if (action.needs==='both'&&(!hasResume||!hasJD)) { setMissingFor(action); return }
+    if (action.needs==='resume'&&!hasResume) { setMissingFor(action); return }
+    executeAction(action.id, resumeText, jobDesc)
+  }
+
   const handleMissingProvide = async (value) => {
     if (!missingFor) return
-    const needsResume = (missingFor.needs==='both'&&!hasResume)||missingFor.needs==='resume'
+    const action = missingFor
+    const needsResume = (action.needs==='both'&&!hasResume)||action.needs==='resume'
+    let updatedResumeText = resumeText
+    let updatedJobDesc = jobDesc
     if (needsResume && value) {
-      await handleFileSet(value)
+      const text = await handleFileSet(value)
+      if (text) updatedResumeText = text
     } else if (value) {
+      updatedJobDesc = value
       setJobDesc(value); storeSetJobDesc(value)
     }
     setMissingFor(null)
+    // Auto-continue with the action immediately
+    executeAction(action.id, updatedResumeText, updatedJobDesc)
   }
 
   const missingType = missingFor
@@ -289,7 +433,8 @@ export default function CandidatePage() {
             <div className="flex items-center gap-2"><FileText className="h-5 w-5 text-indigo-400" /><h2 className="text-base font-bold text-white">Resume Input</h2></div>
             <MiniDropZone file={resumeFile} onFile={handleFileSet} onClear={handleFileClear} />
             {extractError && <p className="flex items-center gap-1.5 text-xs text-red-400"><AlertCircle className="h-3.5 w-3.5" />{extractError}</p>}
-            <CardModelSelector value={selectedModel} onChange={setSelectedModel} />
+            <CardModelSelector value={selectedModel} onChange={setSelectedModel} models={availableModels} />
+            {modelLoadError && <p className="text-xs text-amber-300">{modelLoadError}</p>}
           </div>
           <div className="flex items-center justify-center md:flex-col py-4 md:py-0">
             <div className="flex-1 h-px md:h-auto md:w-px bg-slate-700/50 md:flex-1" />
@@ -339,27 +484,15 @@ export default function CandidatePage() {
     <div className="px-4 sm:px-6 lg:px-8 py-8 max-w-3xl mx-auto space-y-6">
       <button onClick={()=>setPhase('dashboard')} className="btn-ghost flex items-center gap-2" id="result-back-btn"><ArrowLeft className="h-4 w-4" /> Back to Actions</button>
 
-      {(activeAction==='match'||activeAction==='scores') && (
+      {(activeAction==='match'||activeAction==='scores'||activeAction==='checker') && (
         isAnalyzing ? (
-          <div className="glass-card p-12 flex flex-col items-center gap-4"><Loader2 className="h-10 w-10 animate-spin text-indigo-400" /><p className="text-slate-300 font-medium">Analyzing your resume…</p><p className="text-sm text-slate-500">Running ML matching pipeline</p></div>
+          <div className="glass-card p-12 flex flex-col items-center gap-4"><Loader2 className="h-10 w-10 animate-spin text-indigo-400" /><p className="text-slate-300 font-medium">Analyzing your resume…</p><p className="text-sm text-slate-500">Running ML {activeAction==='checker'?'analysis':'matching'} pipeline</p></div>
         ) : isError ? (
           <div className="flex items-start gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /><p>{matchError?.response?.data?.detail||'Backend API unavailable.'}</p></div>
         ) : matchResult ? (
           <MatchResultCard result={matchResult} />
         ) : (
-          <div className="glass-card p-10 text-center"><p className="text-slate-400">No results yet.</p></div>
-        )
-      )}
-
-      {activeAction==='checker' && (
-        matchResult ? <MatchResultCard result={matchResult} /> : (
-          <div className="glass-card p-8 space-y-4">
-            <h2 className="text-xl font-bold text-white">Resume Checker</h2>
-            <p className="text-sm text-slate-400">Running AI analysis on your resume…</p>
-            {!matchResult && !isAnalyzing && <button onClick={()=>runMatch({resumeText, jobDescription: jobDesc})} className="btn-primary" id="run-checker-btn"><Sparkles className="h-4 w-4 inline mr-2" />Analyze Resume</button>}
-            {isAnalyzing && <div className="flex items-center gap-2 text-indigo-400"><Loader2 className="h-5 w-5 animate-spin" /><span>Analyzing…</span></div>}
-            {isError && <p className="text-sm text-red-400">{matchError?.response?.data?.detail||'Backend unavailable.'}</p>}
-          </div>
+          <div className="glass-card p-12 flex flex-col items-center gap-4"><Loader2 className="h-10 w-10 animate-spin text-indigo-400" /><p className="text-slate-300 font-medium">Preparing analysis…</p></div>
         )
       )}
 

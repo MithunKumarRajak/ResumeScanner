@@ -1,4 +1,5 @@
-import { User, GraduationCap, Briefcase, Tag, Pencil } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { User, GraduationCap, Briefcase, Tag, Pencil, Mail, Phone, Linkedin, Github, FileText, Award, FolderKanban, Send } from 'lucide-react'
 import SkillTagInput from './SkillTagInput'
 import useStore from '../store'
 
@@ -15,34 +16,106 @@ function Field({ label, icon: Icon, children }) {
 }
 
 export default function ParsedResumeEditor() {
+  const navigate = useNavigate()
   const parsedResume      = useStore((s) => s.parsedResume)
   const updateParsedResume = useStore((s) => s.updateParsedResume)
+  const setResumeBuildData = useStore((s) => s.setResumeBuildData)
 
   if (!parsedResume) return null
 
-  const { name = '', skills = [], education = '', experience = 0, role = '' } = parsedResume
+  const {
+    name = '', email = '', phone = '', linkedin = '', github = '',
+    skills = [], education = '', experience = 0, role = '',
+    summary = '', projects = '', certifications = ''
+  } = parsedResume
+
+  const handleSendToBuilder = () => {
+    setResumeBuildData(parsedResume)
+    navigate('/resume-build')
+  }
 
   return (
     <div className="glass-card p-6 space-y-5 animate-fade-in">
-      <div className="flex items-center gap-2 mb-1">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/15 text-indigo-400">
-          <Pencil className="h-4 w-4" />
+      {/* Header */}
+      <div className="flex items-center justify-between gap-4 mb-1 flex-wrap">
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/15 text-indigo-400">
+            <Pencil className="h-4 w-4" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-white">Parsed Resume</p>
+            <p className="text-xs text-slate-400">Review and edit extracted information</p>
+          </div>
         </div>
-        <div>
-          <p className="text-sm font-semibold text-white">Parsed Resume</p>
-          <p className="text-xs text-slate-400">Review and edit extracted information</p>
-        </div>
+        <button onClick={handleSendToBuilder} className="btn-primary flex items-center gap-2 px-4 py-2 text-sm" id="send-to-builder-btn">
+          <Send className="h-4 w-4" /> Send to Resume Builder
+        </button>
       </div>
 
-      {/* Name */}
-      <Field label="Full Name" icon={User}>
+      {/* Personal Info */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Field label="Full Name" icon={User}>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => updateParsedResume({ name: e.target.value })}
+            placeholder="Candidate name"
+            className="form-input"
+            id="parsed-name"
+          />
+        </Field>
+        <Field label="Email" icon={Mail}>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => updateParsedResume({ email: e.target.value })}
+            placeholder="email@example.com"
+            className="form-input"
+            id="parsed-email"
+          />
+        </Field>
+        <Field label="Phone" icon={Phone}>
+          <input
+            type="tel"
+            value={phone}
+            onChange={(e) => updateParsedResume({ phone: e.target.value })}
+            placeholder="+91 98765 43210"
+            className="form-input"
+            id="parsed-phone"
+          />
+        </Field>
+        <Field label="LinkedIn" icon={Linkedin}>
+          <input
+            type="url"
+            value={linkedin}
+            onChange={(e) => updateParsedResume({ linkedin: e.target.value })}
+            placeholder="https://linkedin.com/in/..."
+            className="form-input"
+            id="parsed-linkedin"
+          />
+        </Field>
+      </div>
+
+      {/* GitHub */}
+      <Field label="GitHub" icon={Github}>
         <input
-          type="text"
-          value={name}
-          onChange={(e) => updateParsedResume({ name: e.target.value })}
-          placeholder="Candidate name"
+          type="url"
+          value={github}
+          onChange={(e) => updateParsedResume({ github: e.target.value })}
+          placeholder="https://github.com/..."
           className="form-input"
-          id="parsed-name"
+          id="parsed-github"
+        />
+      </Field>
+
+      {/* Professional Summary */}
+      <Field label="Professional Summary" icon={FileText}>
+        <textarea
+          value={summary}
+          onChange={(e) => updateParsedResume({ summary: e.target.value })}
+          placeholder="Brief professional summary or objective..."
+          className="form-textarea min-h-[80px]"
+          id="parsed-summary"
         />
       </Field>
 
@@ -101,6 +174,35 @@ export default function ParsedResumeEditor() {
           id="parsed-role"
         />
       </Field>
+
+      {/* Projects */}
+      <Field label="Projects" icon={FolderKanban}>
+        <textarea
+          value={projects}
+          onChange={(e) => updateParsedResume({ projects: e.target.value })}
+          placeholder="List your key projects..."
+          className="form-textarea min-h-[80px]"
+          id="parsed-projects"
+        />
+      </Field>
+
+      {/* Certifications */}
+      <Field label="Certifications" icon={Award}>
+        <textarea
+          value={certifications}
+          onChange={(e) => updateParsedResume({ certifications: e.target.value })}
+          placeholder="List certifications, e.g. AWS Certified, Google Cloud..."
+          className="form-textarea min-h-[60px]"
+          id="parsed-certifications"
+        />
+      </Field>
+
+      {/* Bottom Send Button */}
+      <div className="flex justify-center pt-2">
+        <button onClick={handleSendToBuilder} className="btn-primary flex items-center gap-2 px-6 py-2.5" id="send-to-builder-bottom-btn">
+          <Send className="h-4 w-4" /> Send to Resume Builder
+        </button>
+      </div>
     </div>
   )
 }

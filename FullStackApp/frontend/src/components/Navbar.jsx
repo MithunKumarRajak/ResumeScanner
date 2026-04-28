@@ -90,10 +90,22 @@ export default function Navbar() {
               </button>
 
               {menuOpen && (
-                <div className="absolute right-0 mt-2 w-44 rounded-xl border border-slate-800 bg-slate-900 p-1 shadow-lg shadow-black/40 animate-fade-in">
+                <div className="absolute right-0 mt-2 w-52 rounded-xl border border-slate-800 bg-slate-900 p-1.5 shadow-lg shadow-black/40 animate-fade-in">
+                  <div className="px-3 py-2 border-b border-slate-800/60 mb-1">
+                    <p className="text-xs font-semibold text-white truncate">{user.name}</p>
+                    <p className="text-[11px] text-slate-500 truncate">{user.email}</p>
+                  </div>
+                  <button
+                    onClick={() => { navigate('/profile'); setMenuOpen(false) }}
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-slate-300 hover:bg-white/5 bg-transparent border-none cursor-pointer"
+                    id="nav-profile-btn"
+                  >
+                    <User className="h-4 w-4" />
+                    Profile & Settings
+                  </button>
                   <button
                     onClick={() => { logout(); setMenuOpen(false) }}
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-slate-200 hover:bg-white/5 bg-transparent border-none cursor-pointer"
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-red-400 hover:bg-red-500/10 bg-transparent border-none cursor-pointer"
                     id="nav-logout-btn"
                   >
                     <LogOut className="h-4 w-4" />

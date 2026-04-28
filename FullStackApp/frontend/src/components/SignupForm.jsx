@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { Mail, Lock, User, ArrowRight, Loader2 } from 'lucide-react'
+import { Mail, Lock, User, ArrowRight, Loader2, AlertCircle } from 'lucide-react'
 import useStore from '../store'
+import { apiSignup } from '../services/api'
 
 export default function SignupForm() {
   const signup = useStore((s) => s.signup)
@@ -24,20 +25,22 @@ export default function SignupForm() {
     }
 
     setLoading(true)
-    await new Promise((r) => setTimeout(r, 800))
-
-    signup({
-      name: name.trim(),
-      email,
-      token: 'mock_token_' + Date.now(),
-    })
-    setLoading(false)
+    try {
+      const userData = await apiSignup(name.trim(), email, password)
+      signup(userData)
+    } catch (err) {
+      const detail = err.response?.data?.detail || 'Signup failed. Please try again.'
+      setError(detail)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
-        <div className="px-4 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+          <AlertCircle className="h-4 w-4 shrink-0" />
           {error}
         </div>
       )}

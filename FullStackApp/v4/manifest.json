@@ -1,0 +1,12 @@
+{
+  "model": "FullStackApp\\v4\\model.pkl",
+  "tfidf": "FullStackApp\\v4\\tfidf.pkl",
+  "encoder": "FullStackApp\\v4\\encoder.pkl",
+  "embedder": null,
+  "resume_embeddings": null,
+  "skills": "FullStackApp\\v4\\skills.txt",
+  "num_samples": 2824,
+  "num_classes": 48,
+  "trained_at": "Mon Apr 27 23:51:10 2026",
+  "accuracy": 0.7150442477876107
+}

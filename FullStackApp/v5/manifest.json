@@ -1,0 +1,25 @@
+{
+  "version": "v5",
+  "trained_at": "Tue Apr 28 00:15:30 2026",
+  "accuracy": 0.6920353982300885,
+  "num_samples": 2824,
+  "num_classes": 46,
+  "training_time_seconds": 7.725205898284912,
+  "features": {
+    "tfidf_dims": 10000,
+    "transformer_dims": 384,
+    "numerical_features": 6,
+    "total_dims": 390
+  },
+  "low_confidence_threshold": 0.6,
+  "low_confidence_samples": 390,
+  "artifacts": {
+    "model": "model.pkl",
+    "tfidf": "tfidf.pkl",
+    "encoder": "encoder.pkl",
+    "features": "feature_stats.pkl",
+    "skills": "skills.txt",
+    "embeddings": "resume_embeddings.npy",
+    "embedder": "embedder.txt"
+  }
+}

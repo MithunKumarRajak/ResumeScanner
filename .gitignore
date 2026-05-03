@@ -20,8 +20,7 @@ build/
 # Include project documentation and the Resume Editor app in version control
 # Used so reports and editor source files are always tracked even if broader
 # ignore rules are added later.
-!Report/
-!Report/**
+
 !Resume_Editor/
 !Resume_Editor/**
 Dataset/

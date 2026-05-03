@@ -16,7 +16,7 @@ _BASE_DIR = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "..", "..", "..", "..")
 )
 
-# ── Lazy singletons ───────────────────────────────────────
+# ── Lazy singletons ──
 _model         = None
 _tfidf         = None
 _label_encoder = None
@@ -66,7 +66,7 @@ def load_models() -> bool:
     return False
 
 
-# ── Text preprocessing (mirrors original main.py) ─────────
+# ── Text preprocessing (mirrors original main.py) ─
 
 def _clean_text(text: str) -> str:
     text = re.sub(r"http\S+|www\S+|https\S+", " ", text, flags=re.MULTILINE)
@@ -86,7 +86,7 @@ def _preprocess(text: str) -> str:
     return " ".join(token.lemma_ for token in doc if not token.is_stop)
 
 
-# ── Public API ────────────────────────────────────────────
+# ── Public API 
 
 def classify_resume(text: str) -> Dict[str, Any]:
     """

@@ -22,7 +22,7 @@ from app.utils.auth        import get_current_active_user
 router = APIRouter(tags=["Jobs"])
 
 
-# ── Helpers ───────────────────────────────────────────────
+# ── Helpers ───
 
 def _get_or_create_skill(db: Session, name: str) -> Skill:
     skill = db.query(Skill).filter(Skill.name == name.lower()).first()
@@ -66,7 +66,7 @@ def _build_job_out(db: Session, job: Job) -> JobOut:
     )
 
 
-# ── Routes ────────────────────────────────────────────────
+# ── Routes ────
 
 @router.post("/jobs", response_model=JobOut, status_code=status.HTTP_201_CREATED)
 def create_job(

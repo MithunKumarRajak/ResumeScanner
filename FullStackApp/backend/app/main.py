@@ -18,10 +18,10 @@ from app.config import settings
 from app.database.base    import Base
 from app.database.session import engine
 
-# ── Import all models so SQLAlchemy sees them ─────────────
+# ── Import all models so SQLAlchemy sees them ─────
 import app.models  # noqa: F401  (triggers __init__.py)
 
-# ── Routes ────────────────────────────────────────────────
+# ── Routes ────
 from app.routes import auth, resume, job, match, recommend, dashboard, candidate, analytics
 
 logging.basicConfig(
@@ -32,11 +32,11 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-# ── Lifespan (startup / shutdown) ─────────────────────────
+# ── Lifespan (startup / shutdown) ─────
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # ── Startup ───────────────────────────────────────────
+    # ── Startup ───
     logger.info("🚀 Starting Resume Screener API v2")
 
     # Create all DB tables (idempotent — does nothing if they exist)
@@ -57,11 +57,11 @@ async def lifespan(app: FastAPI):
 
     yield
 
-    # ── Shutdown ──────────────────────────────────────────
+    # ── Shutdown ──
     logger.info("👋 Shutting down")
 
 
-# ── App factory ───────────────────────────────────────────
+# ── App factory ───
 
 app = FastAPI(
     title       = settings.APP_NAME,
@@ -85,7 +85,7 @@ Production-ready backend with:
     redoc_url   = "/redoc",
 )
 
-# ── CORS ──────────────────────────────────────────────────
+# ── CORS ──────
 app.add_middleware(
     CORSMiddleware,
     allow_origins     = settings.ALLOWED_ORIGINS,
@@ -94,11 +94,11 @@ app.add_middleware(
     allow_headers     = ["*"],
 )
 
-# ── Serve uploaded files as static ────────────────────────
+# ── Serve uploaded files as static ────
 os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
 app.mount("/files", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
 
-# ── Register routers ──────────────────────────────────────
+# ── Register routers ─
 app.include_router(auth.router)
 app.include_router(resume.router)
 app.include_router(job.router)
@@ -108,7 +108,7 @@ app.include_router(dashboard.router)
 app.include_router(candidate.router)
 app.include_router(analytics.router)
 
-# ── Global exception handler ──────────────────────────────
+# ── Global exception handler ─
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     logger.error(f"Unhandled error on {request.url}: {exc}", exc_info=True)
@@ -117,7 +117,7 @@ async def global_exception_handler(request: Request, exc: Exception):
         content     = {"detail": "An internal server error occurred."},
     )
 
-# ── Health & root ─────────────────────────────────────────
+# ── Health & root ─
 @app.get("/health", tags=["System"])
 def health():
     """Liveness check — returns 200 when the server is running."""

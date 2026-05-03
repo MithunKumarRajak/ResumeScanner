@@ -74,9 +74,9 @@ export default function HomePage() {
 
         {/* Stats Row */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full max-w-2xl mb-12 animate-slide-up" style={{ animationDelay: '0.15s' }}>
-          <StatPill icon={FileSearch}  label="Resume Analysis"    value="Real-time"  color="bg-indigo-500/15 text-indigo-400" />
-          <StatPill icon={BarChart3}   label="Match Accuracy"      value="TF-IDF ML" color="bg-violet-500/15 text-violet-400" />
-          <StatPill icon={Shield}      label="Data Stays Local"    value="100%"       color="bg-emerald-500/15 text-emerald-400" />
+          <StatPill icon={FileSearch} label="Resume Analysis" value="Real-time" color="bg-indigo-500/15 text-indigo-400" />
+          <StatPill icon={BarChart3} label="Match Accuracy" value="TF-IDF ML" color="bg-violet-500/15 text-violet-400" />
+          <StatPill icon={Shield} label="Data Stays Secured" value="100%" color="bg-emerald-500/15 text-emerald-400" />
         </div>
 
         {/* Entry Cards */}
@@ -87,10 +87,10 @@ export default function HomePage() {
             title="I'm a Candidate"
             subtitle="Upload your resume, edit parsed data, and match it against a job description."
             accent={{
-              bg:   'bg-indigo-500/15',
+              bg: 'bg-indigo-500/15',
               text: 'text-indigo-400',
-              dot:  'bg-indigo-400',
-              btn:  'bg-indigo-500/15 text-indigo-300 border border-indigo-500/25',
+              dot: 'bg-indigo-400',
+              btn: 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/25',
             }}
             features={[
               'Drag & drop PDF / DOCX upload',
@@ -107,10 +107,10 @@ export default function HomePage() {
             title="I'm a Recruiter"
             subtitle="View ranked candidates, filter by skills or experience, and compare match scores."
             accent={{
-              bg:   'bg-violet-500/15',
+              bg: 'bg-violet-500/15',
               text: 'text-violet-400',
-              dot:  'bg-violet-400',
-              btn:  'bg-violet-500/15 text-violet-300 border border-violet-500/25',
+              dot: 'bg-violet-400',
+              btn: 'bg-violet-500/15 text-violet-300 border border-violet-500/25',
             }}
             features={[
               'Session candidate ranking table',

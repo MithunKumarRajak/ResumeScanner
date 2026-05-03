@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { FileText, User, Mail, Phone, Linkedin, Github, Briefcase, GraduationCap, Tag, Award, FolderKanban, Download, Eye, Pencil, Plus, X, ChevronDown, Save, CheckCircle2 } from 'lucide-react'
+import html2pdf from 'html2pdf.js'
 import useStore from '../store'
 
 const TEMPLATES = [
@@ -33,12 +34,25 @@ function SkillBadge({ skill, onRemove }) {
 }
 
 // ── Resume Preview (right panel) ──
+function hexToRgb(hex) {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+  return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : '99, 102, 241'
+}
+
 function ResumePreview({ data, template }) {
   const accent = TEMPLATES.find(t => t.id === template)?.color || '#6366f1'
+  const accentRgb = hexToRgb(accent)
   const { name, email, phone, linkedin, github, role, summary, skills, education, experience, projects, certifications } = data
 
+  // Ensure skills is always an array
+  const skillsArr = Array.isArray(skills)
+    ? skills
+    : typeof skills === 'string' && skills.length > 0
+      ? skills.split(/[,|;]+/).map(s => s.trim()).filter(Boolean)
+      : []
+
   return (
-    <div className="bg-white text-gray-900 rounded-2xl shadow-2xl overflow-hidden" style={{ minHeight: '700px' }} id="resume-preview">
+    <div className="bg-white text-gray-900 rounded-2xl shadow-2xl overflow-hidden" style={{ minHeight: '700px', wordBreak: 'break-word', overflowWrap: 'anywhere' }} id="resume-preview">
       {/* Header */}
       <div className="px-8 py-6" style={{ background: accent }}>
         <h1 className="text-2xl font-bold text-white">{name || 'Your Name'}</h1>
@@ -61,12 +75,12 @@ function ResumePreview({ data, template }) {
         )}
 
         {/* Skills */}
-        {skills?.length > 0 && (
+        {skillsArr.length > 0 && (
           <div>
             <h2 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: accent }}>Skills</h2>
-            <div className="flex flex-wrap gap-1.5">
-              {skills.map(s => (
-                <span key={s} className="px-2 py-0.5 rounded-md text-xs font-medium" style={{ background: `${accent}15`, color: accent, border: `1px solid ${accent}30` }}>{s}</span>
+            <div className="flex flex-wrap gap-2">
+              {skillsArr.map(s => (
+                <span key={s} className="px-2.5 py-1 rounded-md text-xs font-medium" style={{ background: `rgba(${accentRgb}, 0.1)`, color: accent, border: `1px solid rgba(${accentRgb}, 0.25)` }}>{s}</span>
               ))}
             </div>
           </div>
@@ -92,7 +106,7 @@ function ResumePreview({ data, template }) {
         {projects && (
           <div>
             <h2 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: accent }}>Projects</h2>
-            <p className="text-gray-700 whitespace-pre-line leading-relaxed">{projects}</p>
+            <p className="text-gray-700 whitespace-pre-line leading-relaxed" style={{ overflowWrap: 'anywhere' }}>{projects}</p>
           </div>
         )}
 
@@ -100,7 +114,7 @@ function ResumePreview({ data, template }) {
         {certifications && (
           <div>
             <h2 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: accent }}>Certifications</h2>
-            <p className="text-gray-700 whitespace-pre-line">{certifications}</p>
+            <p className="text-gray-700 whitespace-pre-line" style={{ overflowWrap: 'anywhere' }}>{certifications}</p>
           </div>
         )}
       </div>
@@ -170,19 +184,29 @@ export default function ResumeBuildPage() {
   const handleDownload = () => {
     const el = document.getElementById('resume-preview')
     if (!el) return
-    const printWin = window.open('', '_blank')
-    printWin.document.write(`<!DOCTYPE html><html><head><title>${data.name || 'Resume'}</title>
-      <style>*{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',system-ui,sans-serif}body{background:#fff}
-      .header{padding:32px;color:#fff}.content{padding:32px}h1{font-size:24px;font-weight:700}
-      h2{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px}
-      p{font-size:13px;line-height:1.6;color:#374151}.section{margin-bottom:20px}
-      .badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:500;margin:2px}
-      .contact{display:flex;gap:16px;font-size:11px;margin-top:12px;opacity:0.8;flex-wrap:wrap}
-      @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body>`)
-    printWin.document.write(el.innerHTML)
-    printWin.document.write('</body></html>')
-    printWin.document.close()
-    setTimeout(() => { printWin.print() }, 300)
+    
+    // Create a wrapper to enforce A4/Letter size exactly for the PDF
+    const wrapper = document.createElement('div');
+    wrapper.style.width = '800px'; 
+    wrapper.style.backgroundColor = 'white';
+    wrapper.innerHTML = el.innerHTML;
+    // Hide rounded corners and shadows for the print version
+    wrapper.style.borderRadius = '0px';
+    wrapper.style.boxShadow = 'none';
+    wrapper.style.color = '#111827';
+    document.body.appendChild(wrapper);
+
+    const opt = {
+      margin:       0,
+      filename:     `${data.name || 'Resume'}.pdf`,
+      image:        { type: 'jpeg', quality: 1 },
+      html2canvas:  { scale: 2, useCORS: true, windowWidth: 800 },
+      jsPDF:        { unit: 'px', format: [800, wrapper.scrollHeight || 1131], orientation: 'portrait' }
+    };
+
+    html2pdf().from(wrapper).set(opt).save().then(() => {
+      document.body.removeChild(wrapper);
+    });
   }
 
   return (

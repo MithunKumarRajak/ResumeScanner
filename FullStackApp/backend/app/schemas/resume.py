@@ -10,7 +10,7 @@ class SkillOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
-# ── Create / Update ───────────────────────────────────────
+# ── Create / Update ──
 class ResumeUpdate(BaseModel):
     """Fields the user can edit after parsing."""
     parsed_name:      Optional[str]       = None
@@ -20,7 +20,7 @@ class ResumeUpdate(BaseModel):
     skills:           Optional[List[str]] = None   # replaces skill list
 
 
-# ── Full Response ─────────────────────────────────────────
+# ── Full Response ─
 class ResumeOut(BaseModel):
     id:                 str
     user_id:            str
@@ -40,7 +40,7 @@ class ResumeOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
-# ── Short form for lists / ranking ────────────────────────
+# ── Short form for lists / ranking ────
 class ResumeSummary(BaseModel):
     id:                 str
     parsed_name:        Optional[str]
@@ -51,7 +51,7 @@ class ResumeSummary(BaseModel):
     model_config = {"from_attributes": True}
 
 
-# ── Parsed data returned immediately after upload ─────────
+# ── Parsed data returned immediately after upload ─
 class ParsedResumeOut(BaseModel):
     resume_id:          str
     status:             str

@@ -15,10 +15,10 @@ from app.database.session import get_db
 from app.models.user import User
 from app.schemas.user import TokenData
 
-# ── Password hashing ──────────────────────────────────────
+# ── Password hashing ─
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# ── OAuth2 bearer token ───────────────────────────────────
+# ── OAuth2 bearer token ──────
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 
 
@@ -30,7 +30,7 @@ def verify_password(plain: str, hashed: str) -> bool:
     return pwd_context.verify(plain, hashed)
 
 
-# ── JWT ───────────────────────────────────────────────────
+# ── JWT ───────
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
     expire = datetime.utcnow() + (
@@ -57,7 +57,7 @@ def verify_token(token: str) -> TokenData:
         raise credentials_exc
 
 
-# ── FastAPI dependency ────────────────────────────────────
+# ── FastAPI dependency ───────
 def get_current_user(
     token: str = Depends(oauth2_scheme),
     db:    Session = Depends(get_db),

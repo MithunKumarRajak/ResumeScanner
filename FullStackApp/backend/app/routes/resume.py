@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Resumes"])
 
 
-# ── Helpers ───────────────────────────────────────────────
+# ── Helpers ───
 
 def _get_or_create_skill(db: Session, name: str) -> Skill:
     skill = db.query(Skill).filter(Skill.name == name.lower()).first()
@@ -58,7 +58,7 @@ def _resume_skill_names(db: Session, resume_id: str) -> List[str]:
     return [r.name for r in rows]
 
 
-# ── Background task: parse + classify ─────────────────────
+# ── Background task: parse + classify ─
 
 def _parse_and_classify(resume_id: str, file_url: str, db_factory):
     """Runs after the upload response is sent."""
@@ -103,7 +103,7 @@ def _parse_and_classify(resume_id: str, file_url: str, db_factory):
         db.close()
 
 
-# ── Routes ────────────────────────────────────────────────
+# ── Routes ────
 
 @router.post("/upload-resume", response_model=ParsedResumeOut, status_code=status.HTTP_202_ACCEPTED)
 async def upload_resume(

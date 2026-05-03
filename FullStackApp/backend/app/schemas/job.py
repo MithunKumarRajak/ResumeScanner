@@ -3,7 +3,7 @@ from typing import Optional, List
 from datetime import datetime
 
 
-# ── Create ────────────────────────────────────────────────
+# ── Create ────
 class JobCreate(BaseModel):
     title:          str
     description:    str
@@ -14,7 +14,7 @@ class JobCreate(BaseModel):
     location:        Optional[str] = None
 
 
-# ── Update ────────────────────────────────────────────────
+# ── Update ────
 class JobUpdate(BaseModel):
     title:           Optional[str]       = None
     description:     Optional[str]       = None
@@ -26,7 +26,7 @@ class JobUpdate(BaseModel):
     is_active:       Optional[bool]      = None
 
 
-# ── Response ──────────────────────────────────────────────
+# ── Response ──
 class JobOut(BaseModel):
     id:             str
     created_by:     str

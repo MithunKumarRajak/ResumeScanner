@@ -10,7 +10,7 @@ Combines multiple signals into a single 0–100 score:
 from typing import Dict, Any, List, Optional
 
 
-# ── Weight configuration ──────────────────────────────────
+# ── Weight configuration ─────
 WEIGHTS = {
     "skill":      0.40,
     "experience": 0.30,

@@ -5,14 +5,14 @@ import {
 } from 'lucide-react'
 import { aiGenerateJD, aiRefineJD } from '../services/api'
 
-/* ── Constants ──────────────────────────────────────────── */
-const DEPARTMENTS  = ['Engineering', 'Design', 'Product', 'Marketing', 'Data Science', 'DevOps', 'Sales']
-const EXP_LEVELS   = ['Entry Level (0-2 yrs)', 'Mid Level (3-5 yrs)', 'Senior (5-8 yrs)', 'Lead / Principal (8+ yrs)']
-const WORK_MODES   = ['On-site', 'Hybrid', 'Remote']
-const TONES        = ['Professional & Direct', 'Energetic & Visionary', 'Casual & Approachable', 'Technical & Academic']
-const FOCUS_AREAS  = ['Culture & Impact', 'Technical Depth', 'Growth & Leadership']
+/* ── Constants  */
+const DEPARTMENTS = ['Engineering', 'Design', 'Product', 'Marketing', 'Data Science', 'DevOps', 'Sales']
+const EXP_LEVELS = ['Entry Level (0-2 yrs)', 'Mid Level (3-5 yrs)', 'Senior (5-8 yrs)', 'Lead / Principal (8+ yrs)']
+const WORK_MODES = ['On-site', 'Hybrid', 'Remote']
+const TONES = ['Professional & Direct', 'Energetic & Visionary', 'Casual & Approachable', 'Technical & Academic']
+const FOCUS_AREAS = ['Culture & Impact', 'Technical Depth', 'Growth & Leadership']
 
-/* ── Pill selector ──────────────────────────────────────── */
+/* ── Pill selector  */
 function PillSelect({ options, value, onChange }) {
   return (
     <div className="flex flex-wrap gap-2">
@@ -33,12 +33,12 @@ function PillSelect({ options, value, onChange }) {
   )
 }
 
-/* ── Sample generated content ───────────────────────────── */
+/* ── Sample generated content  */
 function sampleOutput(title, dept, expLevel, workMode) {
   return {
-    title:    title || 'Senior Frontend Engineer',
-    meta:     `${dept || 'Engineering'} • ${workMode || 'Hybrid'} • ${expLevel || 'Senior'}`,
-    about:    `We are looking for a visionary ${title || 'Senior Frontend Engineer'} to join our core product team. In this role, you will be instrumental in architecting highly responsive, accessible, and performant user interfaces that empower HR professionals worldwide. You will bridge the gap between complex AI data structures and intuitive human experiences.`,
+    title: title || 'Senior Frontend Engineer',
+    meta: `${dept || 'Engineering'} • ${workMode || 'Hybrid'} • ${expLevel || 'Senior'}`,
+    about: `We are looking for a visionary ${title || 'Senior Frontend Engineer'} to join our core product team. In this role, you will be instrumental in architecting highly responsive, accessible, and performant user interfaces that empower HR professionals worldwide. You will bridge the gap between complex AI data structures and intuitive human experiences.`,
     tasks: [
       'Lead the technical design and implementation of new features using React and modern CSS architectures.',
       'Collaborate closely with UX/UI designers to translate high-fidelity prototypes into pixel-perfect, interactive components.',
@@ -54,21 +54,21 @@ function sampleOutput(title, dept, expLevel, workMode) {
   }
 }
 
-/* ── Main Page ──────────────────────────────────────────── */
+/* ── Main Page  */
 export default function AIGeneratorPage() {
-  const [jobTitle,    setJobTitle]    = useState('')
-  const [department,  setDepartment]  = useState('Engineering')
-  const [expLevel,    setExpLevel]    = useState('Senior (5-8 yrs)')
-  const [workMode,    setWorkMode]    = useState('Hybrid')
-  const [rawNotes,    setRawNotes]    = useState('')
-  const [tone,        setTone]        = useState('Energetic & Visionary')
-  const [focusArea,   setFocusArea]   = useState('Culture & Impact')
+  const [jobTitle, setJobTitle] = useState('')
+  const [department, setDepartment] = useState('Engineering')
+  const [expLevel, setExpLevel] = useState('Senior (5-8 yrs)')
+  const [workMode, setWorkMode] = useState('Hybrid')
+  const [rawNotes, setRawNotes] = useState('')
+  const [tone, setTone] = useState('Energetic & Visionary')
+  const [focusArea, setFocusArea] = useState('Culture & Impact')
   const [isGenerating, setIsGenerating] = useState(false)
-  const [generated,   setGenerated]   = useState(null)
-  const [refineText,  setRefineText]  = useState('')
-  const [copied,      setCopied]      = useState(false)
-  const [error,       setError]       = useState('')
-  const [isRefining,  setIsRefining]  = useState(false)
+  const [generated, setGenerated] = useState(null)
+  const [refineText, setRefineText] = useState('')
+  const [copied, setCopied] = useState(false)
+  const [error, setError] = useState('')
+  const [isRefining, setIsRefining] = useState(false)
 
   const handleGenerate = async () => {
     if (!jobTitle.trim()) { setError('Please enter a job title'); return }
@@ -117,7 +117,7 @@ export default function AIGeneratorPage() {
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-8 max-w-7xl mx-auto space-y-8">
 
-      {/* ── Header ──────────────────────────────────────────── */}
+      {/* ── Header  */}
       <div className="animate-slide-up">
         <div className="flex items-center gap-3 mb-2">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/15 text-indigo-400">
@@ -134,10 +134,10 @@ export default function AIGeneratorPage() {
         </div>
       </div>
 
-      {/* ── Two-column layout ───────────────────────────────── */}
+      {/* ── Two-column layout ──── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
-        {/* ──────────────────── LEFT: Input & Config ──────── */}
+        {/*  LEFT: Input & Config  */}
         <div className="lg:col-span-5 space-y-5 animate-slide-up" style={{ animationDelay: '0.08s' }}>
 
           {/* Role Details Card */}
@@ -282,10 +282,10 @@ export default function AIGeneratorPage() {
           </button>
         </div>
 
-        {/* ──────────────────── RIGHT: Output Preview ────── */}
+        {/*  RIGHT: Output Preview ────── */}
         <div className="lg:col-span-7 animate-slide-up" style={{ animationDelay: '0.12s' }}>
           <div className="glass-card flex flex-col overflow-hidden relative"
-               style={{ minHeight: '680px' }}>
+            style={{ minHeight: '680px' }}>
 
             {/* Card Header */}
             <div className="px-6 py-4 border-b border-slate-700/40 flex justify-between items-center bg-slate-800/30">

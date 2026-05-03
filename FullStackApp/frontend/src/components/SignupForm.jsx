@@ -1,10 +1,13 @@
 import { useState } from 'react'
-import { Mail, Lock, User, ArrowRight, Loader2, AlertCircle } from 'lucide-react'
+import { Mail, Lock, User, ArrowRight, Loader2, AlertCircle, Cpu, Users } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import useStore from '../store'
 import { apiSignup } from '../services/api'
 
 export default function SignupForm() {
   const signup = useStore((s) => s.signup)
+  const navigate = useNavigate()
+  const [role, setRole] = useState('candidate')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -26,8 +29,9 @@ export default function SignupForm() {
 
     setLoading(true)
     try {
-      const userData = await apiSignup(name.trim(), email, password)
+      const userData = await apiSignup(name.trim(), email, password, role)
       signup(userData)
+      navigate(role === 'recruiter' ? '/recruiter' : '/candidate')
     } catch (err) {
       const detail = err.response?.data?.detail || 'Signup failed. Please try again.'
       setError(detail)
@@ -45,6 +49,39 @@ export default function SignupForm() {
         </div>
       )}
 
+      {/* Role Selector */}
+      <div>
+        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">I am a</p>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => setRole('candidate')}
+            className={`flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold cursor-pointer border transition-all ${
+              role === 'candidate'
+                ? 'bg-indigo-500/15 border-indigo-500/40 text-indigo-300 shadow-sm shadow-indigo-500/10'
+                : 'bg-transparent border-slate-700/50 text-slate-400 hover:border-slate-600 hover:text-slate-300'
+            }`}
+            id="signup-role-candidate"
+          >
+            <Cpu className="h-4 w-4" />
+            Candidate
+          </button>
+          <button
+            type="button"
+            onClick={() => setRole('recruiter')}
+            className={`flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold cursor-pointer border transition-all ${
+              role === 'recruiter'
+                ? 'bg-violet-500/15 border-violet-500/40 text-violet-300 shadow-sm shadow-violet-500/10'
+                : 'bg-transparent border-slate-700/50 text-slate-400 hover:border-slate-600 hover:text-slate-300'
+            }`}
+            id="signup-role-recruiter"
+          >
+            <Users className="h-4 w-4" />
+            Recruiter
+          </button>
+        </div>
+      </div>
+
       <div className="relative">
         <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
         <input
@@ -53,7 +90,7 @@ export default function SignupForm() {
           placeholder="Full name"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="w-full pl-11 pr-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/20 transition-all"
+          className="w-full pl-11 pr-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition-all"
         />
       </div>
 
@@ -65,7 +102,7 @@ export default function SignupForm() {
           placeholder="Email address"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full pl-11 pr-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/20 transition-all"
+          className="w-full pl-11 pr-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition-all"
         />
       </div>
 
@@ -77,7 +114,7 @@ export default function SignupForm() {
           placeholder="Password (min 6 chars)"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full pl-11 pr-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/20 transition-all"
+          className="w-full pl-11 pr-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition-all"
         />
       </div>
 
@@ -85,12 +122,13 @@ export default function SignupForm() {
         type="submit"
         disabled={loading}
         className="btn-primary w-full flex items-center justify-center gap-2 text-sm"
+        id="signup-submit-btn"
       >
         {loading ? (
           <Loader2 className="w-4 h-4 animate-spin" />
         ) : (
           <>
-            Create Account <ArrowRight className="w-4 h-4" />
+            Create {role === 'recruiter' ? 'Recruiter' : 'Candidate'} Account <ArrowRight className="w-4 h-4" />
           </>
         )}
       </button>

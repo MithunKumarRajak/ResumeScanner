@@ -13,9 +13,9 @@ import useStore from '../store'
 const ALLOWED = ['application/pdf','application/vnd.openxmlformats-officedocument.wordprocessingml.document']
 const MAX_SIZE = 5 * 1024 * 1024
 const FALLBACK_MODELS = [
-  { id: 'ResumeModel_v5', name: 'Model v5 (Latest)', desc: 'Hybrid adaptive model with semantic support' },
-  { id: 'ResumeModel_v2', name: 'Model v2 (Base)', desc: 'KNN + OneVsRest classifier' },
-  { id: 'ResumeModel_v3', name: 'Model v3 (New ✨)', desc: 'Enhanced Linear SVM pipeline' },
+  { id: 'ResumeModel_v2', name: 'Base Model', desc: 'KNN + OneVsRest (TF-IDF 5K features)' },
+  { id: 'ResumeModel_v3', name: 'Updated Model', desc: 'Linear SVM + balanced classes (TF-IDF 10K features)' },
+  { id: 'ResumeModel_v5', name: 'Latest Model', desc: 'Adaptive hybrid model with semantic and feature support' },
 ]
 const ROLE_KEYWORDS = [
   'software engineer',
@@ -96,18 +96,18 @@ function CardModelSelector({ value, onChange, models }) {
   }, [])
 
   return (
-    <div className="relative mt-4" ref={dropRef} style={{ zIndex: open ? 60 : 'auto', overflow: 'visible' }}>
+    <div className="mt-4" ref={dropRef}>
       <button onClick={()=>setOpen(!open)} className="flex w-full items-center justify-between rounded-xl border border-slate-700/60 bg-slate-900/50 px-4 py-2.5 text-sm cursor-pointer transition-all hover:border-slate-600" id="candidate-model-selector">
         <div className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-indigo-400" /><span className="font-medium text-slate-200">{cur.name}</span></div>
         <ChevronDown className={`h-4 w-4 text-slate-500 transition-transform ${open?'rotate-180':''}`} />
       </button>
       {open && (
-        <div className="absolute left-0 right-0 bottom-full mb-1.5 rounded-xl border border-slate-700/80 bg-[rgba(15,23,42,0.99)] p-1.5 shadow-2xl shadow-black/80 backdrop-blur-xl animate-fade-in" style={{ zIndex: 100 }}>
+        <div className="mt-1.5 rounded-xl border border-slate-700/80 bg-slate-900/80 p-1.5 animate-fade-in">
           {safeModels.map(m=>(
             <button key={m.id} onClick={()=>{onChange(m.id);setOpen(false)}}
-              className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm cursor-pointer border-none transition-all ${value===m.id?'bg-indigo-500/15 text-indigo-300':'bg-transparent text-slate-400 hover:bg-white/5 hover:text-white'}`}>
-              <div><p className="font-semibold">{m.name}</p><p className="text-[11px] opacity-60 mt-0.5">{m.desc}</p></div>
-              {value===m.id && <CheckCircle2 className="h-4 w-4 text-indigo-400 shrink-0" />}
+              className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm cursor-pointer border-none transition-all ${value===m.id?'bg-indigo-500/15 text-indigo-300':'bg-transparent text-slate-400 hover:bg-white/5 hover:text-white'}`}>
+              <div><p className="font-semibold text-xs">{m.name}</p><p className="text-[10px] opacity-60 mt-0.5">{m.desc}</p></div>
+              {value===m.id && <CheckCircle2 className="h-3.5 w-3.5 text-indigo-400 shrink-0" />}
             </button>
           ))}
         </div>
@@ -189,7 +189,24 @@ async function extractFileText(file) {
       for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i)
         const content = await page.getTextContent()
-        text += content.items.map(it => it.str).join(' ') + '\n'
+        // Use transform positions to detect line breaks
+        let lastY = null
+        let lineText = ''
+        for (const item of content.items) {
+          const y = item.transform ? item.transform[5] : null
+          if (lastY !== null && y !== null && Math.abs(y - lastY) > 2) {
+            // New line detected
+            text += lineText.trim() + '\n'
+            lineText = ''
+          }
+          // Add space between items on same line if needed
+          if (lineText && !lineText.endsWith(' ') && !item.str.startsWith(' ')) {
+            lineText += ' '
+          }
+          lineText += item.str
+          lastY = y
+        }
+        if (lineText.trim()) text += lineText.trim() + '\n'
       }
       return text.trim()
     } finally { URL.revokeObjectURL(url) }
@@ -248,9 +265,15 @@ function extractResumeFields(text = '') {
 
   const expMatch = text.match(/(\d+)\s*\+?\s*years?/i)
   const experience = expMatch ? Math.min(parseInt(expMatch[1]),20) : 0
-  const skillKeywords = ['python','java','javascript','react','node','angular','vue','typescript','sql','mysql','postgresql','mongodb','aws','azure','docker','kubernetes','git','linux','machine learning','deep learning','tensorflow','pytorch','flask','django','fastapi','c++','c#','html','css','rest','api']
+  const skillKeywords = ['python','javascript','typescript','react','node','angular','vue','java','sql','mysql','postgresql','mongodb','aws','azure','docker','kubernetes','git','linux','machine learning','deep learning','tensorflow','pytorch','flask','django','fastapi','c\\+\\+','c#','html','css','rest api','rest','api']
   const lower = text.toLowerCase()
-  const skills = skillKeywords.filter(k=>lower.includes(k))
+  // Use word-boundary matching to avoid 'java' matching inside 'javascript'
+  const matchedSkills = new Set()
+  for (const k of skillKeywords) {
+    const pattern = new RegExp(`(?:^|[\\s,;|•·/])${k}(?:$|[\\s,;|•·/])`, 'i')
+    if (pattern.test(lower)) matchedSkills.add(k.replace(/\\\+/g, '+'))
+  }
+  const skills = [...matchedSkills]
 
   // ── Role (only match short lines, not giant text blobs) ──
   const shortLines = cleanedLines.filter(l => l.length < 80)
@@ -315,7 +338,7 @@ export default function CandidatePage() {
           .filter((m) => m.available)
           .map((m) => ({
             id: m.id,
-            name: `${m.id}${m.badge ? ` (${m.badge})` : ''}`,
+            name: m.badge || m.id,
             desc: m.description || m.algorithm || 'Model available',
           }))
 

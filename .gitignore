@@ -25,3 +25,26 @@ build/
 !Resume_Editor/
 !Resume_Editor/**
 Dataset/
+
+# Ignored files
+Report/
+
+# Databases
+*.sqlite
+*.sqlite3
+*.db
+!Thumbs.db
+resume_screener.db
+
+# Environments
+.env
+.env.*
+!.env.example
+
+# Uploads
+uploads/
+/FullStackApp/backend/uploads/
+
+# IDE
+.vscode/
+.idea/

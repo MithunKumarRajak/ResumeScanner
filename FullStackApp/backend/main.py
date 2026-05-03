@@ -13,6 +13,7 @@ import json
 import hashlib
 import sqlite3
 import secrets
+import requests
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -20,7 +21,7 @@ from pathlib import Path
 app = FastAPI(title="Resume Screener", version="2.0")
 security = HTTPBearer(auto_error=False)
 
-# ── SQLite Auth Database ─────────────────────────────────────────────────────
+# ── SQLite Auth Database ─
 DB_PATH = Path(__file__).resolve().parent / "resume_screener.db"
 
 def get_db():
@@ -35,9 +36,15 @@ def init_auth_db():
         name TEXT NOT NULL,
         email TEXT UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
+        role TEXT NOT NULL DEFAULT 'candidate',
         token TEXT,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
     )""")
+    # Add role column if missing (existing databases)
+    try:
+        conn.execute("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'candidate'")
+    except Exception:
+        pass  # column already exists
     conn.execute("""CREATE TABLE IF NOT EXISTS user_data (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL,
@@ -66,7 +73,7 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
         raise HTTPException(status_code=401, detail="Not authenticated")
     token = credentials.credentials
     conn = get_db()
-    user = conn.execute("SELECT id, name, email FROM users WHERE token = ?", (token,)).fetchone()
+    user = conn.execute("SELECT id, name, email, role FROM users WHERE token = ?", (token,)).fetchone()
     conn.close()
     if not user:
         raise HTTPException(status_code=401, detail="Invalid token")
@@ -77,10 +84,12 @@ class SignupRequest(BaseModel):
     name: str
     email: str
     password: str
+    role: str = 'candidate'
 
 class LoginRequest(BaseModel):
     email: str
     password: str
+    role: Optional[str] = None
 
 class ProfileUpdateRequest(BaseModel):
     name: Optional[str] = None
@@ -110,7 +119,7 @@ class JDRefineRequest(BaseModel):
     current_jd: dict  # the generated JD object
     instruction: str  # user's refinement instruction
 
-# ── Gemini AI Client ─────────────────────────────────────────────────────────
+# ── Gemini AI Client ─────
 _gemini_model = None
 
 def _get_gemini():
@@ -131,6 +140,30 @@ def _get_gemini():
         print(f"[WARN] Gemini init failed: {e}")
         return None
 
+def _call_groq_api(prompt: str) -> Optional[str]:
+    from dotenv import load_dotenv
+    load_dotenv()
+    api_key = os.getenv('Groq_api_key', '').strip()
+    if not api_key:
+        return None
+    url = "https://api.groq.com/openai/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+    data = {
+        "model": "llama-3.3-70b-versatile",
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": 0.7
+    }
+    try:
+        response = requests.post(url, headers=headers, json=data, timeout=30)
+        response.raise_for_status()
+        return response.json()['choices'][0]['message']['content']
+    except Exception as e:
+        print(f"[WARN] Groq API call failed: {e}")
+        return None
+
 
 # Enable CORS for frontend communication
 app.add_middleware(
@@ -145,7 +178,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ── Multi-model support ──────────────────────────────────────────────────────
+# ── Multi-model support ──
 # Each model version stores its own (model, tfidf, label_encoder) tuple
 loaded_models = {}   # { "v2": {...}, "v3": {...} }
 nlp = None
@@ -181,23 +214,23 @@ class _FallbackEmbedder:
 MODEL_REGISTRY = {
     "ResumeModel_v2": {
         "dir": "..",          # relative to backend/
-        "description": "Base model — KNN + OneVsRest (TF-IDF 5K features)",
+        "description": "KNN + OneVsRest (TF-IDF 5K features)",
         "algorithm": "OneVsRestClassifier(KNeighborsClassifier)",
-        "badge": "Active",
+        "badge": "Base Model",
         "model_type": "classic_tfidf",
     },
     "ResumeModel_v3": {
         "dir": os.path.join("..", "v3"),
-        "description": "Enhanced — Linear SVM + balanced classes (TF-IDF 10K features)",
+        "description": "Linear SVM + balanced classes (TF-IDF 10K features)",
         "algorithm": "OneVsRestClassifier(CalibratedClassifierCV(SGDClassifier))",
-        "badge": "New",
+        "badge": "Updated Model",
         "model_type": "classic_tfidf",
     },
     "ResumeModel_v5": {
         "dir": os.path.join("..", "v5"),
-        "description": "Final — adaptive hybrid model with semantic and feature support",
+        "description": "Adaptive hybrid model with semantic and feature support",
         "algorithm": "OneVsRestClassifier(CalibratedClassifierCV(SGDClassifier))",
-        "badge": "Final",
+        "badge": "Latest Model",
         "model_type": "hybrid_adaptive",
     },
 }
@@ -539,7 +572,7 @@ def get_categories(model_version: Optional[str] = None):
     return {"categories": []}
 
 
-# ── Auth Endpoints ───────────────────────────────────────────────────────────
+# ── Auth Endpoints ───────
 @app.post("/auth/signup")
 def auth_signup(req: SignupRequest):
     if not req.name.strip() or not req.email.strip() or not req.password.strip():
@@ -553,12 +586,13 @@ def auth_signup(req: SignupRequest):
         raise HTTPException(status_code=409, detail="Email already registered")
     token = secrets.token_hex(32)
     pw_hash = hash_password(req.password)
-    conn.execute("INSERT INTO users (name, email, password_hash, token) VALUES (?, ?, ?, ?)",
-                 (req.name.strip(), req.email.lower().strip(), pw_hash, token))
+    role = req.role if req.role in ('candidate', 'recruiter') else 'candidate'
+    conn.execute("INSERT INTO users (name, email, password_hash, role, token) VALUES (?, ?, ?, ?, ?)",
+                 (req.name.strip(), req.email.lower().strip(), pw_hash, role, token))
     conn.commit()
-    user = conn.execute("SELECT id, name, email FROM users WHERE token = ?", (token,)).fetchone()
+    user = conn.execute("SELECT id, name, email, role FROM users WHERE token = ?", (token,)).fetchone()
     conn.close()
-    return {"user": {"id": user["id"], "name": user["name"], "email": user["email"], "token": token}}
+    return {"user": {"id": user["id"], "name": user["name"], "email": user["email"], "role": user["role"], "token": token}}
 
 
 @app.post("/auth/login")
@@ -574,7 +608,7 @@ def auth_login(req: LoginRequest):
     conn.execute("UPDATE users SET token = ? WHERE id = ?", (token, user["id"]))
     conn.commit()
     conn.close()
-    return {"user": {"id": user["id"], "name": user["name"], "email": user["email"], "token": token}}
+    return {"user": {"id": user["id"], "name": user["name"], "email": user["email"], "role": user["role"] if "role" in user.keys() else "candidate", "token": token}}
 
 
 @app.get("/auth/me")
@@ -646,7 +680,7 @@ def delete_account(req: DeleteAccountRequest, user: dict = Depends(get_current_u
     return {"status": "account_deleted"}
 
 
-# ── User Data Endpoints ──────────────────────────────────────────────────────
+# ── User Data Endpoints ──
 @app.post("/user/data")
 def save_user_data(req: UserDataRequest, user: dict = Depends(get_current_user)):
     """Save user data (parsed_resume, resume_build, job_description, etc.)"""
@@ -685,17 +719,10 @@ def get_all_user_data(user: dict = Depends(get_current_user)):
     return result
 
 
-# ── AI Generation Endpoints ──────────────────────────────────────────────────
+# ── AI Generation Endpoints ──────
 @app.post("/ai/generate-jd")
 def ai_generate_jd(req: JDGenerateRequest):
-    """Generate a job description using Gemini AI."""
-    model = _get_gemini()
-    if model is None:
-        raise HTTPException(
-            status_code=503,
-            detail="Gemini API key not configured. Add GEMINI_API_KEY to backend/.env file. Get a free key at https://aistudio.google.com/apikey"
-        )
-
+    """Generate a job description using Gemini or Groq AI."""
     prompt = f"""You are an expert HR recruiter and job description writer.
 Generate a compelling, detailed job description based on these parameters:
 
@@ -720,9 +747,25 @@ Make the description specific, engaging, and optimized for attracting top talent
 Use the specified tone throughout. Focus on the specified focus area.
 """
 
+    text = None
     try:
-        response = model.generate_content(prompt)
-        text = response.text.strip()
+        model = _get_gemini()
+        if model is not None:
+            response = model.generate_content(prompt)
+            text = response.text.strip()
+    except Exception as e:
+        print(f"[WARN] Gemini generation failed: {e}")
+
+    if text is None:
+        text = _call_groq_api(prompt)
+
+    if text is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Both Gemini and Groq APIs failed or are not configured. Please check your API keys."
+        )
+
+    try:
         # Clean markdown code blocks if present
         if text.startswith('```'):
             text = text.split('\n', 1)[1] if '\n' in text else text[3:]
@@ -752,14 +795,7 @@ Use the specified tone throughout. Focus on the specified focus area.
 
 @app.post("/ai/refine-jd")
 def ai_refine_jd(req: JDRefineRequest):
-    """Refine an existing job description using Gemini AI."""
-    model = _get_gemini()
-    if model is None:
-        raise HTTPException(
-            status_code=503,
-            detail="Gemini API key not configured. Add GEMINI_API_KEY to backend/.env file."
-        )
-
+    """Refine an existing job description using Gemini or Groq AI."""
     current_json = json.dumps(req.current_jd, indent=2)
     prompt = f"""You are an expert HR recruiter. Here is a current job description as JSON:
 
@@ -773,9 +809,25 @@ Respond ONLY with the complete updated JSON object (no markdown, no code blocks,
 Keep the same JSON structure with fields: title, meta, about, tasks (array), requirements (array).
 """
 
+    text = None
     try:
-        response = model.generate_content(prompt)
-        text = response.text.strip()
+        model = _get_gemini()
+        if model is not None:
+            response = model.generate_content(prompt)
+            text = response.text.strip()
+    except Exception as e:
+        print(f"[WARN] Gemini refinement failed: {e}")
+
+    if text is None:
+        text = _call_groq_api(prompt)
+
+    if text is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Both Gemini and Groq APIs failed or are not configured. Please check your API keys."
+        )
+
+    try:
         if text.startswith('```'):
             text = text.split('\n', 1)[1] if '\n' in text else text[3:]
         if text.endswith('```'):

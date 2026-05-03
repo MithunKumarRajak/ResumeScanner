@@ -6,7 +6,7 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 })
 
-// ── Request interceptor ──────────────────────────────────
+// ── Request interceptor ─────
 api.interceptors.request.use(
   (config) => {
     const user = JSON.parse(localStorage.getItem('rs_user') || 'null')
@@ -18,7 +18,7 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 )
 
-// ── Response interceptor ─────────────────────────────────
+// ── Response interceptor ────
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -29,7 +29,7 @@ api.interceptors.response.use(
   }
 )
 
-// ── Typed helpers ────────────────────────────────────────
+// ── Typed helpers 
 
 /**
  * Predict resume category and optionally compute match score.
@@ -64,9 +64,9 @@ export async function getCategories() {
   return data.categories || []
 }
 
-// ── Auth APIs ──────────────────────────────────────────────
-export async function apiSignup(name, email, password) {
-  const { data } = await api.post('/auth/signup', { name, email, password })
+// ── Auth APIs ──
+export async function apiSignup(name, email, password, role = 'candidate') {
+  const { data } = await api.post('/auth/signup', { name, email, password, role })
   return data.user
 }
 
@@ -98,7 +98,7 @@ export async function apiDeleteAccount(password) {
   return data
 }
 
-// ── User Data APIs ─────────────────────────────────────────
+// ── User Data APIs ─
 export async function saveUserData(dataType, dataObj) {
   const { data } = await api.post('/user/data', { data_type: dataType, data: dataObj })
   return data
@@ -114,7 +114,7 @@ export async function getAllUserData() {
   return data
 }
 
-// ── AI Generation APIs ─────────────────────────────────────
+// ── AI Generation APIs 
 export async function aiGenerateJD(params) {
   const { data } = await api.post('/ai/generate-jd', {
     job_title: params.jobTitle,

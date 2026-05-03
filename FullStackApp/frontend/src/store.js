@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { saveUserData, getAllUserData } from './services/api'
 
 const useStore = create((set, get) => ({
-  // ── Auth ─────────────────────────────────────────────────
+  // ── Auth ─────
   user: JSON.parse(localStorage.getItem('rs_user') || 'null'),
   isAuthModalOpen: false,
   selectedModel: 'ResumeModel_v5',
@@ -25,11 +25,11 @@ const useStore = create((set, get) => ({
     localStorage.removeItem('rs_user')
     set({ user: null })
   },
-  openAuthModal:  () => set({ isAuthModalOpen: true }),
+  openAuthModal: () => set({ isAuthModalOpen: true }),
   closeAuthModal: () => set({ isAuthModalOpen: false }),
   setSelectedModel: (model) => set({ selectedModel: model }),
 
-  // ── Server Sync ──────────────────────────────────────────
+  // ── Server Sync ──
   loadUserDataFromServer: async () => {
     try {
       const allData = await getAllUserData()
@@ -54,7 +54,7 @@ const useStore = create((set, get) => ({
     try { await saveUserData(dataType, data) } catch { /* silent */ }
   },
 
-  // ── Dark Mode ────────────────────────────────────────────
+  // ── Dark Mode 
   darkMode: localStorage.getItem('rs_dark') === 'true',
   toggleDarkMode: () =>
     set((state) => {
@@ -68,27 +68,27 @@ const useStore = create((set, get) => ({
       return { darkMode: next }
     }),
 
-  // ── View (candidate | recruiter) ─────────────────────────
+  // ── View (candidate | recruiter) ─────
   view: 'candidate',
   setView: (v) => set({ view: v }),
 
-  // ── Resume Upload & Raw Analysis ─────────────────────────
-  resumeFile:      null,
-  resumeText:      '',
-  jobDescription:  '',
-  analysisResult:  null,
-  isAnalyzing:     false,
+  // ── Resume Upload & Raw Analysis ─────
+  resumeFile: null,
+  resumeText: '',
+  jobDescription: '',
+  analysisResult: null,
+  isAnalyzing: false,
 
-  setResumeFile:     (file)   => set({ resumeFile: file }),
-  setResumeText:     (text)   => set({ resumeText: text }),
-  setJobDescription: (text)   => {
+  setResumeFile: (file) => set({ resumeFile: file }),
+  setResumeText: (text) => set({ resumeText: text }),
+  setJobDescription: (text) => {
     set({ jobDescription: text })
     if (text && text.trim()) get().saveUserDataToServer('job_description', { text })
   },
   setAnalysisResult: (result) => set({ analysisResult: result }),
-  setIsAnalyzing:    (val)    => set({ isAnalyzing: val }),
+  setIsAnalyzing: (val) => set({ isAnalyzing: val }),
 
-  // ── Parsed Resume (editable) ─────────────────────────────
+  // ── Parsed Resume (editable) 
   parsedResume: null,
   // shape: { name, email, phone, linkedin, github, skills:[], education, experience, role, summary, projects, certifications }
   setParsedResume: (data) => {
@@ -102,7 +102,7 @@ const useStore = create((set, get) => ({
       return { parsedResume: updated }
     }),
 
-  // ── Resume Build Data (sent to builder) ───────────────────
+  // ── Resume Build Data (sent to builder) ───
   resumeBuildData: null,
   setResumeBuildData: (data) => {
     localStorage.setItem('rs_resume_build', JSON.stringify(data))
@@ -110,7 +110,7 @@ const useStore = create((set, get) => ({
     get().saveUserDataToServer('resume_build', data)
   },
 
-  // ── Job Config ───────────────────────────────────────────
+  // ── Job Config ───
   jobConfig: {
     jdText: '',
     requiredSkills: [],
@@ -121,12 +121,12 @@ const useStore = create((set, get) => ({
   setJobConfig: (patch) =>
     set((s) => ({ jobConfig: { ...s.jobConfig, ...patch } })),
 
-  // ── Match Result ─────────────────────────────────────────
+  // ── Match Result ─
   matchResult: null,
   // shape: { matchScore, matchingSkills:[], missingSkills:[], category, confidence, recommendation }
   setMatchResult: (data) => set({ matchResult: data }),
 
-  // ── Recruiter: Candidate Session List ────────────────────
+  // ── Recruiter: Candidate Session List 
   candidates: JSON.parse(sessionStorage.getItem('rs_candidates') || '[]'),
   addCandidate: (candidate) =>
     set((s) => {
@@ -139,22 +139,22 @@ const useStore = create((set, get) => ({
     set({ candidates: [] })
   },
 
-  // ── Step (candidate workflow) ─────────────────────────────
+  // ── Step (candidate workflow) 
   step: 1, // 1=Upload 2=Edit 3=JobConfig 4=Results
-  setStep:  (n) => set({ step: n }),
-  nextStep: ()  => set((s) => ({ step: Math.min(s.step + 1, 4) })),
-  prevStep: ()  => set((s) => ({ step: Math.max(s.step - 1, 1) })),
+  setStep: (n) => set({ step: n }),
+  nextStep: () => set((s) => ({ step: Math.min(s.step + 1, 4) })),
+  prevStep: () => set((s) => ({ step: Math.max(s.step - 1, 1) })),
 
-  // ── Clear Everything ─────────────────────────────────────
+  // ── Clear Everything 
   clearAnalysis: () => {
     localStorage.removeItem('rs_resume_build')
     set({
-      resumeFile:     null,
-      resumeText:     '',
+      resumeFile: null,
+      resumeText: '',
       jobDescription: '',
       analysisResult: null,
-      isAnalyzing:    false,
-      parsedResume:   null,
+      isAnalyzing: false,
+      parsedResume: null,
       resumeBuildData: null,
       jobConfig: {
         jdText: '',

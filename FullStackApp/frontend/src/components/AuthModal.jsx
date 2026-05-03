@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import * as Dialog from '@radix-ui/react-dialog'
+import { useState, useEffect } from 'react'
 import { X, ScanLine } from 'lucide-react'
 import useStore from '../store'
 import LoginForm from './LoginForm'
@@ -10,52 +9,88 @@ export default function AuthModal() {
   const closeAuthModal = useStore((s) => s.closeAuthModal)
   const [tab, setTab] = useState('login')
 
+  // Close on Escape key
+  useEffect(() => {
+    if (!isOpen) return
+    const handler = (e) => { if (e.key === 'Escape') closeAuthModal() }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [isOpen, closeAuthModal])
+
+  // Prevent body scroll when open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => { document.body.style.overflow = '' }
+  }, [isOpen])
+
+  if (!isOpen) return null
+
   return (
-    <Dialog.Root open={isOpen} onOpenChange={(open) => !open && closeAuthModal()}>
-      <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-[100] bg-black/60 animate-fade-in" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-[101] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 animate-fade-in">
-          <div className="rounded-2xl border border-slate-800 bg-slate-950 p-6 shadow-xl shadow-black/30">
-            <div className="mb-5 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-500 text-white">
-                  <ScanLine className="h-5 w-5" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-semibold text-white">Account</h2>
-                  <p className="text-xs text-slate-400">Sign in or create an account</p>
-                </div>
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/65 backdrop-blur-sm animate-fade-in"
+        onClick={closeAuthModal}
+      />
+
+      {/* Modal */}
+      <div className="relative w-full max-w-md animate-slide-up">
+        <div className="rounded-2xl border border-slate-700/60 bg-[rgba(15,23,42,0.97)] backdrop-blur-xl p-6 sm:p-8 shadow-2xl shadow-black/50">
+
+          {/* Header */}
+          <div className="mb-6 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-lg shadow-indigo-500/25">
+                <ScanLine className="h-5 w-5" />
               </div>
-              <Dialog.Close asChild>
-                <button className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-800 bg-slate-900 text-slate-400 cursor-pointer">
-                  <X className="h-4 w-4" />
-                </button>
-              </Dialog.Close>
+              <div>
+                <h2 className="text-lg font-bold text-white">Welcome</h2>
+                <p className="text-xs text-slate-400">Sign in or create your account</p>
+              </div>
             </div>
-
-            <div className="mb-5 flex rounded-lg border border-slate-800 bg-slate-900 p-1">
-              <button
-                onClick={() => setTab('login')}
-                className={`flex-1 rounded-md px-3 py-2 text-sm font-medium cursor-pointer ${
-                  tab === 'login' ? 'bg-sky-500 text-white' : 'bg-transparent text-slate-400'
-                }`}
-              >
-                Sign in
-              </button>
-              <button
-                onClick={() => setTab('signup')}
-                className={`flex-1 rounded-md px-3 py-2 text-sm font-medium cursor-pointer ${
-                  tab === 'signup' ? 'bg-sky-500 text-white' : 'bg-transparent text-slate-400'
-                }`}
-              >
-                Sign up
-              </button>
-            </div>
-
-            {tab === 'login' ? <LoginForm /> : <SignupForm />}
+            <button
+              onClick={closeAuthModal}
+              className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-700/60 bg-slate-800/50 text-slate-400 hover:text-white cursor-pointer transition-colors"
+              id="auth-modal-close"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+
+          {/* Tab Switcher */}
+          <div className="mb-6 flex rounded-xl border border-slate-700/50 bg-slate-800/40 p-1">
+            <button
+              onClick={() => setTab('login')}
+              className={`flex-1 rounded-lg px-3 py-2.5 text-sm font-semibold cursor-pointer transition-all border-none ${
+                tab === 'login'
+                  ? 'bg-gradient-to-r from-indigo-500 to-violet-600 text-white shadow-md shadow-indigo-500/30'
+                  : 'bg-transparent text-slate-400 hover:text-slate-200'
+              }`}
+              id="auth-tab-login"
+            >
+              Sign In
+            </button>
+            <button
+              onClick={() => setTab('signup')}
+              className={`flex-1 rounded-lg px-3 py-2.5 text-sm font-semibold cursor-pointer transition-all border-none ${
+                tab === 'signup'
+                  ? 'bg-gradient-to-r from-indigo-500 to-violet-600 text-white shadow-md shadow-indigo-500/30'
+                  : 'bg-transparent text-slate-400 hover:text-slate-200'
+              }`}
+              id="auth-tab-signup"
+            >
+              Sign Up
+            </button>
+          </div>
+
+          {/* Form */}
+          {tab === 'login' ? <LoginForm /> : <SignupForm />}
+        </div>
+      </div>
+    </div>
   )
 }

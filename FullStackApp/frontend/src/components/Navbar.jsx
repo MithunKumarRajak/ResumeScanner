@@ -94,6 +94,13 @@ export default function Navbar() {
                   <div className="px-3 py-2 border-b border-slate-800/60 mb-1">
                     <p className="text-xs font-semibold text-white truncate">{user.name}</p>
                     <p className="text-[11px] text-slate-500 truncate">{user.email}</p>
+                    <span className={`inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide ${
+                      user.role === 'recruiter'
+                        ? 'bg-violet-500/15 text-violet-300 border border-violet-500/25'
+                        : 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/25'
+                    }`}>
+                      {user.role === 'recruiter' ? 'Recruiter' : 'Candidate'}
+                    </span>
                   </div>
                   <button
                     onClick={() => { navigate('/profile'); setMenuOpen(false) }}

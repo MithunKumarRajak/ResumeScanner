@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 
 
-# ── Helpers ───────────────────────────────────────────────
+# ── Helpers ───
 
 def _resume_skill_names(db: Session, resume_id: str) -> List[str]:
     rows = (
@@ -48,7 +48,7 @@ def _job_skill_names(db: Session, job_id: str) -> List[str]:
     return [r.name for r in rows]
 
 
-# ── Routes ────────────────────────────────────────────────
+# ── Routes ────
 
 @router.get("/summary", response_model=DashboardSummary)
 def get_dashboard_summary(
@@ -66,16 +66,16 @@ def get_dashboard_summary(
 def list_candidates(
     db:           Session       = Depends(get_db),
     current_user: User          = Depends(get_current_active_user),
-    # ── Filter params ────────────────────────────────────
+    # ── Filter params ───────
     skills:       Optional[str] = Query(None, description="Comma-separated skill names to filter by"),
     min_exp:      Optional[int] = Query(None, ge=0, description="Minimum experience years"),
     max_exp:      Optional[int] = Query(None, ge=0, description="Maximum experience years"),
     category:     Optional[str] = Query(None, description="Filter by predicted category"),
     status:       Optional[str] = Query(None, description="Filter by resume status (parsed, classified, etc.)"),
-    # ── Pagination ───────────────────────────────────────
+    # ── Pagination ──
     skip:         int           = Query(0, ge=0),
     limit:        int           = Query(50, ge=1, le=200),
-    # ── Sorting ──────────────────────────────────────────
+    # ── Sorting ──
     sort_by:      str           = Query("created_at", description="Sort field: created_at, experience_years, confidence_score"),
     sort_order:   str           = Query("desc", description="Sort order: asc or desc"),
 ):
@@ -104,31 +104,31 @@ def list_candidates(
                 )
                 query = query.filter(Resume.id.in_(skill_subq))
 
-    # ── Experience filter ────────────────────────────────
+    # ── Experience filter ───
     if min_exp is not None:
         query = query.filter(Resume.experience_years >= min_exp)
     if max_exp is not None:
         query = query.filter(Resume.experience_years <= max_exp)
 
-    # ── Category filter ──────────────────────────────────
+    # ── Category filter ─────
     if category:
         query = query.filter(Resume.predicted_category.ilike(f"%{category}%"))
 
-    # ── Status filter ────────────────────────────────────
+    # ── Status filter ───────
     if status:
         query = query.filter(Resume.status == status)
 
-    # ── Sorting ──────────────────────────────────────────
+    # ── Sorting ──
     sort_column = getattr(Resume, sort_by, Resume.created_at)
     if sort_order.lower() == "asc":
         query = query.order_by(sort_column.asc())
     else:
         query = query.order_by(sort_column.desc())
 
-    # ── Pagination ───────────────────────────────────────
+    # ── Pagination ──
     resumes = query.offset(skip).limit(limit).all()
 
-    # ── Build response with match stats ──────────────────
+    # ── Build response with match stats ──
     result: List[CandidateListItem] = []
     for resume in resumes:
         # Get match stats for this resume

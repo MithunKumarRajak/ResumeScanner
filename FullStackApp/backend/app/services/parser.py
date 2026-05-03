@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 from typing import Dict, Any, List
 
-# ── Tech skill keyword list ───────────────────────────────
+# ── Tech skill keyword list ──
 TECH_SKILLS: List[str] = [
     "python", "java", "javascript", "typescript", "c", "c++", "c#",
     "go", "rust", "ruby", "php", "swift", "kotlin", "scala", "r",
@@ -34,7 +34,7 @@ EDUCATION_KEYWORDS = [
 ]
 
 
-# ── Text extraction ───────────────────────────────────────
+# ── Text extraction ──
 
 def extract_text_from_pdf(file_path: str) -> str:
     """Extract text from a PDF using pdfplumber."""
@@ -76,7 +76,7 @@ def extract_text(file_path: str) -> str:
         raise ValueError(f"Unsupported file type: {ext}")
 
 
-# ── NLP Parsing ───────────────────────────────────────────
+# ── NLP Parsing ───
 
 def _load_spacy():
     """Lazy-load spaCy to avoid import overhead when not needed."""

@@ -7,8 +7,10 @@ import useStore from '../store'
  * resume_top_terms vs jd_top_terms returned from /predict.
  */
 function deriveSkillSets(resumeTerms = [], jdTerms = []) {
-  const resumeSet = new Set(resumeTerms.map((t) => t.toLowerCase()))
-  const jdSet     = new Set(jdTerms.map((t) => t.toLowerCase()))
+  const safeResumeTerms = resumeTerms || [];
+  const safeJdTerms = jdTerms || [];
+  const resumeSet = new Set(safeResumeTerms.map((t) => t.toLowerCase()))
+  const jdSet     = new Set(safeJdTerms.map((t) => t.toLowerCase()))
 
   const matching = [...resumeSet].filter((t) => jdSet.has(t))
   const missing  = [...jdSet].filter((t) => !resumeSet.has(t))

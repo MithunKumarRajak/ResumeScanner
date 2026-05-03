@@ -40,6 +40,7 @@ Built as a final-year project by a B.Tech CSE student at Jagran Lakecity Univers
 ## ✨ Features
 
 ### 🤖 ML & NLP Core
+
 - Resume parsing and text extraction
 - Keyword matching with job descriptions
 - Skill gap analysis
@@ -47,17 +48,20 @@ Built as a final-year project by a B.Tech CSE student at Jagran Lakecity Univers
 - NLP-based entity recognition (skills, education, experience)
 
 ### 📝 Resume Editor
+
 - Real-time resume editing interface
 - Suggestions based on ML analysis
 - Export optimized resume
 
 ### 🌐 Full Stack Web App
+
 - Clean and responsive UI
 - Upload resume (PDF/DOCX)
 - Instant scoring and feedback
 - Job description input for matching
 
 ### 📊 Reports & Analytics
+
 - Detailed analysis report generation
 - Visual skill match breakdown
 - Improvement recommendations
@@ -73,37 +77,6 @@ Built as a final-year project by a B.Tech CSE student at Jagran Lakecity Univers
 | **Frontend** | TypeScript, JavaScript, HTML5, CSS3 |
 | **Backend** | Python, FastAPI / Django |
 | **Tools** | VS Code, Postman, Jupyter Notebook, Git |
-
----
-
-## 📁 Project Structure
-
-```
-ResumeScanner/
-│
-├── 📂 Dataset/                  # Training data & resume datasets
-│   ├── resumes/                 # Sample resumes for training
-│   └── job_descriptions/        # JD datasets for matching
-│
-├── 📂 FullStackApp/             # Web application (TypeScript + JS)
-│   ├── src/
-│   │   ├── components/          # UI components
-│   │   ├── pages/               # App pages
-│   │   └── api/                 # API calls
-│   ├── public/
-│   └── package.json
-│
-├── 📂 Resume_Editor/            # Resume editing module
-│   ├── editor.ts                # Core editor logic
-│   └── templates/               # Resume templates
-│
-├── 📂 Report/                   # Report generation module
-│   └── report_generator.py      # Analysis report generator
-│
-├── 📄 ResumeModel_v2.ipynb      # Main ML model (Jupyter Notebook)
-├── 📄 .gitignore
-└── 📄 README.md
-```
 
 ---
 
@@ -200,17 +173,23 @@ Contributions are welcome! Please follow these steps:
 
 1. Fork the repository
 2. Create a feature branch
+
    ```bash
    git checkout -b feature/YourFeature
    ```
+
 3. Commit your changes
+
    ```bash
    git commit -m "Add YourFeature"
    ```
+
 4. Push to the branch
+
    ```bash
    git push origin feature/YourFeature
    ```
+
 5. Open a Pull Request
 
 ---

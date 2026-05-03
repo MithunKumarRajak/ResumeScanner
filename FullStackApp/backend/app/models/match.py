@@ -12,14 +12,14 @@ class Match(Base):
     resume_id = Column(String(36), ForeignKey("resumes.id"), nullable=False, index=True)
     job_id    = Column(String(36), ForeignKey("jobs.id"),    nullable=False, index=True)
 
-    # ── TF-IDF cosine similarity ─────────────────────────
+    # ── TF-IDF cosine similarity ─────
     match_score     = Column(Float, nullable=False, index=True)
     matched_skills  = Column(JSON,  default=list)   # list[str]
     missing_skills  = Column(JSON,  default=list)   # list[str]
     resume_top_terms = Column(JSON, default=list)   # list[str]
     jd_top_terms    = Column(JSON,  default=list)   # list[str]
 
-    # ── Composite score breakdown (from scorer) ──────────
+    # ── Composite score breakdown (from scorer) ──
     skill_score      = Column(Float, nullable=True)
     experience_score = Column(Float, nullable=True)
     education_score  = Column(Float, nullable=True)

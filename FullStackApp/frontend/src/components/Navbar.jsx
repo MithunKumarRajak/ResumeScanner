@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { ScanLine, LogIn, LogOut, User, ChevronDown, Home, Cpu, Users, FileEdit, Wand2, Menu, X } from 'lucide-react'
+import { ScanLine, LogIn, LogOut, User, ChevronDown, Home, Cpu, Users, FileEdit, Wand2, Menu, X, UploadCloud, Columns } from 'lucide-react'
 import DarkModeToggle from './DarkModeToggle'
 import useStore from '../store'
 
@@ -25,6 +25,8 @@ export default function Navbar() {
     { to: '/recruiter',   label: 'Recruiter',    icon: Users   },
     { to: '/resume-build', label: 'Resume Build', icon: FileEdit },
     { to: '/ai-generator',  label: 'AI Generator',  icon: Wand2 },
+    { to: '/bulk-upload', label: 'Bulk Upload',  icon: UploadCloud },
+    { to: '/compare',     label: 'Compare Candidates', icon: Columns },
   ]
 
   const navLink = (to, label, Icon, id) => {

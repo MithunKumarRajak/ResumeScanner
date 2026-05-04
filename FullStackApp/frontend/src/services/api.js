@@ -147,4 +147,45 @@ export async function extractResume(file) {
   return data
 }
 
+// ── Phase 2 APIs ──────────────────────────────────────────────
+
+export async function checkATS(resumeId) {
+  const { data } = await api.post('/api/ats/check', { resume_id: resumeId })
+  return data
+}
+
+export async function extractExperience(resumeId) {
+  const { data } = await api.post('/api/experience/extract', { resume_id: resumeId })
+  return data
+}
+
+export async function compareCandidates(resumeIds, jobDescId = null) {
+  const payload = { resume_ids: resumeIds }
+  if (jobDescId) payload.job_description_id = jobDescId
+  const { data } = await api.post('/api/compare/candidates', payload)
+  return data
+}
+
+export async function bulkUpload(files, jobDescId = null) {
+  const formData = new FormData()
+  files.forEach(f => formData.append('files', f))
+  if (jobDescId) formData.append('job_description_id', jobDescId)
+  
+  const { data } = await api.post('/api/bulk/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 120000,
+  })
+  return data
+}
+
+export async function getBulkStatus(jobId) {
+  const { data } = await api.get(`/api/bulk/${jobId}/status`)
+  return data
+}
+
+export async function sendNotification(params) {
+  const { data } = await api.post('/api/notifications/send', params)
+  return data
+}
+
 export default api

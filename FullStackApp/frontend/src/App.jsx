@@ -8,6 +8,10 @@ import RecruiterPage from './pages/RecruiterPage'
 import ResumeBuildPage from './pages/ResumeBuildPage'
 import AIGeneratorPage from './pages/AIGeneratorPage'
 import ProfilePage from './pages/ProfilePage'
+import CompareView from './pages/CompareView'
+import BulkUpload from './components/BulkUpload'
+import ErrorBoundary from './components/ErrorBoundary'
+import { Toaster } from 'react-hot-toast'
 
 export default function App() {
   const location = useLocation()
@@ -17,19 +21,24 @@ export default function App() {
     <div className="min-h-screen flex flex-col">
       <Navbar />
       <main className="flex-1">
-        <Routes>
-          <Route path="/" element={<HomePage />} />
+        <ErrorBoundary>
+          <Routes>
+            <Route path="/" element={<HomePage />} />
           <Route path="/candidate" element={<CandidatePage />} />
           <Route path="/recruiter" element={<RecruiterPage />} />
           <Route path="/resume-build" element={<ResumeBuildPage />} />
           <Route path="/ai-generator" element={<AIGeneratorPage />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/compare" element={<CompareView />} />
+          <Route path="/bulk-upload" element={<BulkUpload />} />
           <Route path="/results" element={<Navigate to="/candidate" replace />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </ErrorBoundary>
       </main>
       {!isEditorPage && <Footer />}
       <AuthModal />
+      <Toaster position="bottom-right" />
     </div>
   )
 }

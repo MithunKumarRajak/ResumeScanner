@@ -36,6 +36,14 @@ class Settings(BaseSettings):
     TFIDF_PATH: str = "../tfidf.pkl"
     ENCODER_PATH: str = "../encoder.pkl"
 
+    # ── Email / Notifications ──
+    SENDGRID_API_KEY: str = ""
+    FROM_EMAIL: str = "noreply@resumescanner.app"
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASS: str = ""
+
     # ── CORS ──
     ALLOWED_ORIGINS: List[str] = [
         "http://localhost:3000",

@@ -1,11 +1,7 @@
-# 📄 ResumeScanner — ML-Based Resume Screening & Optimization Platform
+# ResumeScanner : ML-Based Resume Screening & Optimization Platform
 
-> **Intelligently analyze, score, and optimize resumes using Machine Learning and NLP**
+> Intelligently analyze, score, and optimize resumes using Machine Learning and NLP
 
-![Python](https://img.shields.io/badge/Python-3670A0?style=flat&logo=python&logoColor=ffdd54)
-![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat&logo=typescript&logoColor=white)
-![Jupyter](https://img.shields.io/badge/Jupyter-F37626?style=flat&logo=jupyter&logoColor=white)
-![Scikit-Learn](https://img.shields.io/badge/Scikit--Learn-F7931E?style=flat&logo=scikit-learn&logoColor=white)
 ![Status](https://img.shields.io/badge/Status-In%20Progress-yellow)
 
 ---
@@ -198,7 +194,7 @@ Contributions are welcome! Please follow these steps:
 
 **Mithun Kumar Rajak**
 
-- 🎓 B.Tech CSE @ Jagran Lakecity University, Bhopal (Class of 2027)
+- 🎓 B.Tech CSE @ Jagran Lakecity University, Bhopal
 - 🛡️ Cybersecurity Enthusiast | Full-Stack Developer | ML & NLP Explorer
 - 🔗 [GitHub](https://github.com/MithunKumarRajak)
 - 💼 [LinkedIn](https://www.linkedin.com/in/mithun-kumar-rajak/)
@@ -212,12 +208,12 @@ Contributions are welcome! Please follow these steps:
 
 | Module | Status |
 |--------|--------|
-| ML Model (v2) | ✅ In Progress |
-| Dataset | ✅ Ready |
-| Full Stack App | 🔄 In Progress |
-| Resume Editor | 🔄 In Progress |
-| Report Generator | 🔄 In Progress |
-| Deployment | ⏳ Planned |
+| ML Model (v2) | ✅ |
+| Dataset | ✅ |
+| Full Stack App | ✅ |
+| Resume Editor | ✅ |
+| Report Generator | ⏳ |
+| Deployment | ⏳ |
 
 ---
 

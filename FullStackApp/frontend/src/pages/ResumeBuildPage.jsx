@@ -1,13 +1,21 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { FileText, User, Mail, Phone, Linkedin, Github, Briefcase, GraduationCap, Tag, Award, FolderKanban, Download, Eye, Pencil, Plus, X, ChevronDown, Save, CheckCircle2 } from 'lucide-react'
+import { useLocation } from 'react-router-dom'
+import { FileText, User, Mail, Phone, Linkedin, Github, Briefcase, GraduationCap, Tag, Award, FolderKanban, Download, Eye, Pencil, Plus, X, ChevronDown, Save, CheckCircle2, Upload, Loader2, FilePlus2, RefreshCw } from 'lucide-react'
 import html2pdf from 'html2pdf.js'
 import useStore from '../store'
+import { extractResume } from '../services/api'
 
 const TEMPLATES = [
   { id: 'modern', name: 'Modern', color: '#6366f1' },
   { id: 'classic', name: 'Classic', color: '#0f766e' },
   { id: 'minimal', name: 'Minimal', color: '#334155' },
 ]
+
+const EMPTY_DATA = {
+  name: '', email: '', phone: '', linkedin: '', github: '',
+  role: '', summary: '', skills: [], education: '', experience: 0,
+  projects: '', certifications: '',
+}
 
 function SectionHeader({ icon: Icon, title, color = 'indigo' }) {
   const colors = { indigo: 'text-indigo-400 bg-indigo-500/15', emerald: 'text-emerald-400 bg-emerald-500/15', sky: 'text-sky-400 bg-sky-500/15', violet: 'text-violet-400 bg-violet-500/15' }
@@ -122,12 +130,130 @@ function ResumePreview({ data, template }) {
   )
 }
 
+// ── Entry Modal ──
+function ResumeEntryModal({ onEdit, onFresh, isExtracting }) {
+  const [file, setFile] = useState(null)
+  const [error, setError] = useState('')
+  const fileRef = useRef(null)
+
+  const handleFile = (f) => {
+    setError('')
+    const allowed = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+    if (!allowed.includes(f.type)) { setError('Only PDF or DOCX files'); return }
+    if (f.size > 10 * 1024 * 1024) { setError('Max 10 MB'); return }
+    setFile(f)
+  }
+
+  return (
+    <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-4 py-12">
+      <div className="w-full max-w-lg space-y-6 animate-slide-up">
+        <div className="text-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-500/10 text-indigo-400">
+            <FileText className="h-8 w-8" />
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white mb-2">
+            Resume <span className="gradient-text">Builder</span>
+          </h1>
+          <p className="text-sm text-slate-400">Choose how you'd like to start</p>
+        </div>
+
+        {/* Upload & Edit option */}
+        <div className="glass-card p-6 space-y-4">
+          <h3 className="text-sm font-bold text-white flex items-center gap-2">
+            <Upload className="h-4 w-4 text-indigo-400" />
+            Upload Existing Resume
+          </h3>
+          <p className="text-xs text-slate-400">Upload your resume (PDF/DOCX) and we'll extract your data using AI-powered parsing so you can edit and improve it.</p>
+
+          {file ? (
+            <div className="flex items-center gap-3 rounded-xl border border-slate-700/60 bg-slate-900/50 p-3">
+              <FileText className="h-5 w-5 text-sky-400 shrink-0" />
+              <span className="text-sm text-white truncate flex-1">{file.name}</span>
+              <button onClick={() => setFile(null)} className="text-slate-500 hover:text-red-400 cursor-pointer bg-transparent border-none"><X className="h-4 w-4" /></button>
+            </div>
+          ) : (
+            <button
+              onClick={() => fileRef.current?.click()}
+              className="w-full rounded-xl border-2 border-dashed border-slate-700/60 p-6 text-center hover:border-indigo-500/40 cursor-pointer transition-colors bg-transparent"
+            >
+              <Upload className="h-5 w-5 text-indigo-400 mx-auto mb-2" />
+              <p className="text-sm text-slate-400">Click to upload resume</p>
+              <p className="text-xs text-slate-500 mt-1">PDF or DOCX, up to 10 MB</p>
+              <input ref={fileRef} type="file" accept=".pdf,.docx" onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} className="hidden" />
+            </button>
+          )}
+
+          {error && <p className="text-xs text-red-400 flex items-center gap-1"><X className="h-3 w-3" />{error}</p>}
+
+          <button
+            onClick={() => file && onEdit(file)}
+            disabled={!file || isExtracting}
+            className="btn-primary w-full flex items-center justify-center gap-2 h-12"
+            id="resume-entry-edit-btn"
+          >
+            {isExtracting ? (
+              <><Loader2 className="h-4 w-4 animate-spin" />Extracting resume data…</>
+            ) : (
+              <><Pencil className="h-4 w-4" />Edit Existing Resume</>
+            )}
+          </button>
+        </div>
+
+        {/* Divider */}
+        <div className="flex items-center gap-4">
+          <div className="flex-1 h-px bg-slate-700/50" />
+          <span className="text-xs font-bold text-slate-500 tracking-wider">OR</span>
+          <div className="flex-1 h-px bg-slate-700/50" />
+        </div>
+
+        {/* Start fresh option */}
+        <button
+          onClick={onFresh}
+          disabled={isExtracting}
+          className="glass-card-hover w-full p-6 text-left space-y-2 cursor-pointer ring-1 ring-transparent hover:ring-emerald-500/30 transition-all"
+          id="resume-entry-fresh-btn"
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400">
+              <FilePlus2 className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-white">Start Fresh</h3>
+              <p className="text-xs text-slate-400">Create a new resume from scratch</p>
+            </div>
+          </div>
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ── Main Page ──
 export default function ResumeBuildPage() {
   const resumeBuildData = useStore(s => s.resumeBuildData)
   const setResumeBuildData = useStore(s => s.setResumeBuildData)
   const user = useStore(s => s.user)
-  const stored = resumeBuildData || JSON.parse(localStorage.getItem('rs_resume_build') || 'null')
+  const location = useLocation()
+
+  // Determine if user has existing data (only when logged in)
+  const hasExistingData = user && resumeBuildData && Object.values(resumeBuildData).some(
+    v => v && (typeof v === 'string' ? v.trim() : Array.isArray(v) ? v.length > 0 : v > 0)
+  )
+
+  // Phase: 'entry' (modal) | 'editor' (main editor)
+  const [phase, setPhase] = useState(() => {
+    // If navigated with state (from another page), skip the modal
+    if (location.state?.mode === 'edit' || location.state?.mode === 'new') return 'editor'
+    // If logged in and has data, go straight to editor
+    if (hasExistingData) return 'editor'
+    return 'entry'
+  })
+
+  const [isExtracting, setIsExtracting] = useState(false)
+  const [extractError, setExtractError] = useState('')
+
+  // Only load stored data if logged in
+  const stored = user ? (resumeBuildData || JSON.parse(localStorage.getItem('rs_resume_build') || 'null')) : null
 
   const [template, setTemplate] = useState('modern')
   const [showPreview, setShowPreview] = useState(false)
@@ -135,20 +261,19 @@ export default function ResumeBuildPage() {
   const [saveStatus, setSaveStatus] = useState('') // '' | 'saving' | 'saved'
   const saveTimerRef = useRef(null)
 
-  const [data, setData] = useState({
-    name: stored?.name || '',
-    email: stored?.email || '',
-    phone: stored?.phone || '',
-    linkedin: stored?.linkedin || '',
-    github: stored?.github || '',
-    role: stored?.role || '',
-    summary: stored?.summary || '',
-    skills: stored?.skills || [],
-    education: stored?.education || '',
-    experience: stored?.experience || 0,
-    projects: stored?.projects || '',
-    certifications: stored?.certifications || '',
+  const [data, setData] = useState(() => {
+    if (location.state?.data) return { ...EMPTY_DATA, ...location.state.data }
+    if (stored) return { ...EMPTY_DATA, ...stored }
+    return { ...EMPTY_DATA }
   })
+
+  // If user logs out while on this page, reset to entry
+  useEffect(() => {
+    if (!user) {
+      setData({ ...EMPTY_DATA })
+      setPhase('entry')
+    }
+  }, [user])
 
   // Auto-save with 1s debounce
   const scheduleSave = useCallback((newData) => {
@@ -209,6 +334,66 @@ export default function ResumeBuildPage() {
     });
   }
 
+  // Handle "Edit Existing Resume" from the entry modal
+  const handleEditExisting = async (file) => {
+    setIsExtracting(true)
+    setExtractError('')
+    try {
+      const result = await extractResume(file)
+      if (result.parsed) {
+        const parsed = result.parsed
+        setData({
+          name: parsed.name || '',
+          email: parsed.email || '',
+          phone: parsed.phone || '',
+          linkedin: parsed.linkedin || '',
+          github: parsed.github || '',
+          role: parsed.role || '',
+          summary: parsed.summary || '',
+          skills: parsed.skills || [],
+          education: parsed.education || '',
+          experience: parsed.experience || 0,
+          projects: parsed.projects || '',
+          certifications: parsed.certifications || '',
+        })
+      }
+      setPhase('editor')
+    } catch (err) {
+      setExtractError(err.response?.data?.detail || 'Failed to extract resume. Please try again.')
+    } finally {
+      setIsExtracting(false)
+    }
+  }
+
+  // Handle "Start Fresh" from the entry modal
+  const handleStartFresh = () => {
+    setData({ ...EMPTY_DATA })
+    setPhase('editor')
+  }
+
+  // ── ENTRY MODAL PHASE ──
+  if (phase === 'entry') {
+    return (
+      <>
+        <ResumeEntryModal
+          onEdit={handleEditExisting}
+          onFresh={handleStartFresh}
+          isExtracting={isExtracting}
+        />
+        {extractError && (
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-fade-in">
+            <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm shadow-lg">
+              <X className="h-4 w-4 shrink-0" />
+              <span>{extractError}</span>
+              <button onClick={() => setExtractError('')} className="ml-2 text-red-400/60 hover:text-red-300 cursor-pointer bg-transparent border-none">✕</button>
+            </div>
+          </div>
+        )}
+      </>
+    )
+  }
+
+  // ── EDITOR PHASE ──
   return (
     <div className="min-h-[calc(100vh-64px)] flex flex-col lg:flex-row">
       {/* ── Left: Editor Panel ── */}
@@ -228,6 +413,9 @@ export default function ResumeBuildPage() {
               </div>
             </div>
             <div className="flex gap-2">
+              <button onClick={() => setPhase('entry')} className="btn-ghost flex items-center gap-1.5 text-xs" id="resume-back-entry-btn">
+                <RefreshCw className="h-3.5 w-3.5" />New
+              </button>
               <button onClick={() => setShowPreview(!showPreview)} className="btn-ghost flex items-center gap-1.5 text-xs lg:hidden" id="toggle-preview-btn">
                 {showPreview ? <><Pencil className="h-3.5 w-3.5" />Edit</> : <><Eye className="h-3.5 w-3.5" />Preview</>}
               </button>

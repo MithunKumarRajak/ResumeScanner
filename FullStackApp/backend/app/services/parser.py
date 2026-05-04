@@ -37,18 +37,19 @@ EDUCATION_KEYWORDS = [
 # ── Text extraction ──
 
 def extract_text_from_pdf(file_path: str) -> str:
-    """Extract text from a PDF using pdfplumber."""
+    """Extract text from a PDF using PyMuPDF (fitz)."""
     try:
-        import pdfplumber
+        import fitz  # PyMuPDF
         text_parts = []
-        with pdfplumber.open(file_path) as pdf:
-            for page in pdf.pages:
-                t = page.extract_text()
-                if t:
-                    text_parts.append(t)
+        doc = fitz.open(file_path)
+        for page in doc:
+            t = page.get_text("text")
+            if t:
+                text_parts.append(t)
+        doc.close()
         return "\n".join(text_parts).strip()
     except ImportError:
-        raise RuntimeError("pdfplumber is not installed. Run: pip install pdfplumber")
+        raise RuntimeError("PyMuPDF is not installed. Run: pip install PyMuPDF")
     except Exception as e:
         raise RuntimeError(f"PDF extraction failed: {e}")
 

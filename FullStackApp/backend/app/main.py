@@ -1,9 +1,9 @@
 """
 FastAPI application factory.
-Runs on port 8001 — the original main.py remains on port 8000.
+Unified backend — all routes (auth, AI, resume, jobs, etc.) in one app.
 
-Start: uvicorn app.main:app --reload --port 8001
-Docs:  http://localhost:8001/docs
+Start: uvicorn app.main:app --reload --port 8000
+Docs:  http://localhost:8000/docs
 """
 import logging
 import os
@@ -22,7 +22,7 @@ from app.database.session import engine
 import app.models  # noqa: F401  (triggers __init__.py)
 
 # ── Routes ────
-from app.routes import auth, resume, job, match, recommend, dashboard, candidate, analytics
+from app.routes import auth, resume, job, match, recommend, dashboard, candidate, analytics, ai, predict
 
 logging.basicConfig(
     level   = logging.INFO if settings.DEBUG else logging.WARNING,
@@ -47,13 +47,18 @@ async def lifespan(app: FastAPI):
     os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
     logger.info(f"📁 Upload directory: {settings.UPLOAD_DIR}")
 
-    # Pre-load ML models
+    # Pre-load ML models (classifier service — used by /match and /classify)
     from app.services.classifier import load_models
     ok = load_models()
     if ok:
-        logger.info("🤖 ML models loaded")
+        logger.info("🤖 ML models loaded (classifier service)")
     else:
         logger.warning("⚠️  ML models could not be loaded — /match and /classify will return 503")
+
+    # Pre-load multi-version predict models (used by /predict and /models)
+    from app.routes.predict import load_predict_models
+    load_predict_models()
+    logger.info("🤖 Multi-version predict models loaded")
 
     yield
 
@@ -107,6 +112,8 @@ app.include_router(recommend.router)
 app.include_router(dashboard.router)
 app.include_router(candidate.router)
 app.include_router(analytics.router)
+app.include_router(ai.router)
+app.include_router(predict.router)
 
 # ── Global exception handler ─
 @app.exception_handler(Exception)
@@ -124,7 +131,7 @@ def health():
     return {
         "status":  "ok",
         "version": settings.APP_VERSION,
-        "db":      settings.DATABASE_URL.split("///")[0],
+        "db":      "postgresql",
     }
 
 
@@ -136,13 +143,18 @@ def root():
         "docs":    "/docs",
         "health":  "/health",
         "endpoints": {
-            "auth":        ["POST /auth/register", "POST /auth/token", "GET /auth/me"],
+            "auth":        ["POST /auth/signup", "POST /auth/login", "GET /auth/me",
+                            "PUT /auth/profile", "PUT /auth/change-password",
+                            "DELETE /auth/delete-account"],
+            "predict":     ["POST /predict", "GET /models"],
             "resumes":     ["POST /upload-resume", "GET /resumes", "GET /resume/{id}", "PUT /resume/{id}"],
             "jobs":        ["POST /jobs", "GET /jobs", "GET /jobs/{id}", "PUT /jobs/{id}"],
             "matching":    ["POST /match", "GET /rank-candidates/{job_id}", "GET /matches/{resume_id}"],
             "recommend":   ["GET /recommend/{user_id}"],
             "dashboard":   ["GET /dashboard/summary", "GET /dashboard/candidates", "GET /dashboard/job/{id}/overview"],
             "candidate":   ["GET /candidate/resume-history", "GET /candidate/recommendations"],
+            "ai":          ["POST /ai/generate-jd", "POST /ai/refine-jd", "POST /extract-resume"],
+            "user_data":   ["POST /user/data", "GET /user/data/{type}", "GET /user/data"],
             "analytics":   ["GET /analytics/skill-demand", "GET /analytics/skill-supply",
                             "GET /analytics/match-distribution", "GET /analytics/category-breakdown",
                             "GET /analytics/experience-distribution", "GET /analytics/top-candidates"],
@@ -153,4 +165,4 @@ def root():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app.main:app", host="0.0.0.0", port=8001, reload=True)
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)

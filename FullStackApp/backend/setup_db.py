@@ -115,8 +115,8 @@ def main():
 
     print("\n" + "=" * 60)
     print("  Setup complete! You can now start the server:")
-    print("  uvicorn app.main:app --reload --port 8001")
-    print("=" * 60)
+    print("  uvicorn app.main:app --reload --port 8000")
+    print("-" * 10)
 
 
 if __name__ == "__main__":

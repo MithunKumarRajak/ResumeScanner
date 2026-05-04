@@ -136,4 +136,15 @@ export async function aiRefineJD(currentJD, instruction) {
   return data
 }
 
+// ── Resume Extraction API (PyMuPDF backend) ────────────────
+export async function extractResume(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  const { data } = await api.post('/extract-resume', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 30000,
+  })
+  return data
+}
+
 export default api

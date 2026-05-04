@@ -23,7 +23,19 @@ const useStore = create((set, get) => ({
   },
   logout: () => {
     localStorage.removeItem('rs_user')
-    set({ user: null })
+    localStorage.removeItem('rs_resume_build')
+    set({
+      user: null,
+      resumeFile: null,
+      resumeText: '',
+      jobDescription: '',
+      analysisResult: null,
+      isAnalyzing: false,
+      parsedResume: null,
+      resumeBuildData: null,
+      matchResult: null,
+      step: 1,
+    })
   },
   openAuthModal: () => set({ isAuthModalOpen: true }),
   closeAuthModal: () => set({ isAuthModalOpen: false }),
@@ -174,10 +186,20 @@ if (localStorage.getItem('rs_dark') === 'true') {
   document.documentElement.classList.add('dark')
 }
 
-// Auto-load user data from server if already logged in (returning user)
+// Auth-gated initialization: only load resume data if logged in
 const savedUser = JSON.parse(localStorage.getItem('rs_user') || 'null')
 if (savedUser?.token) {
   useStore.getState().loadUserDataFromServer()
+} else {
+  // Not authenticated → clear any stale resume data from localStorage
+  localStorage.removeItem('rs_resume_build')
+  useStore.setState({
+    parsedResume: null,
+    resumeBuildData: null,
+    resumeFile: null,
+    resumeText: '',
+    jobDescription: '',
+  })
 }
 
 export default useStore

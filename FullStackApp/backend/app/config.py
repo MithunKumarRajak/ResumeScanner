@@ -1,6 +1,6 @@
 """
 Application configuration — reads from .env file.
-Switch DB from SQLite → PostgreSQL by changing DATABASE_URL in .env.
+Database: PostgreSQL (configured via DATABASE_URL in .env).
 """
 from pydantic_settings import BaseSettings
 from functools import lru_cache
@@ -14,9 +14,8 @@ class Settings(BaseSettings):
     APP_VERSION: str = "2.0.0"
     DEBUG: bool = True
 
-    # ── Database ──
-    # SQLite default — change to postgresql://user:pass@host/dbname for Postgres
-    DATABASE_URL: str = "sqlite:///./resume_screener.db"
+    # ── Database (PostgreSQL) ──
+    DATABASE_URL: str = "postgresql://postgres:password@localhost:5432/resume_screener"
 
     # ── JWT Auth ──
     SECRET_KEY: str = "change-this-secret-key-in-production-min-32-chars"
@@ -47,7 +46,7 @@ class Settings(BaseSettings):
         "http://127.0.0.1:5174",
     ]
 
-    model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
+    model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
 
 
 @lru_cache()

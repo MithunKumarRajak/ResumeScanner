@@ -68,11 +68,12 @@ Built as a final-year project by a B.Tech CSE student at Jagran Lakecity Univers
 
 | Layer | Technologies |
 |-------|-------------|
-| **ML / Data Science** | Python, Jupyter Notebook, Scikit-Learn, Pandas, Matplotlib, Seaborn |
-| **NLP** | NLTK / spaCy, Text Preprocessing, TF-IDF, ML Pipeline |
-| **Frontend** | TypeScript, JavaScript, HTML5, CSS3 |
-| **Backend** | Python, FastAPI / Django |
-| **Tools** | VS Code, Postman, Jupyter Notebook, Git |
+| **ML / Data Science** | Python, Scikit-Learn, Pandas, NumPy, Joblib |
+| **NLP & AI** | spaCy, PyMuPDF (`fitz`), Gemini AI, Groq AI, TF-IDF |
+| **Frontend** | React, Vite, JavaScript, CSS3 |
+| **Backend** | Python, FastAPI, SQLAlchemy |
+| **Database** | PostgreSQL |
+| **Tools** | VS Code, Postman, Git |
 
 ---
 
@@ -82,7 +83,7 @@ Built as a final-year project by a B.Tech CSE student at Jagran Lakecity Univers
 
 - Python 3.10+
 - Node.js 18+
-- pip & npm
+- PostgreSQL Server
 
 ### 1. Clone the Repository
 
@@ -91,63 +92,53 @@ git clone https://github.com/MithunKumarRajak/ResumeScanner.git
 cd ResumeScanner
 ```
 
-### 2. Setup ML Environment
+### 2. Setup the Backend
 
 ```bash
-# Create virtual environment
-python -m venv env
-source env/bin/activate   # Linux/macOS
-env\Scripts\activate      # Windows
+cd FullStackApp/backend
+
+# Create & activate virtual environment
+python -m venv venv
+venv\Scripts\activate      # Windows
+# source venv/bin/activate # Linux/macOS
 
 # Install Python dependencies
 pip install -r requirements.txt
+
+# Start the FastAPI server (Runs on port 8000)
+python -m uvicorn app.main:app --reload --port 8000
 ```
+*(Ensure your PostgreSQL service is running and configured in your `.env` file)*
 
-### 3. Run the ML Model
+### 3. Setup the Frontend
 
+Open a new terminal window:
 ```bash
-# Open Jupyter Notebook
-jupyter notebook ResumeModel_v2.ipynb
-```
-
-### 4. Setup Full Stack App
-
-```bash
-cd FullStackApp
+cd FullStackApp/frontend
 npm install
 npm run dev
 ```
 
-Visit `http://localhost:3000` in your browser 🎉
+Visit `http://localhost:5173` in your browser 🎉
 
 ---
 
 ## 🤖 ML Model
 
-### ResumeModel v2 (`ResumeModel_v2.ipynb`)
+### Multi-Version Pipeline (v2, v3, v5)
 
-The core ML pipeline includes:
+The core ML pipeline is dynamically loaded and includes:
 
 | Step | Description |
 |------|-------------|
-| **Data Collection** | Resume dataset with labeled categories |
-| **Preprocessing** | Text cleaning, tokenization, stopword removal |
-| **Feature Extraction** | TF-IDF Vectorization |
-| **Model Training** | Scikit-Learn classification algorithms |
+| **Parsing** | Fast, accurate PDF/DOCX extraction using PyMuPDF (`fitz`) |
+| **Preprocessing** | Text cleaning, tokenization, lemmatization using spaCy |
+| **Feature Extraction** | TF-IDF Vectorization & custom NLP feature arrays |
+| **Model Training** | Hybrid Adaptive models (SVM, KNN, OneVsRest) |
 | **Evaluation** | Accuracy, Precision, Recall, F1-Score |
-| **Pipeline** | End-to-end ML Pipeline for deployment |
 
-### Libraries Used
-
-```python
-import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-from sklearn.pipeline import Pipeline
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import classification_report
-```
+### AI Integrations
+- **Generative AI:** Uses Gemini 2.0 Flash and Groq (Llama-3.3-70b) for on-the-fly Job Description generation and refinement.
 
 ---
 
@@ -208,11 +199,11 @@ Contributions are welcome! Please follow these steps:
 
 | Module | Status |
 |--------|--------|
-| ML Model (v2) | ✅ |
-| Dataset | ✅ |
+| ML Model (v2, v3, v5) | ✅ |
+| Database Migration (PostgreSQL) | ✅ |
+| AI Integration (Gemini/Groq) | ✅ |
 | Full Stack App | ✅ |
-| Resume Editor | ✅ |
-| Report Generator | ⏳ |
+| Report Generator & Analytics | ✅ |
 | Deployment | ⏳ |
 
 ---

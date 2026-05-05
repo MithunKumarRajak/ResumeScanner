@@ -19,15 +19,19 @@ export default function Navbar() {
     navigate('/')
   }
 
-  const NAV_LINKS = [
-    { to: '/',            label: 'Home',         icon: Home    },
-    { to: '/candidate',   label: 'Candidate',    icon: Cpu     },
-    { to: '/recruiter',   label: 'Recruiter',    icon: Users   },
-    { to: '/resume-build', label: 'Resume Build', icon: FileEdit },
-    { to: '/ai-generator',  label: 'AI Generator',  icon: Wand2 },
-    { to: '/bulk-upload', label: 'Bulk Upload',  icon: UploadCloud },
-    { to: '/compare',     label: 'Compare Candidates', icon: Columns },
+  const ALL_LINKS = [
+    { to: '/',            label: 'Home',         icon: Home,        showTo: ['all', 'candidate', 'recruiter'] },
+    { to: '/candidate',   label: 'Candidate',    icon: Cpu,         showTo: ['all', 'candidate'] },
+    { to: '/recruiter',   label: 'Recruiter',    icon: Users,       showTo: ['all', 'recruiter'] },
+    { to: '/resume-build', label: 'Resume Build', icon: FileEdit,    showTo: ['candidate'] },
+    { to: '/ai-generator',  label: 'AI Generator',  icon: Wand2,       showTo: ['recruiter'] },
+    { to: '/bulk-upload', label: 'Bulk Upload',  icon: UploadCloud, showTo: ['recruiter'] },
+    { to: '/compare',     label: 'Compare',      icon: Columns,     showTo: ['recruiter'] },
+    { to: '/phase3',      label: 'Advanced AI',  icon: Cpu,         showTo: ['recruiter'] },
   ]
+
+  const userRole = user?.role || 'all'
+  const NAV_LINKS = ALL_LINKS.filter(link => link.showTo.includes(userRole))
 
   const navLink = (to, label, Icon, id) => {
     const active = location.pathname === to
@@ -36,7 +40,7 @@ export default function Navbar() {
         id={id}
         key={to}
         onClick={() => { navigate(to); setMobileOpen(false) }}
-        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer border-none
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer border-none whitespace-nowrap
           ${active
             ? 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/25'
             : 'text-slate-400 hover:text-slate-200 hover:bg-white/5 border border-transparent'
@@ -67,7 +71,7 @@ export default function Navbar() {
         </button>
 
         {/* Center nav links – Desktop */}
-        <div className="hidden lg:flex items-center gap-1 rounded-2xl bg-slate-800/30 border border-slate-700/40 px-2 py-1 backdrop-blur-sm">
+        <div className="hidden xl:flex items-center gap-1 rounded-2xl bg-slate-800/30 border border-slate-700/40 px-2 py-1 backdrop-blur-sm">
           {NAV_LINKS.map((l) =>
             navLink(l.to, l.label, l.icon, `nav-${l.label.toLowerCase().replace(' ', '-')}`)
           )}
@@ -126,7 +130,7 @@ export default function Navbar() {
           ) : (
             <button
               onClick={openAuthModal}
-              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 px-4 py-2 text-sm font-semibold text-white cursor-pointer hover:opacity-90 transition-all shadow-md shadow-indigo-500/25"
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 px-4 py-2 text-sm font-semibold text-white cursor-pointer hover:opacity-90 transition-all shadow-md shadow-indigo-500/25 whitespace-nowrap"
               id="nav-signin-btn"
             >
               <LogIn className="h-4 w-4" />
@@ -137,7 +141,7 @@ export default function Navbar() {
           {/* Mobile hamburger */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="lg:hidden flex h-9 w-9 items-center justify-center rounded-xl border border-slate-700/50 bg-transparent text-slate-400 hover:text-white cursor-pointer transition-colors"
+            className="xl:hidden flex h-9 w-9 items-center justify-center rounded-xl border border-slate-700/50 bg-transparent text-slate-400 hover:text-white cursor-pointer transition-colors"
             id="nav-mobile-toggle"
           >
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -147,7 +151,7 @@ export default function Navbar() {
 
       {/* Mobile Dropdown */}
       {mobileOpen && (
-        <div className="lg:hidden border-t border-slate-800/60 bg-[rgba(15,23,42,0.97)] backdrop-blur-xl animate-fade-in">
+        <div className="xl:hidden border-t border-slate-800/60 bg-[rgba(15,23,42,0.97)] backdrop-blur-xl animate-fade-in">
           <div className="flex flex-col gap-1 p-3">
             {NAV_LINKS.map((l) =>
               navLink(l.to, l.label, l.icon, `nav-mobile-${l.label.toLowerCase().replace(' ', '-')}`)

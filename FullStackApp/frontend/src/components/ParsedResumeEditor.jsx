@@ -31,7 +31,7 @@ export default function ParsedResumeEditor() {
 
   const handleSendToBuilder = () => {
     setResumeBuildData(parsedResume)
-    navigate('/resume-build')
+    navigate('/resume-build', { state: { mode: 'edit' } })
   }
 
   return (

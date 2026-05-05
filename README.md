@@ -37,24 +37,33 @@ Built as a final-year project by a B.Tech CSE student at Jagran Lakecity Univers
 
 ### 🤖 ML & NLP Core
 
-- Resume parsing and text extraction
-- Keyword matching with job descriptions
+- Resume parsing and text extraction (via PyMuPDF)
+- Keyword matching with job descriptions (TF-IDF cosine similarity)
 - Skill gap analysis
 - Resume scoring using trained ML model (ResumeModel v2)
 - NLP-based entity recognition (skills, education, experience)
+- **Generative AI** (Gemini/Groq) for Job Description generation and refinement
+
+### 🏢 Enterprise Features (Phase 2)
+
+- **Bulk Processing:** Upload and queue up to 50 resumes at once for batch scoring.
+- **Side-by-Side Comparison:** Compare multiple candidates against a JD in a unified matrix.
+- **ATS Checker:** Heuristic rule engine detecting tables, multi-column layouts, and formatting issues.
+- **Timeline Extraction:** Reconstruct candidate work histories and detect career gaps.
+- **Automated Notifications:** Trigger 'Shortlisted' or 'Rejected' emails via SendGrid / SMTP.
 
 ### 📝 Resume Editor
 
 - Real-time resume editing interface
 - Suggestions based on ML analysis
-- Export optimized resume
+- Export optimized resume natively to PDF
 
 ### 🌐 Full Stack Web App
 
-- Clean and responsive UI
-- Upload resume (PDF/DOCX)
-- Instant scoring and feedback
-- Job description input for matching
+- Clean and responsive UI built with modern React & Tailwind
+- Seamless Drag-and-Drop file uploads (Mobile-friendly)
+- Instant scoring and real-time backend feedback
+- Comprehensive dashboards for both Candidates and Recruiters
 
 ### 📊 Reports & Analytics
 
@@ -202,6 +211,7 @@ Contributions are welcome! Please follow these steps:
 | ML Model (v2, v3, v5) | ✅ |
 | Database Migration (PostgreSQL) | ✅ |
 | AI Integration (Gemini/Groq) | ✅ |
+| Phase 2 Enterprise Features | ✅ |
 | Full Stack App | ✅ |
 | Report Generator & Analytics | ✅ |
 | Deployment | ⏳ |

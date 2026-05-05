@@ -235,8 +235,8 @@ export default function ResumeBuildPage() {
   const user = useStore(s => s.user)
   const location = useLocation()
 
-  // Determine if user has existing data (only when logged in)
-  const hasExistingData = user && resumeBuildData && Object.values(resumeBuildData).some(
+  // Determine if user has existing data (even if not logged in, we check local store)
+  const hasExistingData = resumeBuildData && Object.values(resumeBuildData).some(
     v => v && (typeof v === 'string' ? v.trim() : Array.isArray(v) ? v.length > 0 : v > 0)
   )
 
@@ -244,7 +244,7 @@ export default function ResumeBuildPage() {
   const [phase, setPhase] = useState(() => {
     // If navigated with state (from another page), skip the modal
     if (location.state?.mode === 'edit' || location.state?.mode === 'new') return 'editor'
-    // If logged in and has data, go straight to editor
+    // If has data in store, go straight to editor
     if (hasExistingData) return 'editor'
     return 'entry'
   })
@@ -252,8 +252,8 @@ export default function ResumeBuildPage() {
   const [isExtracting, setIsExtracting] = useState(false)
   const [extractError, setExtractError] = useState('')
 
-  // Only load stored data if logged in
-  const stored = user ? (resumeBuildData || JSON.parse(localStorage.getItem('rs_resume_build') || 'null')) : null
+  // Load stored data from store or localStorage
+  const stored = resumeBuildData || JSON.parse(localStorage.getItem('rs_resume_build') || 'null')
 
   const [template, setTemplate] = useState('modern')
   const [showPreview, setShowPreview] = useState(false)

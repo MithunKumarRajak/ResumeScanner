@@ -104,15 +104,26 @@ function CardModelSelector({ value, onChange, models }) {
   return (
     <div className="mt-4" ref={dropRef}>
       <button onClick={()=>setOpen(!open)} className="flex w-full items-center justify-between rounded-xl border border-slate-700/60 bg-slate-900/50 px-4 py-2.5 text-sm cursor-pointer transition-all hover:border-slate-600" id="candidate-model-selector">
-        <div className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-indigo-400" /><span className="font-medium text-slate-200">{cur.name}</span></div>
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-indigo-400" />
+          <span className="font-medium text-slate-200">
+            {cur.name} {cur.id === 'ResumeModel_v5' && <span className="ml-1 text-[10px] text-amber-300 bg-amber-500/20 px-1.5 py-0.5 rounded tracking-wide uppercase">Best Option</span>}
+          </span>
+        </div>
         <ChevronDown className={`h-4 w-4 text-slate-500 transition-transform ${open?'rotate-180':''}`} />
       </button>
       {open && (
-        <div className="mt-1.5 rounded-xl border border-slate-700/80 bg-slate-900/80 p-1.5 animate-fade-in">
+        <div className="mt-1.5 rounded-xl border border-slate-700/80 bg-slate-900/80 p-1.5 animate-fade-in z-10 relative">
           {safeModels.map(m=>(
             <button key={m.id} onClick={()=>{onChange(m.id);setOpen(false)}}
               className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm cursor-pointer border-none transition-all ${value===m.id?'bg-indigo-500/15 text-indigo-300':'bg-transparent text-slate-400 hover:bg-white/5 hover:text-white'}`}>
-              <div><p className="font-semibold text-xs">{m.name}</p><p className="text-[10px] opacity-60 mt-0.5">{m.desc}</p></div>
+              <div>
+                <p className="font-semibold text-xs flex items-center gap-1.5">
+                  {m.name}
+                  {m.id === 'ResumeModel_v5' && <span className="px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wide bg-amber-500/20 text-amber-300 border border-amber-500/30">Recommended</span>}
+                </p>
+                <p className="text-[10px] opacity-60 mt-0.5">{m.desc}</p>
+              </div>
               {value===m.id && <CheckCircle2 className="h-3.5 w-3.5 text-indigo-400 shrink-0" />}
             </button>
           ))}
@@ -319,11 +330,15 @@ export default function CandidatePage() {
 
   const { mutate: runMatch, isError, error: matchError } = useMatch()
 
+  const initialResumeFile = useStore(s=>s.resumeFile)
+  const initialResumeText = useStore(s=>s.resumeText)
+  const initialJobDesc = useStore(s=>s.jobDescription)
+
   const [phase, setPhase] = useState('input') // input | dashboard | result
   const [activeAction, setActiveAction] = useState(null)
-  const [resumeFile, setLocalFile] = useState(null)
-  const [resumeText, setResumeText] = useState('')
-  const [jobDesc, setJobDesc] = useState('')
+  const [resumeFile, setLocalFile] = useState(initialResumeFile)
+  const [resumeText, setResumeText] = useState(initialResumeText)
+  const [jobDesc, setJobDesc] = useState(initialJobDesc)
   const [processing, setProcessing] = useState(false)
   const [missingFor, setMissingFor] = useState(null)
   const [extractError, setExtractError] = useState('')
@@ -374,8 +389,9 @@ export default function CandidatePage() {
   }, [])
 
   useEffect(() => {
-    if (!availableModels.some((m) => m.id === selectedModel)) {
-      setSelectedModel(availableModels[0]?.id || 'ResumeModel_v5')
+    if (!selectedModel || !availableModels.some((m) => m.id === selectedModel)) {
+      const bestModel = availableModels.find(m => m.id === 'ResumeModel_v5') || availableModels[availableModels.length - 1]
+      setSelectedModel(bestModel?.id || 'ResumeModel_v5')
     }
   }, [availableModels, selectedModel, setSelectedModel])
 

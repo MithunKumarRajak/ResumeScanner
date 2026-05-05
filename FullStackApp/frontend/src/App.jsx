@@ -12,6 +12,7 @@ import CompareView from './pages/CompareView'
 import BulkUpload from './components/BulkUpload'
 import ErrorBoundary from './components/ErrorBoundary'
 import { Toaster } from 'react-hot-toast'
+import Phase3Dashboard from './pages/Phase3Dashboard'
 
 export default function App() {
   const location = useLocation()
@@ -31,6 +32,7 @@ export default function App() {
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/compare" element={<CompareView />} />
           <Route path="/bulk-upload" element={<BulkUpload />} />
+          <Route path="/phase3" element={<Phase3Dashboard />} />
           <Route path="/results" element={<Navigate to="/candidate" replace />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

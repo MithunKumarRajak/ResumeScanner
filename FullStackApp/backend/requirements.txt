@@ -1,49 +1,78 @@
-# ── Core FastAPI & ASGI ─────
+# Web API framework and server
+# - fastapi: app/main.py and all app/routes/* endpoints
+# - uvicorn: ASGI server entrypoint in main.py and app/main.py
 fastapi==0.104.1
-uvicorn[standard]==0.24.0
-python-multipart==0.0.6
+uvicorn==0.24.0
 
-# ── Database ─
-sqlalchemy==2.0.30
-psycopg2-binary==2.9.9
-alembic>=1.18.0
-asyncpg>=0.29.0
-
-# ── Auth / Security ──
-python-jose[cryptography]==3.3.0
-passlib[bcrypt]==1.7.4
-
-# ── Settings & Utils ─
+# Data validation and settings
+# - pydantic: request/response schemas in app/schemas/* and routes
+# - pydantic-settings: environment config in app/config.py
+# - email-validator: EmailStr validation used in user/notification schemas
 pydantic==2.5.0
 pydantic-settings==2.2.1
 email-validator==2.1.1
-python-dotenv>=1.0.0
-httpx==0.25.0
 
-# ── File Parsing & Processing ─
-PyMuPDF>=1.24.0
+# Database and migrations
+# - SQLAlchemy: ORM models, DB sessions, and queries across app/models/* and app/routes/*
+# - psycopg2-binary: PostgreSQL driver for runtime/setup_db.py
+# - alembic: schema migrations in alembic/*
+SQLAlchemy==2.0.30
+psycopg2-binary==2.9.9
+alembic==1.18.4
+
+# Auth and security
+# - python-jose: JWT encode/decode in app/utils/auth.py
+# - passlib + bcrypt: password hashing in app/utils/auth.py
+# - python-multipart: required by FastAPI OAuth2 forms and file upload forms
+python-jose==3.3.0
+passlib==1.7.4
+bcrypt==5.0.0
+python-multipart==0.0.6
+
+# Resume parsing and NLP utilities
+# - PyMuPDF: PDF extraction in app/services/parser.py and app/routes/ai.py
+# - python-docx: DOCX extraction in app/services/parser.py and app/routes/ai.py
+# - spacy: text preprocessing/classification in preprocess.py and services
+# - dateparser: experience parsing in app/services/experience_extractor.py
+PyMuPDF==1.27.2.2
 python-docx==1.1.0
-aiofiles==23.2.1
-dateparser>=1.2.0
-celery>=5.3.0
-redis>=5.0.0
-
-# ── Communications ─
-sendgrid>=6.11.0
-
-# ── AI & LLMs ─
-google-generativeai>=0.3.0
-groq>=0.4.0
-
-# ── ML / NLP ─
-joblib==1.5.3
-scikit-learn==1.7.2
 spacy==3.8.11
-numpy>=1.24.0
-pandas==2.2.3
-sentence-transformers==2.2.2
+dateparser==1.4.0
 
-# ── Testing ─
+# ML and scoring pipeline
+# - numpy: vector math in classifier/matcher/predict/phase3
+# - scikit-learn: TF-IDF, cosine similarity, model operations
+# - joblib: loading serialized model artifacts
+numpy==2.2.3
+scikit-learn==1.7.2
+joblib==1.5.3
+
+# Phase-3 semantic and bias modules (used via ResumeModel_v6.py)
+# - pandas: custom CSV/model processing in app/routes/phase3.py
+# - sentence-transformers: semantic embedding matching
+# - fairlearn: fairness metrics and bias checks
+# - shap: explainability outputs
+# - langdetect + lingua-language-detector: multilingual language detection
+pandas==2.2.3
+sentence-transformers==5.4.1
+fairlearn==0.13.0
+shap==0.49.1
+langdetect==1.0.9
+lingua-language-detector==2.1.1
+
+# External services and integrations
+# - requests: fallback HTTP calls in app/routes/ai.py and test_api.py
+# - httpx: async provider calls in app/routes/notifications.py and tests
+# - python-dotenv: API key/env loading in app/routes/ai.py
+# - google-generativeai: Gemini integration in app/routes/ai.py
+# - sendgrid: email provider in app/services/email_service.py
+requests==2.32.5
+httpx==0.25.0
+python-dotenv==1.0.1
+google-generativeai==0.8.6
+sendgrid==6.12.5
+
+# Testing
+# - pytest + pytest-asyncio: backend tests in tests/*
 pytest==7.4.0
 pytest-asyncio==0.23.0
-pytest-cov==4.1.0

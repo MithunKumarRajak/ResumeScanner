@@ -31,7 +31,8 @@ class Settings(BaseSettings):
     ]
 
     # ── ML Model Paths ───────
-    # Resolved relative to working directory (backend/)
+    # Resolved relative to the repository root unless an absolute path is supplied.
+    MODEL_DIR: str = "models/v6"
     MODEL_PATH: str = "../model.pkl"
     TFIDF_PATH: str = "../tfidf.pkl"
     ENCODER_PATH: str = "../encoder.pkl"
@@ -54,7 +55,8 @@ class Settings(BaseSettings):
         "http://127.0.0.1:5174",
     ]
 
-    model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
+    model_config = {"env_file": ".env",
+                    "env_file_encoding": "utf-8", "extra": "ignore"}
 
 
 @lru_cache()

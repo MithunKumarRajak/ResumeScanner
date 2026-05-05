@@ -12,3 +12,6 @@ from app.models.candidate    import CandidateProfile                            
 from app.models.analysis     import ResumeAnalysis                                # noqa: F401
 from app.models.bulk_job     import BulkJob, BulkJobStatus                        # noqa: F401
 from app.models.notification import EmailNotification, NotificationType, NotificationStatus  # noqa: F401
+
+# ── Phase-3 models ──────────────────────────────────────────────
+from app.models.phase3 import CustomModelConfig, BiasAuditLog                             # noqa: F401

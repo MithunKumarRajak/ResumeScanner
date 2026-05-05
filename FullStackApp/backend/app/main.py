@@ -23,7 +23,7 @@ import app.models  # noqa: F401  (triggers __init__.py)
 
 # ── Routes ────
 from app.routes import auth, resume, job, match, recommend, dashboard, candidate, analytics, ai, predict
-from app.routes import ats_checker, experience, compare, bulk, notifications
+from app.routes import ats_checker, experience, compare, bulk, notifications, phase3
 
 logging.basicConfig(
     level   = logging.INFO if settings.DEBUG else logging.WARNING,
@@ -123,6 +123,9 @@ app.include_router(compare.router)
 app.include_router(bulk.router)
 app.include_router(notifications.router)
 
+# ── Phase-3 routers ──
+app.include_router(phase3.router)
+
 # ── Global exception handler ─
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
@@ -172,6 +175,7 @@ def root():
             "compare":     ["POST /api/compare/candidates"],
             "bulk":        ["POST /api/bulk/upload", "GET /api/bulk/{id}/status"],
             "notifications": ["POST /api/notifications/send"],
+            "phase3":      ["POST /api/v1/phase3/match", "POST /api/v1/phase3/explain", "POST /api/v1/phase3/bias-check", "POST /api/v1/phase3/detect-language", "POST /api/v1/phase3/fine-tune", "GET /api/v1/phase3/fine-tune/status/{id}", "GET /api/v1/phase3/bias-report"],
         },
     }
 

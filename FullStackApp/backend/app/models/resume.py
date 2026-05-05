@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, Float, Integer, Text, DateTime, ForeignKey
+from sqlalchemy import Column, String, Float, Integer, Text, DateTime, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from app.database.base import Base
 
@@ -28,6 +28,11 @@ class Resume(Base):
     # ── ML classification ────
     predicted_category = Column(String(255), nullable=True)
     confidence_score   = Column(Float,       nullable=True)
+
+    # ── Phase 3: Multilingual & Bias ──
+    language            = Column(String(10), default="en")
+    language_confidence = Column(Float, nullable=True)
+    has_hindi_content   = Column(Boolean, default=False)
 
     # ── Status 
     # pending | parsed | classified | error

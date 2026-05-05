@@ -24,6 +24,18 @@ _nlp           = None
 _models_loaded = False
 
 
+def _get_latest_predict_bundle():
+    """Use the multi-version prediction registry so background classification follows the latest model."""
+    try:
+        from app.routes import predict as predict_routes
+        if not predict_routes.loaded_models:
+            predict_routes.load_predict_models()
+        return predict_routes._resolve_model("ResumeModel_v6"), predict_routes
+    except Exception as e:
+        logger.warning(f"Latest predict model unavailable, using legacy classifier artifacts: {e}")
+        return None, None
+
+
 def _get_model_path(filename: str) -> str:
     """
     Resolve model file path — looks relative to the backend/ working dir first,
@@ -101,6 +113,28 @@ def classify_resume(text: str) -> Dict[str, Any]:
 
     Raises RuntimeError if models are not loaded.
     """
+    latest_bundle, predict_routes = _get_latest_predict_bundle()
+    if latest_bundle is not None and predict_routes is not None:
+        processed = predict_routes._preprocess_text(text)
+        model_vectorized, _ = predict_routes._build_inference_vector(
+            processed, text, latest_bundle
+        )
+        model = latest_bundle["model"]
+        label_encoder = latest_bundle["label_encoder"]
+        prediction = model.predict(model_vectorized)
+        probabilities = model.predict_proba(model_vectorized)[0]
+        predicted_category = label_encoder.inverse_transform(prediction)[0]
+        confidence = float(max(probabilities))
+        all_probs = {
+            label: round(float(prob), 4)
+            for label, prob in zip(label_encoder.classes_, probabilities)
+        }
+        return {
+            "predicted_category": predicted_category,
+            "confidence": round(confidence, 4),
+            "all_probabilities": all_probs,
+        }
+
     if not _models_loaded:
         load_models()
 
@@ -134,6 +168,9 @@ def classify_resume(text: str) -> Dict[str, Any]:
 
 def get_tfidf_vectorizer():
     """Return the loaded TF-IDF vectorizer (used by matcher service)."""
+    latest_bundle, _ = _get_latest_predict_bundle()
+    if latest_bundle is not None:
+        return latest_bundle["tfidf"]
     if not _models_loaded:
         load_models()
     return _tfidf
@@ -141,6 +178,9 @@ def get_tfidf_vectorizer():
 
 def get_categories() -> list:
     """Return sorted list of all known job categories."""
+    latest_bundle, _ = _get_latest_predict_bundle()
+    if latest_bundle is not None:
+        return sorted(latest_bundle["label_encoder"].classes_.tolist())
     if not _models_loaded:
         load_models()
     if _label_encoder is None:
@@ -150,6 +190,12 @@ def get_categories() -> list:
 
 def preprocess_text(text: str) -> str:
     """Public wrapper used by matcher service."""
+    latest_bundle, predict_routes = _get_latest_predict_bundle()
+    if latest_bundle is not None and predict_routes is not None:
+        if latest_bundle.get("model_type") == "phase3_v6":
+            processed, _ = predict_routes._preprocess_v6_text(text)
+            return processed
+        return predict_routes._preprocess_text(text)
     if not _models_loaded:
         load_models()
     return _preprocess(text)

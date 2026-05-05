@@ -8,6 +8,7 @@ Endpoints:
 import re
 import hashlib
 import logging
+import sys
 from typing import Optional, List
 
 import numpy as np
@@ -18,6 +19,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["ML Prediction"])
+MODEL_PRIORITY = ("ResumeModel_v6", "ResumeModel_v5", "ResumeModel_v3", "ResumeModel_v2")
 
 
 # ── Request / Response ─────────────
@@ -44,8 +46,11 @@ import spacy
 import os
 from pathlib import Path
 
+REPO_ROOT = Path(__file__).resolve().parents[4]
+
 loaded_models = {}     # { "ResumeModel_v2": {...}, ... }
 loaded_embedders = {}
+loaded_preprocessors = {}
 nlp = None
 
 
@@ -75,6 +80,13 @@ class _FallbackEmbedder:
 
 
 MODEL_REGISTRY = {
+    "ResumeModel_v6": {
+        "dir": os.path.join("..", "v6"),
+        "description": "Final Phase 3 model with multilingual semantic matching, bias checks, and SHAP support",
+        "algorithm": "Calibrated SGD/SVM with transformer embeddings + TF-IDF + 15 structured features",
+        "badge": "Latest Model",
+        "model_type": "phase3_v6",
+    },
     "ResumeModel_v2": {
         "dir": "..",
         "description": "KNN + OneVsRest (TF-IDF 5K features)",
@@ -93,7 +105,7 @@ MODEL_REGISTRY = {
         "dir": os.path.join("..", "v5"),
         "description": "Adaptive hybrid model with semantic and feature support",
         "algorithm": "OneVsRestClassifier(CalibratedClassifierCV(SGDClassifier))",
-        "badge": "Latest Model",
+        "badge": "Production Model",
         "model_type": "hybrid_adaptive",
     },
 }
@@ -140,7 +152,10 @@ def load_predict_models():
     nlp = spacy.load("en_core_web_sm")
     logger.info("spaCy model loaded for prediction routes")
 
-    for version_id, meta in MODEL_REGISTRY.items():
+    ordered_ids = [model_id for model_id in MODEL_PRIORITY if model_id in MODEL_REGISTRY]
+    ordered_ids.extend(model_id for model_id in MODEL_REGISTRY if model_id not in ordered_ids)
+    for version_id in ordered_ids:
+        meta = MODEL_REGISTRY[version_id]
         arts = _load_single_model(version_id, meta["dir"])
         if arts is not None:
             loaded_models[version_id] = arts
@@ -154,7 +169,7 @@ def load_predict_models():
 def _resolve_model(version_id: Optional[str] = None):
     if version_id and version_id in loaded_models:
         return loaded_models[version_id]
-    for fallback in ("ResumeModel_v2", "ResumeModel_v3", "ResumeModel_v5"):
+    for fallback in MODEL_PRIORITY:
         if fallback in loaded_models:
             return loaded_models[fallback]
     return None
@@ -176,6 +191,26 @@ def _preprocess_text(text: str) -> str:
     cleaned = _clean_text(text)
     doc = nlp(cleaned.lower())
     return " ".join(token.lemma_ for token in doc if not token.is_stop)
+
+
+def _ensure_repo_root_on_path() -> None:
+    repo_root_str = str(REPO_ROOT)
+    if repo_root_str not in sys.path:
+        sys.path.insert(0, repo_root_str)
+
+
+def _preprocess_v6_text(text: str) -> tuple[str, str]:
+    """Use ResumeModel_v6 preprocessing when available; fall back safely."""
+    try:
+        if "v6" not in loaded_preprocessors:
+            _ensure_repo_root_on_path()
+            from ResumeModel_v6 import MultilingualPreprocessor
+            loaded_preprocessors["v6"] = MultilingualPreprocessor()
+        result = loaded_preprocessors["v6"].preprocess(text)
+        return result["processed"], result["lang"]
+    except Exception as exc:
+        logger.warning("V6 preprocessing unavailable; using legacy preprocessing: %s", exc)
+        return _preprocess_text(text), "en"
 
 
 def _get_top_tfidf_terms(tfidf_vector, vectorizer, n: int = 10) -> list:
@@ -206,6 +241,18 @@ def _extract_structured_features(text: str) -> np.ndarray:
     return np.array([[years, has_degree, has_masters, is_technical, is_management, is_sales]], dtype=np.float32)
 
 
+def _extract_v6_structured_features(text: str, lang: str = "en") -> np.ndarray:
+    """Return V6's 15 structured features in training order."""
+    try:
+        _ensure_repo_root_on_path()
+        from ResumeModel_v6 import extract_features_v6
+        features = extract_features_v6(text, lang)
+        return np.array([[v for v in features.values()]], dtype=np.float32)
+    except Exception as exc:
+        logger.warning("V6 feature extraction unavailable; using zero features: %s", exc)
+        return np.zeros((1, 15), dtype=np.float32)
+
+
 def _get_embedder(embedder_name: str):
     if embedder_name in loaded_embedders:
         return loaded_embedders[embedder_name]
@@ -228,6 +275,29 @@ def _build_inference_vector(processed_text: str, raw_text: str, model_bundle: di
     feature_vector = _extract_structured_features(raw_text)
     feature_dim = int(feature_vector.shape[1])
     expected_dim = int(getattr(model, "n_features_in_", tfidf_dim) or tfidf_dim)
+
+    if model_bundle.get("model_type") == "phase3_v6":
+        processed_v6, lang = _preprocess_v6_text(raw_text)
+        tfidf_vector = tfidf.transform([processed_v6])
+        tfidf_dim = int(tfidf_vector.shape[1])
+        v6_features = _extract_v6_structured_features(raw_text, lang)
+        v6_feature_dim = int(v6_features.shape[1])
+        embedder_name = model_bundle.get("embedder_name", "paraphrase-multilingual-MiniLM-L12-v2")
+        embedder = _get_embedder(embedder_name)
+        embedding = embedder.encode([processed_v6], convert_to_numpy=True, show_progress_bar=False)
+
+        embedding_dim = int(embedding.shape[1])
+        if expected_dim == embedding_dim + tfidf_dim + v6_feature_dim:
+            hybrid = np.hstack([embedding, tfidf_vector.toarray(), v6_features])
+            return hybrid, tfidf_vector
+        if expected_dim == tfidf_dim + v6_feature_dim:
+            hybrid = np.hstack([tfidf_vector.toarray(), v6_features])
+            return hybrid, tfidf_vector
+        if expected_dim == embedding_dim + v6_feature_dim:
+            hybrid = np.hstack([embedding, v6_features])
+            return hybrid, tfidf_vector
+        if expected_dim == embedding_dim:
+            return embedding, tfidf_vector
 
     if expected_dim == tfidf_dim:
         return tfidf_vector, tfidf_vector
@@ -293,7 +363,10 @@ def predict_resume(input_data: ResumeInput):
         jd_top_terms = None
 
         if input_data.job_description and len(input_data.job_description.strip()) > 0:
-            processed_jd = _preprocess_text(input_data.job_description)
+            if resolved.get("model_type") == "phase3_v6":
+                processed_jd, _ = _preprocess_v6_text(input_data.job_description)
+            else:
+                processed_jd = _preprocess_text(input_data.job_description)
             jd_vectorized = tfidf.transform([processed_jd])
 
             similarity = cosine_similarity(tfidf_vector_for_terms, jd_vectorized)[0][0]
@@ -319,7 +392,10 @@ def predict_resume(input_data: ResumeInput):
 def get_models():
     """Return metadata about all registered model versions."""
     result = []
-    for version_id, meta in MODEL_REGISTRY.items():
+    ordered_ids = [model_id for model_id in MODEL_PRIORITY if model_id in MODEL_REGISTRY]
+    ordered_ids.extend(model_id for model_id in MODEL_REGISTRY if model_id not in ordered_ids)
+    for version_id in ordered_ids:
+        meta = MODEL_REGISTRY[version_id]
         entry = {
             "id": version_id,
             "description": meta["description"],

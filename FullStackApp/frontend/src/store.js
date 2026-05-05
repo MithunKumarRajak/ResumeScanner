@@ -5,7 +5,7 @@ const useStore = create((set, get) => ({
   // ── Auth ─────
   user: JSON.parse(localStorage.getItem('rs_user') || 'null'),
   isAuthModalOpen: false,
-  selectedModel: 'ResumeModel_v5',
+  selectedModel: 'ResumeModel_v6',
 
   login: (userData) => {
     localStorage.setItem('rs_user', JSON.stringify(userData))

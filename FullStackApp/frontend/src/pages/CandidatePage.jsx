@@ -17,10 +17,12 @@ import useStore from '../store'
 
 const ALLOWED = ['application/pdf','application/vnd.openxmlformats-officedocument.wordprocessingml.document']
 const MAX_SIZE = 5 * 1024 * 1024
+const LATEST_MODEL_ID = 'ResumeModel_v6'
 const FALLBACK_MODELS = [
-  { id: 'ResumeModel_v2', name: 'Base Model', desc: 'KNN + OneVsRest (TF-IDF 5K features)' },
+  { id: 'ResumeModel_v6', name: 'Latest Model', desc: 'Final Phase 3 model with multilingual semantic matching and XAI support' },
+  { id: 'ResumeModel_v5', name: 'Production Model', desc: 'Adaptive hybrid model with semantic and feature support' },
   { id: 'ResumeModel_v3', name: 'Updated Model', desc: 'Linear SVM + balanced classes (TF-IDF 10K features)' },
-  { id: 'ResumeModel_v5', name: 'Latest Model', desc: 'Adaptive hybrid model with semantic and feature support' },
+  { id: 'ResumeModel_v2', name: 'Base Model', desc: 'KNN + OneVsRest (TF-IDF 5K features)' },
 ]
 const ROLE_KEYWORDS = [
   'software engineer',
@@ -107,7 +109,7 @@ function CardModelSelector({ value, onChange, models }) {
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-indigo-400" />
           <span className="font-medium text-slate-200">
-            {cur.name} {cur.id === 'ResumeModel_v5' && <span className="ml-1 text-[10px] text-amber-300 bg-amber-500/20 px-1.5 py-0.5 rounded tracking-wide uppercase">Best Option</span>}
+            {cur.name} {cur.id === LATEST_MODEL_ID && <span className="ml-1 text-[10px] text-amber-300 bg-amber-500/20 px-1.5 py-0.5 rounded tracking-wide uppercase">Best Option</span>}
           </span>
         </div>
         <ChevronDown className={`h-4 w-4 text-slate-500 transition-transform ${open?'rotate-180':''}`} />
@@ -120,7 +122,7 @@ function CardModelSelector({ value, onChange, models }) {
               <div>
                 <p className="font-semibold text-xs flex items-center gap-1.5">
                   {m.name}
-                  {m.id === 'ResumeModel_v5' && <span className="px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wide bg-amber-500/20 text-amber-300 border border-amber-500/30">Recommended</span>}
+                  {m.id === LATEST_MODEL_ID && <span className="px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wide bg-amber-500/20 text-amber-300 border border-amber-500/30">Recommended</span>}
                 </p>
                 <p className="text-[10px] opacity-60 mt-0.5">{m.desc}</p>
               </div>
@@ -390,8 +392,8 @@ export default function CandidatePage() {
 
   useEffect(() => {
     if (!selectedModel || !availableModels.some((m) => m.id === selectedModel)) {
-      const bestModel = availableModels.find(m => m.id === 'ResumeModel_v5') || availableModels[availableModels.length - 1]
-      setSelectedModel(bestModel?.id || 'ResumeModel_v5')
+      const bestModel = availableModels.find(m => m.id === LATEST_MODEL_ID) || availableModels[0]
+      setSelectedModel(bestModel?.id || LATEST_MODEL_ID)
     }
   }, [availableModels, selectedModel, setSelectedModel])
 

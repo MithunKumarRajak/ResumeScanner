@@ -32,7 +32,7 @@ class Settings(BaseSettings):
 
     # ── ML Model Paths ───────
     # Resolved relative to the repository root unless an absolute path is supplied.
-    MODEL_DIR: str = "models/v6"
+    MODEL_DIR: str = "FullStackApp/v6"
     MODEL_PATH: str = "../model.pkl"
     TFIDF_PATH: str = "../tfidf.pkl"
     ENCODER_PATH: str = "../encoder.pkl"

@@ -14,7 +14,7 @@ Expected improvements:
   - V5: 78-82% accuracy (semantic + ensemble + confidence routing)
 
 Usage:
-  python train_v5.py --data-dir ../../Dataset --out-dir ../v5 [--skip-transformer]
+  python ResumeModel_v5.py --data-dir Dataset --out-dir FullStackApp/v5 [--skip-transformer]
   
   Use --skip-transformer to skip embeddings (fast CPU-only mode, still gets 75%)
 """
@@ -38,6 +38,14 @@ from sklearn.multiclass import OneVsRestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 from sklearn.ensemble import VotingClassifier
+
+
+PROJECT_ROOT = Path(__file__).resolve().parent if "__file__" in globals() else Path.cwd()
+
+
+def resolve_project_path(path_value) -> Path:
+    path = Path(path_value)
+    return path if path.is_absolute() else (PROJECT_ROOT / path).resolve()
 
 
 def load_datasets(data_dir: Path) -> pd.DataFrame:
@@ -181,8 +189,8 @@ def build_skill_list(df: pd.DataFrame) -> list:
 
 
 def main(args):
-    data_dir = Path(args.data_dir)
-    out_dir = Path(args.out_dir)
+    data_dir = resolve_project_path(args.data_dir)
+    out_dir = resolve_project_path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     print('='*80)
@@ -376,8 +384,8 @@ def main(args):
 
 if __name__ == '__main__':
     p = argparse.ArgumentParser(description='Train ResumeModel V5')
-    p.add_argument('--data-dir', default='../../Dataset')
-    p.add_argument('--out-dir', default='../v5')
+    p.add_argument('--data-dir', default='Dataset')
+    p.add_argument('--out-dir', default='FullStackApp/v5')
     p.add_argument('--skip-transformer', action='store_true',
                    help='Skip transformer embeddings for CPU-only mode')
     p.add_argument('--embedder', default='all-MiniLM-L6-v2',

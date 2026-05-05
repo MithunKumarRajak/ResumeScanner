@@ -40,7 +40,7 @@ Built as a final-year project by a B.Tech CSE student at Jagran Lakecity Univers
 - Resume parsing and text extraction (via PyMuPDF)
 - Keyword matching with job descriptions (TF-IDF cosine similarity)
 - Skill gap analysis
-- Resume scoring using trained ML model (ResumeModel v2)
+- Resume scoring using the latest trained ML model (ResumeModel v6)
 - NLP-based entity recognition (skills, education, experience)
 - **Generative AI** (Gemini/Groq) for Job Description generation and refinement
 
@@ -134,7 +134,7 @@ Visit `http://localhost:5173` in your browser 🎉
 
 ## 🤖 ML Model
 
-### Multi-Version Pipeline (v2, v3, v5)
+### Multi-Version Pipeline (v2, v3, v5, v6)
 
 The core ML pipeline is dynamically loaded and includes:
 
@@ -143,7 +143,7 @@ The core ML pipeline is dynamically loaded and includes:
 | **Parsing** | Fast, accurate PDF/DOCX extraction using PyMuPDF (`fitz`) |
 | **Preprocessing** | Text cleaning, tokenization, lemmatization using spaCy |
 | **Feature Extraction** | TF-IDF Vectorization & custom NLP feature arrays |
-| **Model Training** | Hybrid Adaptive models (SVM, KNN, OneVsRest) |
+| **Model Training** | Hybrid Adaptive models (SVM, KNN, OneVsRest), with ResumeModel v6 used as the latest model |
 | **Evaluation** | Accuracy, Precision, Recall, F1-Score |
 
 ### AI Integrations
@@ -208,7 +208,7 @@ Contributions are welcome! Please follow these steps:
 
 | Module | Status |
 |--------|--------|
-| ML Model (v2, v3, v5) | ✅ |
+| ML Model (v2, v3, v5, v6 latest) | ✅ |
 | Database Migration (PostgreSQL) | ✅ |
 | AI Integration (Gemini/Groq) | ✅ |
 | Phase 2 Enterprise Features | ✅ |

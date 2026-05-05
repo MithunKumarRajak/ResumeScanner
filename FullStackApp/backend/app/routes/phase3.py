@@ -213,8 +213,8 @@ async def explain_prediction(request: ExplainRequest):
         extra_feats = np.array([[v for v in extract_features_v6(
             request.resume_text, resume_data['lang']).values()]])
 
-        MODEL_DIR = os.environ.get('MODEL_DIR', '../../../../models/v6')
-        X_bg = np.load(f'{MODEL_DIR}/resume_embeddings.npy')[:200]
+        model_dir = _resolve_model_dir()
+        X_bg = np.load(model_dir / 'resume_embeddings.npy')[:200]
 
         result = explainer.explain_resume(
             request.resume_text,

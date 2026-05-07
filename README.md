@@ -6,34 +6,34 @@ A full-stack platform designed to analyze, score, and optimize resumes using Mac
 
 ---
 
-## 🛠️ Key Features
+## Key Features
 
-### 🧠 Core ML & NLP
+### Core ML & NLP
 - **Resume Parsing:** Automated text extraction from PDF and DOCX files.
 - **Matching Engine:** TF-IDF and Cosine Similarity for keyword-based relevance scoring.
 - **Skill Extraction:** NLP-based entity recognition to identify technical and soft skills.
 - **Predictive Scoring:** Multi-version model pipeline (up to v6) for candidate classification.
 
-### 🚀 Advanced AI Capabilities
+### Advanced AI Capabilities
 - **Semantic Matching:** Uses Sentence Transformer embeddings for deep contextual analysis (multilingual support).
 - **Explainable AI (XAI):** Integrated SHAP support to visualize features influencing the model's scoring.
 - **Bias Auditing:** Fairness engine to monitor demographic parity in scoring.
 - **LLM Integration:** Utilizes Google Gemini and Groq (api) for resume summarization and JD refinement.
 
-### 💼 System Features
+### System Features
 - **ATS Compatibility Checker:** Detects formatting issues like multi-column layouts and tables.
 - **Bulk Processing:** Support for batch uploading and scoring multiple resumes simultaneously.
 - **Candidate Comparison:** Side-by-side matrix view for comparing multiple candidates.
 - **Analytics Dashboard:** Visual breakdowns of skill matches and candidate performance.
 - **Automated Notifications:** Email integration for status updates via SendGrid.
 
-### 📝 Real-time Editor
+### Real-time Editor
 - Built-in editor to refine resumes based on system suggestions.
 - Native PDF export functionality for optimized documents.
 
 ---
 
-## 💻 Tech Stack
+## Tech Stack
 
 | Component | Technologies |
 | :--- | :--- |
@@ -46,7 +46,7 @@ A full-stack platform designed to analyze, score, and optimize resumes using Mac
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 - Python 3.10+
@@ -78,7 +78,7 @@ npm run dev
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 - `FullStackApp/backend`: FastAPI application, models, and ML service layers.
 - `FullStackApp/frontend`: React application with Tailwind styling.
@@ -87,11 +87,11 @@ npm run dev
 
 ---
 
-## 👨‍💻 Author
+## Author
 
 **Mithun Kumar Rajak**
 - [GitHub](https://github.com/MithunKumarRajak)
 - [LinkedIn](https://www.linkedin.com/in/mithun-kumar-rajak/)
 
 ---
-*Developed as a B.Tech CSE Project at Jagran Lakecity University.*
+*Developed as a B.Tech(CSE) Project at Jagran Lakecity University, Bhopal.*

@@ -5,33 +5,48 @@ export default {
   theme: {
     extend: {
       colors: {
-        navy: {
-          950: '#050810',
-          900: '#070c1a',
-          800: '#0a0f1e',
-          700: '#0d1426',
-          600: '#111827',
-          500: '#1a2236',
+        slate: {
+          50: '#f9f9f9', 100: '#f3f3f3', 200: '#e5e5e5', 300: '#d4d4d4', 
+          400: '#a3a3a3', 500: '#737373', 600: '#525252', 700: '#404040', 
+          800: '#262626', 900: '#171717', 950: '#0a0a0a',
+        },
+        indigo: {
+          50: '#ffffff', 100: '#f3f3f3', 200: '#e5e5e5', 300: '#d4d4d4',
+          400: '#a3a3a3', 500: '#ffffff', 600: '#e5e5e5', 700: '#a3a3a3',
+          800: '#737373', 900: '#404040', 950: '#171717',
+        },
+        violet: {
+          50: '#ffffff', 100: '#f3f3f3', 200: '#e5e5e5', 300: '#d4d4d4',
+          400: '#a3a3a3', 500: '#ffffff', 600: '#e5e5e5', 700: '#a3a3a3',
+          800: '#737373', 900: '#404040', 950: '#171717',
+        },
+        emerald: {
+          50: '#ffffff', 100: '#f3f3f3', 200: '#e5e5e5', 300: '#d4d4d4',
+          400: '#ffffff', 500: '#ffffff', 600: '#ffffff',
+        },
+        amber: {
+          50: '#ffffff', 100: '#f3f3f3', 200: '#e5e5e5', 300: '#ffffff',
+          400: '#ffffff', 500: '#ffffff',
         },
         brand: {
-          50:  '#f0f4ff',
-          100: '#e0e8ff',
-          200: '#c7d5fe',
-          300: '#a5b8fc',
-          400: '#8093f9',
-          500: '#6366f1',
-          600: '#4f46e5',
-          700: '#4338ca',
-          800: '#3730a3',
-          900: '#312e81',
+          50:  '#ffffff',
+          100: '#f3f3f3',
+          200: '#e5e5e5',
+          300: '#d4d4d4',
+          400: '#a3a3a3',
+          500: '#ffffff',
+          600: '#e5e5e5',
+          700: '#a3a3a3',
+          800: '#737373',
+          900: '#404040',
         },
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
       },
       backgroundImage: {
-        'brand-gradient': 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-        'dark-gradient': 'linear-gradient(180deg, #0f172a 0%, #0a0f1e 100%)',
+        'brand-gradient': 'linear-gradient(135deg, #ffffff 0%, #a3a3a3 100%)',
+        'dark-gradient': 'linear-gradient(180deg, #000000 0%, #0a0a0a 100%)',
       },
       animation: {
         'fade-in':    'fadeIn 0.4s ease-out both',
@@ -56,8 +71,8 @@ export default {
           '50%':      { transform: 'translateY(-12px)' },
         },
         pulseGlow: {
-          '0%, 100%': { boxShadow: '0 0 20px rgba(99,102,241,0.25)' },
-          '50%':      { boxShadow: '0 0 50px rgba(99,102,241,0.55)' },
+          '0%, 100%': { boxShadow: '0 0 20px rgba(255,255,255,0.1)' },
+          '50%':      { boxShadow: '0 0 50px rgba(255,255,255,0.2)' },
         },
         barFill: {
           '0%':   { width: '0%' },
@@ -69,10 +84,10 @@ export default {
         },
       },
       boxShadow: {
-        'glow-brand': '0 0 30px rgba(99,102,241,0.35)',
-        'glow-green': '0 0 20px rgba(34,197,94,0.3)',
-        'glow-red':   '0 0 20px rgba(239,68,68,0.3)',
-        'card':       '0 4px 24px rgba(0,0,0,0.35)',
+        'glow-brand': '0 0 30px rgba(255,255,255,0.15)',
+        'glow-green': '0 0 20px rgba(255,255,255,0.1)',
+        'glow-red':   '0 0 20px rgba(255,255,255,0.1)',
+        'card':       '0 4px 24px rgba(0,0,0,0.5)',
       },
     },
   },

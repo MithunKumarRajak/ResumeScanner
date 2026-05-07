@@ -402,15 +402,19 @@ def get_models():
     result = []
     ordered_ids = [model_id for model_id in MODEL_PRIORITY if model_id in MODEL_REGISTRY]
     ordered_ids.extend(model_id for model_id in MODEL_REGISTRY if model_id not in ordered_ids)
+    base = Path(__file__).resolve().parent.parent.parent
     for version_id in ordered_ids:
         meta = MODEL_REGISTRY[version_id]
+        model_root = (base / meta["dir"]).resolve()
+        is_available = (model_root / "model.pkl").exists() and (model_root / "tfidf.pkl").exists()
+        
         entry = {
             "id": version_id,
             "description": meta["description"],
             "algorithm": meta["algorithm"],
             "badge": meta["badge"],
             "model_type": meta.get("model_type", "classic_tfidf"),
-            "available": version_id in loaded_models,
+            "available": is_available,
         }
         if version_id in loaded_models:
             entry["categories"] = len(loaded_models[version_id]["label_encoder"].classes_)

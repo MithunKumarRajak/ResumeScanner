@@ -18,7 +18,7 @@ A full-stack platform designed to analyze, score, and optimize resumes using Mac
 - **Semantic Matching:** Uses Sentence Transformer embeddings for deep contextual analysis (multilingual support).
 - **Explainable AI (XAI):** Integrated SHAP support to visualize features influencing the model's scoring.
 - **Bias Auditing:** Fairness engine to monitor demographic parity in scoring.
-- **LLM Integration:** Utilizes Google Gemini and Groq (Llama) for resume summarization and JD refinement.
+- **LLM Integration:** Utilizes Google Gemini and Groq (api) for resume summarization and JD refinement.
 
 ### 💼 System Features
 - **ATS Compatibility Checker:** Detects formatting issues like multi-column layouts and tables.
@@ -39,7 +39,7 @@ A full-stack platform designed to analyze, score, and optimize resumes using Mac
 | :--- | :--- |
 | **Backend** | Python, FastAPI, SQLAlchemy, Alembic, PostgreSQL |
 | **Frontend** | React (Vite), Tailwind CSS, Zustand, React Query |
-| **ML/DS** | Scikit-learn, Pandas, NumPy, Joblib, SHAP, Fairlearn |
+| **ML** | Scikit-learn, Pandas, NumPy, Joblib, SHAP |
 | **NLP** | spaCy, Sentence-Transformers, PyMuPDF, python-docx |
 | **AI** | Google Gemini API, Groq Cloud API |
 | **Utilities** | SendGrid, JWT Auth, Pydantic |

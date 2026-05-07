@@ -1,233 +1,97 @@
-# ResumeScanner : ML-Based Resume Screening & Optimization Platform
+# ResumeScanner: ML-Based Resume Screening & Optimization
 
-> Intelligently analyze, score, and optimize resumes using Machine Learning and NLP
+A full-stack platform designed to analyze, score, and optimize resumes using Machine Learning and Natural Language Processing (NLP). The system evaluates candidate resumes against job descriptions, identifies skill gaps, and provides actionable feedback.
 
-![Status](https://img.shields.io/badge/Status-In%20Progress-yellow)
-
----
-
-## 📋 Table of Contents
-
-- [About](#-about)
-- [Features](#-features)
-- [Tech Stack](#-tech-stack)
-- [Project Structure](#-project-structure)
-- [Getting Started](#-getting-started)
-- [ML Model](#-ml-model)
-- [Full Stack App](#-full-stack-app)
-- [Contributing](#-contributing)
-- [Author](#-author)
+![Status](https://img.shields.io/badge/Status-Active%20Development-green)
 
 ---
 
-## 🧠 About
+## 🛠️ Key Features
 
-**ResumeScanner** is an intelligent resume screening and optimization platform that uses **Machine Learning** and **Natural Language Processing (NLP)** to:
+### 🧠 Core ML & NLP
+- **Resume Parsing:** Automated text extraction from PDF and DOCX files.
+- **Matching Engine:** TF-IDF and Cosine Similarity for keyword-based relevance scoring.
+- **Skill Extraction:** NLP-based entity recognition to identify technical and soft skills.
+- **Predictive Scoring:** Multi-version model pipeline (up to v6) for candidate classification.
 
-- Automatically **analyze resumes** and extract key information
-- **Score and rank** resumes based on job descriptions
-- Help candidates **optimize their resumes** with actionable suggestions
-- Provide a **full-stack web interface** for easy interaction
+### 🚀 Advanced AI Capabilities
+- **Semantic Matching:** Uses Sentence Transformer embeddings for deep contextual analysis (multilingual support).
+- **Explainable AI (XAI):** Integrated SHAP support to visualize features influencing the model's scoring.
+- **Bias Auditing:** Fairness engine to monitor demographic parity in scoring.
+- **LLM Integration:** Utilizes Google Gemini and Groq (Llama) for resume summarization and JD refinement.
 
-Built as a final-year project by a B.Tech CSE student at Jagran Lakecity University, Bhopal.
+### 💼 System Features
+- **ATS Compatibility Checker:** Detects formatting issues like multi-column layouts and tables.
+- **Bulk Processing:** Support for batch uploading and scoring multiple resumes simultaneously.
+- **Candidate Comparison:** Side-by-side matrix view for comparing multiple candidates.
+- **Analytics Dashboard:** Visual breakdowns of skill matches and candidate performance.
+- **Automated Notifications:** Email integration for status updates via SendGrid.
 
----
-
-## ✨ Features
-
-### 🤖 ML & NLP Core
-
-- Resume parsing and text extraction (via PyMuPDF)
-- Keyword matching with job descriptions (TF-IDF cosine similarity)
-- Skill gap analysis
-- Resume scoring using the latest trained ML model (ResumeModel v6)
-- NLP-based entity recognition (skills, education, experience)
-- **Generative AI** (Gemini/Groq) for Job Description generation and refinement
-
-### 🚀 V7 - Advanced AI Upgrades (Latest)
-
-- **Semantic Match 2.0:** Uses **Sentence Transformer Embeddings** (`paraphrase-multilingual-MiniLM-L12-v2`) for high-precision, multilingual semantic matching.
-- **XAI (Explainable AI):** Integrated **SHAP (SHapley Additive exPlanations)** support to visualize exactly which words and features influenced the AI's decision.
-- **Embedder Fine-Tuning:** Implemented **Transfer Learning** using **Siamese Networks** (Contrastive Loss) to allow the model to learn company-specific jargon.
-- **Bias Audit Module:** A built-in fairness engine that audits the model for demographic parity to ensure ethical, unbiased hiring.
-- **Deep NER Parsing:** Leveraging **Gemini 2.0 Flash** for state-of-the-art Named Entity Recognition (NER) to extract structured candidate data.
-
-### 🏢 Enterprise Features (Phase 2)
-
-- **Bulk Processing:** Upload and queue up to 50 resumes at once for batch scoring.
-- **Side-by-Side Comparison:** Compare multiple candidates against a JD in a unified matrix.
-- **ATS Checker:** Heuristic rule engine detecting tables, multi-column layouts, and formatting issues.
-- **Timeline Extraction:** Reconstruct candidate work histories and detect career gaps.
-- **Automated Notifications:** Trigger 'Shortlisted' or 'Rejected' emails via SendGrid / SMTP.
-
-### 📝 Resume Editor
-
-- Real-time resume editing interface
-- Suggestions based on ML analysis
-- Export optimized resume natively to PDF
-
-### 🌐 Full Stack Web App
-
-- Clean and responsive UI built with modern React & Tailwind
-- Seamless Drag-and-Drop file uploads (Mobile-friendly)
-- Instant scoring and real-time backend feedback
-- Comprehensive dashboards for both Candidates and Recruiters
-
-### 📊 Reports & Analytics
-
-- Detailed analysis report generation
-- Visual skill match breakdown
-- Improvement recommendations
+### 📝 Real-time Editor
+- Built-in editor to refine resumes based on system suggestions.
+- Native PDF export functionality for optimized documents.
 
 ---
 
-## 🛠️ Tech Stack
+## 💻 Tech Stack
 
-| Layer | Technologies |
-|-------|-------------|
-| **ML / Data Science** | Python, Scikit-Learn, Pandas, NumPy, Joblib |
-| **NLP & AI** | spaCy, PyMuPDF (`fitz`), Gemini AI, Groq AI, TF-IDF |
-| **Frontend** | React, Vite, JavaScript, CSS3 |
-| **Backend** | Python, FastAPI, SQLAlchemy |
-| **Database** | PostgreSQL |
-| **Tools** | VS Code, Postman, Git |
+| Component | Technologies |
+| :--- | :--- |
+| **Backend** | Python, FastAPI, SQLAlchemy, Alembic, PostgreSQL |
+| **Frontend** | React (Vite), Tailwind CSS, Zustand, React Query |
+| **ML/DS** | Scikit-learn, Pandas, NumPy, Joblib, SHAP, Fairlearn |
+| **NLP** | spaCy, Sentence-Transformers, PyMuPDF, python-docx |
+| **AI** | Google Gemini API, Groq Cloud API |
+| **Utilities** | SendGrid, JWT Auth, Pydantic |
 
 ---
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-
 - Python 3.10+
 - Node.js 18+
-- PostgreSQL Server
+- PostgreSQL
 
-### 1. Clone the Repository
-
+### 1. Clone & Setup
 ```bash
 git clone https://github.com/MithunKumarRajak/ResumeScanner.git
 cd ResumeScanner
 ```
 
-### 2. Setup the Backend
-
+### 2. Backend Installation
 ```bash
 cd FullStackApp/backend
-
-# Create & activate virtual environment
 python -m venv venv
-venv\Scripts\activate      # Windows
-# source venv/bin/activate # Linux/macOS
-
-# Install Python dependencies
+source venv/bin/activate # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-
-# Start the FastAPI server (Runs on port 8000)
-python -m uvicorn app.main:app --reload --port 8000
+# Configure your .env file with DATABASE_URL and API keys
+python -m uvicorn app.main:app --reload
 ```
 
-*(Ensure your PostgreSQL service is running and configured in your `.env` file)*
-
-### 3. Setup the Frontend
-
-Open a new terminal window:
-
+### 3. Frontend Installation
 ```bash
 cd FullStackApp/frontend
 npm install
 npm run dev
 ```
 
-Visit `http://localhost:5173` in your browser 🎉
-
 ---
 
-## 🤖 ML Model
+## 📁 Project Structure
 
-### Multi-Version Pipeline (v2, v3, v5, v6)
-
-The core ML pipeline is dynamically loaded and includes:
-
-| Step | Description |
-|------|-------------|
-| **Parsing** | Fast, accurate PDF/DOCX extraction using PyMuPDF (`fitz`) |
-| **Preprocessing** | Text cleaning, tokenization, lemmatization using spaCy |
-| **Feature Extraction** | TF-IDF Vectorization & custom NLP feature arrays |
-| **Model Training** | Hybrid Adaptive models (SVM, KNN, OneVsRest), with ResumeModel v6 used as the latest model |
-| **Evaluation** | Accuracy, Precision, Recall, F1-Score |
-
-### AI Integrations
-
-- **Generative AI:** Uses Gemini 2.0 Flash and Groq (Llama-3.3-70b) for on-the-fly Job Description generation and refinement.
-
----
-
-## 🌐 Full Stack App
-
-The web application allows users to:
-
-1. **Upload** their resume (PDF or DOCX)
-2. **Enter** a job description
-3. **Get instant score** and keyword match analysis
-4. **Edit** resume in real-time with the Resume Editor
-5. **Download** the optimized resume
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Please follow these steps:
-
-1. Fork the repository
-2. Create a feature branch
-
-   ```bash
-   git checkout -b feature/YourFeature
-   ```
-
-3. Commit your changes
-
-   ```bash
-   git commit -m "Add YourFeature"
-   ```
-
-4. Push to the branch
-
-   ```bash
-   git push origin feature/YourFeature
-   ```
-
-5. Open a Pull Request
+- `FullStackApp/backend`: FastAPI application, models, and ML service layers.
+- `FullStackApp/frontend`: React application with Tailwind styling.
+- `FullStackApp/model.pkl`: Serialized scikit-learn model artifacts.
+- `Resume_Editor`: Specialized real-time editing component.
 
 ---
 
 ## 👨‍💻 Author
 
 **Mithun Kumar Rajak**
-
-- 🎓 B.Tech CSE @ Jagran Lakecity University, Bhopal
-- 🛡️ Cybersecurity Enthusiast | Full-Stack Developer | ML & NLP Explorer
-- 🔗 [GitHub](https://github.com/MithunKumarRajak)
-- 💼 [LinkedIn](https://www.linkedin.com/in/mithun-kumar-rajak/)
-- ✍️ [Medium](https://medium.com/@MithunKumarRajak)
+- [GitHub](https://github.com/MithunKumarRajak)
+- [LinkedIn](https://www.linkedin.com/in/mithun-kumar-rajak/)
 
 ---
-
-## 📊 Project Status
-
-> 🚧 **Currently In Development** — Features are being actively added.
-
-| Module | Status |
-|--------|--------|
-| ML Model (v2 - v6) | ✅ |
-| V7 Advanced Upgrades (XAI, Fine-Tuning, Bias) | ✅ |
-| Database Migration (PostgreSQL) | ✅ |
-| AI Integration (Gemini/Groq) | ✅ |
-| Phase 2 Enterprise Features | ✅ |
-| Full Stack App | ✅ |
-| Report Generator & Analytics | ✅ |
-| Deployment | ⏳ |
-
----
-
-*Made with ❤️ by Mithun Kumar Rajak*
+*Developed as a B.Tech CSE Project at Jagran Lakecity University.*

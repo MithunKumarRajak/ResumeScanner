@@ -18,7 +18,7 @@ export default function BiasCheckWidget({ resumeText }: Props) {
   const runCheck = async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/v1/phase3/bias-check', {
+      const res = await fetch('/api/v1/advanced/bias-check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ resume_text: resumeText })
@@ -51,7 +51,7 @@ export default function BiasCheckWidget({ resumeText }: Props) {
             color: result.bias_risk_flags.length === 0 ? '#3B6D11' : '#854F0B',
             marginBottom: '0.5rem'
           }}>
-            {result.bias_risk_flags.length === 0 ? '✓ No bias indicators found' : `⚠️ ${result.bias_risk_flags.join(', ')}`}
+            {result.bias_risk_flags.length === 0 ? ' No bias indicators found' : `⚠️ ${result.bias_risk_flags.join(', ')}`}
           </div>
           <p style={{ color: '#666', margin: 0 }}>{result.recommendation}</p>
         </div>

@@ -55,7 +55,7 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
                 </button>
               )}
             </div>
-            {apiKey && <p style={{ fontSize: 11, color: 'var(--success)', marginTop: 6 }}>✓ API key is set</p>}
+            {apiKey && <p style={{ fontSize: 11, color: 'var(--success)', marginTop: 6 }}> API key is set</p>}
           </div>
 
           {/* Theme */}

@@ -558,14 +558,18 @@ def fine_tune_on_custom_data(
     base_model_dir: str,
     custom_data_path: str,
     output_dir: str,
-    epochs: int = 5
+    epochs: int = 3
 ) -> dict:
     """
     Fine-tune the v6 base model on company-specific data.
+    Includes Embedder Fine-Tuning using SentenceTransformers contrastive loss.
     """
     from sklearn.linear_model import SGDClassifier
     from sklearn.metrics import accuracy_score
     from pathlib import Path
+    import time
+    from sentence_transformers import SentenceTransformer, InputExample, losses
+    from torch.utils.data import DataLoader
 
     base_dir = Path(base_model_dir)
     out_dir = Path(output_dir)
@@ -575,6 +579,9 @@ def fine_tune_on_custom_data(
     model = joblib.load(base_dir / 'model.pkl')
     tfidf = joblib.load(base_dir / 'tfidf.pkl')
     le = joblib.load(base_dir / 'encoder.pkl')
+    
+    with open(base_dir / 'embedder.txt', 'r') as f:
+        embedder_name = f.read().strip()
 
     # Load custom data
     custom_df = pd.read_csv(custom_data_path)
@@ -582,8 +589,9 @@ def fine_tune_on_custom_data(
         "CSV must have 'Resume' and 'Category' columns"
 
     preprocessor = MultilingualPreprocessor()
-    custom_df['Processed'] = custom_df['Resume'].apply(
-        lambda t: preprocessor.preprocess(t)['processed'])
+    preprocessed_res = custom_df['Resume'].apply(lambda t: preprocessor.preprocess(t))
+    custom_df['Processed'] = preprocessed_res.apply(lambda r: r['processed'])
+    custom_df['lang'] = preprocessed_res.apply(lambda r: r['lang'])
 
     # Add new categories to encoder if needed
     new_categories = set(custom_df['Category'].unique()) - set(le.classes_)
@@ -593,16 +601,51 @@ def fine_tune_on_custom_data(
         le.classes_ = all_classes
 
     y_custom = le.transform(custom_df['Category'])
-    X_custom_tfidf = tfidf.transform(custom_df['Processed'])
+    
+    # 1. Embedder Fine-Tuning (Contrastive Learning)
+    print(f"
+  [1/3] Fine-tuning Embedder ({embedder_name}) using SetFit approach...")
+    embedder = SentenceTransformer(embedder_name)
+    
+    # Create pairs for contrastive loss
+    train_examples = []
+    for i in range(len(custom_df)):
+        text1 = custom_df.iloc[i]['Processed']
+        cat1 = custom_df.iloc[i]['Category']
+        for j in range(i+1, min(i+10, len(custom_df))): # Sample pairs to prevent combinatorial explosion
+            text2 = custom_df.iloc[j]['Processed']
+            cat2 = custom_df.iloc[j]['Category']
+            label = 1.0 if cat1 == cat2 else 0.0
+            train_examples.append(InputExample(texts=[text1, text2], label=label))
+            
+    train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=8)
+    train_loss = losses.CosineSimilarityLoss(embedder)
+    
+    embedder.fit(train_objectives=[(train_dataloader, train_loss)], epochs=1, warmup_steps=10)
+    
+    # Save the fine-tuned embedder locally
+    custom_embedder_path = str(out_dir / 'fine_tuned_embedder')
+    embedder.save(custom_embedder_path)
+    print(f"  Embedder fine-tuned and saved to {custom_embedder_path}")
 
-    # Partial fit (warm start) - works with SGDClassifier
+    # 2. Extract full features (Transformer + TFIDF + Custom)
+    print("
+  [2/3] Extracting features with fine-tuned embedder...")
+    X_transformer = embedder.encode(custom_df['Processed'].tolist(), show_progress_bar=True, normalize_embeddings=True)
+    X_tfidf = tfidf.transform(custom_df['Processed']).toarray()
+    
+    features_list = [extract_features_v6(row['Resume'], row['lang']) for _, row in custom_df.iterrows()]
+    X_features = pd.DataFrame(features_list).values
+    
+    X_combined = np.hstack([X_transformer, X_tfidf, X_features])
+
+    # 3. Classifier Fine-Tuning
+    print(f"
+  [3/3] Fine-tuning Classifier for {epochs} epochs on {len(custom_df)} samples...")
     base_sgd = model.estimator if hasattr(model, 'estimator') else model
-
-    print(f"  Fine-tuning for {epochs} epochs on {len(custom_df)} samples...")
     for epoch in range(epochs):
-        base_sgd.partial_fit(X_custom_tfidf, y_custom,
-                             classes=np.arange(len(le.classes_)))
-        y_pred = base_sgd.predict(X_custom_tfidf)
+        base_sgd.partial_fit(X_combined, y_custom, classes=np.arange(len(le.classes_)))
+        y_pred = base_sgd.predict(X_combined)
         acc = accuracy_score(y_custom, y_pred)
         print(f"  Epoch {epoch+1}/{epochs} - train accuracy: {acc:.3f}")
 
@@ -610,6 +653,8 @@ def fine_tune_on_custom_data(
     joblib.dump(model, out_dir / 'model.pkl')
     joblib.dump(le, out_dir / 'encoder.pkl')
     joblib.dump(tfidf, out_dir / 'tfidf.pkl')
+    with open(out_dir / 'embedder.txt', 'w') as f:
+        f.write(custom_embedder_path)
 
     # Manifest
     manifest = {
@@ -618,12 +663,14 @@ def fine_tune_on_custom_data(
         'fine_tune_samples': int(len(custom_df)),
         'fine_tune_epochs': epochs,
         'trained_at': time.ctime(),
-        'new_categories': list(new_categories)
+        'new_categories': list(new_categories),
+        'embedder_fine_tuned': True
     }
     with open(out_dir / 'manifest.json', 'w') as f:
         json.dump(manifest, f, indent=2)
 
-    print(f"  Fine-tuned model saved to {out_dir}")
+    print(f"
+  Fine-tuned artifacts saved to {out_dir}")
     return manifest
 
 # train_v6
@@ -635,7 +682,7 @@ def train_v6(args):
     out_dir.mkdir(parents=True, exist_ok=True)
 
     print("=" * 80)
-    print("ResumeModel V6 - Full Phase 3 Training")
+    print("ResumeModel V6 - Full Advanced Training")
     print("Features: Semantic Match - Bias Detection - XAI - Multilingual - Custom Training")
     print("=" * 80)
 
@@ -697,7 +744,8 @@ def train_v6(args):
     )
     base_clf = SGDClassifier(loss='hinge', class_weight='balanced',
                              max_iter=2000, tol=1e-4, random_state=42, n_jobs=-1)
-    clf = CalibratedClassifierCV(base_clf, cv=5, method='sigmoid')
+    cv_folds = max(2, min(5, np.bincount(y_train).min()))
+    clf = CalibratedClassifierCV(base_clf, cv=cv_folds, method='sigmoid')
 
     t0 = time.time()
     clf.fit(X_train, y_train)
@@ -760,13 +808,13 @@ def train_v6(args):
             'total_dims': X_combined.shape[1]
         },
         'semantic_model': matcher.model_name,
-        'phase3_features': ['semantic_matching', 'bias_detection', 'xai_shap', 'multilingual', 'custom_training'],
+        'advanced_features': ['semantic_matching', 'bias_detection', 'xai_shap', 'multilingual', 'custom_training'],
         'bias_audit': post_bias_report
     }
     with open(out_dir / 'manifest.json', 'w') as f:
         json.dump(manifest, f, indent=2)
 
-    print(f"\n✓ All artifacts saved to {out_dir}/")
+    print(f"\n All artifacts saved to {out_dir}/")
     print(f"  model.pkl · tfidf.pkl · encoder.pkl · feature_stats.pkl")
     print(f"  resume_embeddings.npy · feature_names.json · bias_report.json · embedder.txt · manifest.json")
     print(f"\nV6 Training Complete! Accuracy: {acc:.2%}")
@@ -775,7 +823,7 @@ def train_v6(args):
 # argparse Entry Point
 if __name__ == '__main__':
     p = argparse.ArgumentParser(
-        description='Train ResumeModel V6 — Phase 3 Full')
+        description='Train ResumeModel V6 — Advanced Full')
     p.add_argument('--data-dir', default='Dataset', help='Dataset directory')
     p.add_argument('--out-dir', default='FullStackApp/v6',
                    help='Output directory for artifacts')

@@ -3,7 +3,7 @@ import { Plus, ChevronDown, Zap, Mic, Check, AlertTriangle } from 'lucide-react'
 import useStore from '../store'
 
 const MODELS = [
-  { id: 'ResumeModel_v6', name: 'ResumeModel_v6', description: 'Latest model — Phase 3 semantic, multilingual, bias-aware, explainable pipeline', badge: 'Latest', type: 'latest' },
+  { id: 'ResumeModel_v6', name: 'ResumeModel_v6', description: 'Latest model — Advanced semantic, multilingual, bias-aware, explainable pipeline', badge: 'Latest', type: 'latest' },
   { id: 'ResumeModel_v5', name: 'ResumeModel_v5', description: 'Production model — hybrid adaptive pipeline with semantic support', badge: 'Stable', type: 'stable' },
   { id: 'ResumeModel_v3', name: 'ResumeModel_v3', description: 'Enhanced — Linear SVM + balanced classes (10K features)', badge: 'New', type: 'enhanced' },
   { id: 'ResumeModel_v2', name: 'ResumeModel_v2', description: 'Base model — KNN + OneVsRest (5K features)', badge: 'Active', type: 'base' },

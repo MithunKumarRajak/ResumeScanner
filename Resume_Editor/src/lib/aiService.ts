@@ -47,7 +47,7 @@ async function callClaude(
               fullText += data.delta.text;
               onChunk(data.delta.text);
             }
-          } catch {}
+          } catch { }
         }
       }
     }
@@ -158,10 +158,10 @@ ${jobDescription.slice(0, 1500)}
 Return a structured analysis:
 **ATS Score: XX%**
 
-**✅ Matched Keywords:**
+** Matched Keywords:**
 [list matched keywords]
 
-**❌ Missing Keywords:**
+** Missing Keywords:**
 [list important missing keywords from JD]
 
 **📊 Section Analysis:**
@@ -190,7 +190,7 @@ Job Description:
 ${jobDescription.slice(0, 1500)}
 
 Provide:
-**Skills You Already Have ✅**
+**Skills You Already Have **
 [matching skills]
 
 **Critical Missing Skills 🔴** (required in JD)
@@ -245,9 +245,9 @@ Candidate:
 - Title: ${resumeData.personalInfo.title}
 - Summary: ${resumeData.summary}
 - Top Skills: ${resumeData.skills
-    .slice(0, 6)
-    .map((s) => s.name)
-    .join(', ')}
+      .slice(0, 6)
+      .map((s) => s.name)
+      .join(', ')}
 - Recent Role: ${resumeData.experience[0]?.title} at ${resumeData.experience[0]?.company}
 
 Job Description:

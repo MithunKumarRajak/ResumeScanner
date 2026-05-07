@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/ats", tags=["ATS Checker"])
 
 
-# ── Schemas ───────────────────────────────────────────────────────
+#  Schemas ─
 
 class ATSCheckRequest(BaseModel):
     resume_id: str
@@ -41,7 +41,7 @@ class ATSCheckResponse(BaseModel):
     passed: bool           # score >= 70
 
 
-# ── Route ─────────────────────────────────────────────────────────
+#  Route ─
 
 from app.services.ats_checker import ats_checker_service
 
@@ -71,7 +71,7 @@ def ats_check(
     ats_score = result["ats_score"]
     all_issues = result["issues"]
 
-    # ── Persist to ResumeAnalysis ────────────────────────────────
+    #  Persist to ResumeAnalysis 
     analysis = (
         db.query(ResumeAnalysis)
         .filter(ResumeAnalysis.resume_id == resume.id)

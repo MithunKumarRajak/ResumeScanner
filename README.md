@@ -44,6 +44,14 @@ Built as a final-year project by a B.Tech CSE student at Jagran Lakecity Univers
 - NLP-based entity recognition (skills, education, experience)
 - **Generative AI** (Gemini/Groq) for Job Description generation and refinement
 
+### 🚀 V7 - Advanced AI Upgrades (Latest)
+
+- **Semantic Match 2.0:** Uses **Sentence Transformer Embeddings** (`paraphrase-multilingual-MiniLM-L12-v2`) for high-precision, multilingual semantic matching.
+- **XAI (Explainable AI):** Integrated **SHAP (SHapley Additive exPlanations)** support to visualize exactly which words and features influenced the AI's decision.
+- **Embedder Fine-Tuning:** Implemented **Transfer Learning** using **Siamese Networks** (Contrastive Loss) to allow the model to learn company-specific jargon.
+- **Bias Audit Module:** A built-in fairness engine that audits the model for demographic parity to ensure ethical, unbiased hiring.
+- **Deep NER Parsing:** Leveraging **Gemini 2.0 Flash** for state-of-the-art Named Entity Recognition (NER) to extract structured candidate data.
+
 ### 🏢 Enterprise Features (Phase 2)
 
 - **Bulk Processing:** Upload and queue up to 50 resumes at once for batch scoring.
@@ -117,11 +125,13 @@ pip install -r requirements.txt
 # Start the FastAPI server (Runs on port 8000)
 python -m uvicorn app.main:app --reload --port 8000
 ```
+
 *(Ensure your PostgreSQL service is running and configured in your `.env` file)*
 
 ### 3. Setup the Frontend
 
 Open a new terminal window:
+
 ```bash
 cd FullStackApp/frontend
 npm install
@@ -147,6 +157,7 @@ The core ML pipeline is dynamically loaded and includes:
 | **Evaluation** | Accuracy, Precision, Recall, F1-Score |
 
 ### AI Integrations
+
 - **Generative AI:** Uses Gemini 2.0 Flash and Groq (Llama-3.3-70b) for on-the-fly Job Description generation and refinement.
 
 ---
@@ -208,7 +219,8 @@ Contributions are welcome! Please follow these steps:
 
 | Module | Status |
 |--------|--------|
-| ML Model (v2, v3, v5, v6 latest) | ✅ |
+| ML Model (v2 - v6) | ✅ |
+| V7 Advanced Upgrades (XAI, Fine-Tuning, Bias) | ✅ |
 | Database Migration (PostgreSQL) | ✅ |
 | AI Integration (Gemini/Groq) | ✅ |
 | Phase 2 Enterprise Features | ✅ |

@@ -11,13 +11,13 @@ class Job(Base):
     id         = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     created_by = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
 
-    # ── Core fields ──
+    #  Core fields 
     title         = Column(String(255), nullable=False, index=True)
     description   = Column(Text,        nullable=False)
     role_category = Column(String(255), nullable=True)
     location      = Column(String(255), nullable=True)
 
-    # ── Experience range ─────
+    #  Experience range ─
     experience_min = Column(Integer, default=0)
     experience_max = Column(Integer, default=10)
 

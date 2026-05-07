@@ -216,10 +216,10 @@ export default function ExperienceSection() {
                       {exp.description && (
                          <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
                            <span className={`tag ${analysis.hasVerbs ? 'tag-success' : 'tag-warning'}`} style={{ fontSize: 10 }}>
-                             {analysis.hasVerbs ? '✓ Strong action verbs' : '⚠ Add action verbs'}
+                             {analysis.hasVerbs ? ' Strong action verbs' : '⚠ Add action verbs'}
                            </span>
                            <span className={`tag ${analysis.hasMetrics ? 'tag-success' : 'tag-warning'}`} style={{ fontSize: 10 }}>
-                             {analysis.hasMetrics ? '✓ Metrics present' : '⚠ Add numbers/metrics'}
+                             {analysis.hasMetrics ? ' Metrics present' : '⚠ Add numbers/metrics'}
                            </span>
                          </div>
                       )}

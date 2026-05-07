@@ -2,7 +2,7 @@ import { useState } from 'react'
 import SemanticMatchPanel from '../components/SemanticMatchPanel'
 import BiasCheckWidget from '../components/BiasCheckWidget'
 
-export default function Phase3Dashboard() {
+export default function AdvancedDashboard() {
   const [activeTab, setActiveTab] = useState<'match' | 'bias' | 'finetune'>('match')
   const [resumeText, setResumeText] = useState('')
   const [ftCompany, setFtCompany] = useState('')
@@ -14,7 +14,7 @@ export default function Phase3Dashboard() {
     const reader = new FileReader()
     reader.onload = async (e) => {
       const base64 = btoa(e.target?.result as string)
-      const res = await fetch('/api/v1/phase3/fine-tune', {
+      const res = await fetch('/api/v1/advanced/fine-tune', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ company_name: ftCompany, csv_base64: base64, epochs: 5 })
@@ -33,7 +33,7 @@ export default function Phase3Dashboard() {
 
   return (
     <div style={{ maxWidth: '900px', margin: '0 auto', padding: '1.5rem' }}>
-      <h2 style={{ fontWeight: 500, marginBottom: '0.25rem' }}>Phase 3 — Advanced AI Features</h2>
+      <h2 style={{ fontWeight: 500, marginBottom: '0.25rem' }}>Advanced — Advanced AI Features</h2>
       <p style={{ color: '#666', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
         Semantic matching · Bias detection · Explainable AI · Multilingual · Custom training
       </p>
@@ -116,7 +116,7 @@ export default function Phase3Dashboard() {
           {ftStatus && (
             <div style={{ marginTop: '1rem', padding: '0.75rem', background: '#EAF3DE',
                           color: '#3B6D11', borderRadius: '8px', fontSize: '0.85rem' }}>
-              ✓ {ftStatus}
+               {ftStatus}
             </div>
           )}
         </div>

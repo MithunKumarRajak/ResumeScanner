@@ -6,7 +6,7 @@ from typing import Optional, List
 from datetime import datetime
 
 
-# ── Platform Summary ─
+#  Platform Summary ─
 class DashboardSummary(BaseModel):
     total_resumes:   int
     total_jobs:      int
@@ -16,7 +16,7 @@ class DashboardSummary(BaseModel):
     avg_total_score: float
 
 
-# ── Candidate List Item (filtered view) ───
+#  Candidate List Item (filtered view) ─
 class CandidateListItem(BaseModel):
     resume_id:          str
     user_id:            str
@@ -35,7 +35,7 @@ class CandidateListItem(BaseModel):
     model_config = {"from_attributes": True}
 
 
-# ── Job Overview (per-job dashboard) ──
+#  Job Overview (per-job dashboard) 
 class JobOverview(BaseModel):
     job_id:           str
     title:            str

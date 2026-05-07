@@ -17,7 +17,7 @@ from pydantic import BaseModel
 router = APIRouter(tags=["AI"])
 
 
-# ── Request schemas ───────
+#  Request schemas ─
 
 class JDGenerateRequest(BaseModel):
     job_title: str
@@ -34,7 +34,7 @@ class JDRefineRequest(BaseModel):
     instruction: str      # user's refinement instruction
 
 
-# ── Gemini AI Client ─────
+#  Gemini AI Client ─
 
 _gemini_model = None
 
@@ -94,7 +94,7 @@ def _clean_ai_json(text: str) -> str:
     return text
 
 
-# ── Endpoints ─────────────
+#  Endpoints ─
 
 @router.post("/ai/generate-jd")
 def ai_generate_jd(req: JDGenerateRequest):
@@ -209,7 +209,7 @@ Keep the same JSON structure with fields: title, meta, about, tasks (array), req
         raise HTTPException(status_code=500, detail=f"AI refinement error: {str(e)}")
 
 
-# ── Resume Extraction Endpoint (PyMuPDF) ─────────────────────────────────────
+#  Resume Extraction Endpoint (PyMuPDF) ─
 
 @router.post("/extract-resume")
 async def extract_resume(file: UploadFile = File(...)):
@@ -243,116 +243,89 @@ async def extract_resume(file: UploadFile = File(...)):
     if not text:
         raise HTTPException(status_code=400, detail="Could not extract text from this file")
 
-    # ── Structured field extraction ──
-    lower = text.lower()
+    #  Structured field extraction via Gemini (V7 Upgrade)
+    prompt = f"""You are an expert HR parser. Extract the following information from the resume text below.
+Respond ONLY with a valid JSON object matching this schema:
+{{
+  "name": "Full Name",
+  "email": "Email Address",
+  "phone": "Phone Number",
+  "linkedin": "LinkedIn URL",
+  "github": "Github URL",
+  "education": "Highest Degree",
+  "experience": <integer years of experience>,
+  "skills": ["Skill 1", "Skill 2"],
+  "role": "Inferred Job Title",
+  "summary": "Short 2 sentence professional summary",
+  "projects": "List of notable projects",
+  "certifications": "List of certifications"
+}}
 
-    # Name – first short line that looks like a person's name
-    name = ""
-    for line in text.split("\n")[:12]:
-        line = line.strip()
-        words = line.split()
-        if 2 <= len(words) <= 5 and len(line) <= 50 and re.match(r"^[A-Za-z ,.'-]+$", line):
-            skip_words = [
-                "summary", "objective", "education", "experience", "skills",
-                "projects", "certifications", "phone", "email", "linkedin",
-                "github", "portfolio", "resume", "cv",
-            ]
-            if not any(sw in line.lower() for sw in skip_words):
-                name = line
-                break
+Resume Text:
+{text}
+"""
+    parsed_json = None
+    try:
+        model = _get_gemini()
+        if model is not None:
+            res = model.generate_content(prompt)
+            parsed_json = json.loads(_clean_ai_json(res.text))
+    except Exception as e:
+        print(f"[WARN] Gemini extraction failed: {e}")
 
-    # Contact info
-    email_m = re.search(r"[\w.+-]+@[\w-]+\.[\w.]+", text)
-    email = email_m.group(0) if email_m else ""
-    phone_m = re.search(r"(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}", text)
-    phone = phone_m.group(0).strip() if phone_m else ""
-    linkedin_m = re.search(r"linkedin\.com/in/[\w-]+", text, re.I)
-    linkedin = f"https://{linkedin_m.group(0)}" if linkedin_m else ""
-    github_m = re.search(r"github\.com/[\w-]+", text, re.I)
-    github = f"https://{github_m.group(0)}" if github_m else ""
-
-    # Education
-    edu_m = re.search(
-        r"((?:B\.?\s?Tech|B\.?S\.?c?|B\.?E|M\.?\s?Tech|M\.?S\.?c?|M\.?CA|MBA|"
-        r"Bachelor'?s?|Master'?s?|Ph\.?D|Diploma)\b[^\n]{0,120})",
-        text, re.I,
-    )
-    education = edu_m.group(1).strip()[:150] if edu_m else ""
-
-    # Experience years
-    exp_m = re.search(r"(\d+)\s*\+?\s*years?", lower)
-    experience = min(int(exp_m.group(1)), 20) if exp_m else 0
-
-    # Skills
-    skill_keywords = [
-        "python", "javascript", "typescript", "react", "node", "angular", "vue",
-        "java", "sql", "mysql", "postgresql", "mongodb", "aws", "azure", "docker",
-        "kubernetes", "git", "linux", "machine learning", "deep learning",
-        "tensorflow", "pytorch", "flask", "django", "fastapi", "c++", "c#",
-        "html", "css", "rest api", "rest", "api", "figma", "kotlin", "swift",
-        "go", "rust", "redis", "graphql", "next.js", "express",
-    ]
-    matched_skills = []
-    for kw in skill_keywords:
-        pattern = re.compile(r"(?:^|[\s,;|/])" + re.escape(kw) + r"(?:$|[\s,;|/])", re.I)
-        if pattern.search(lower):
-            matched_skills.append(kw)
-
-    # Role
-    role_keywords = [
-        "software engineer", "full stack", "frontend", "backend", "java developer",
-        "python developer", "web developer", "mobile developer", "data scientist",
-        "data analyst", "machine learning", "devops", "qa engineer", "product manager",
-        "project manager", "business analyst", "ui ux designer",
-    ]
-    role = ""
-    for line in text.split("\n")[:15]:
-        if len(line.strip()) < 80:
-            for rk in role_keywords:
-                if rk in line.lower():
-                    role = line.strip()
-                    break
-        if role:
-            break
-
-    # Summary
-    summary_m = re.search(
-        r"(?:SUMMARY|OBJECTIVE|ABOUT\s*ME|PROFILE)\s*[:\s\n]+([\s\S]+?)"
-        r"(?=\s*(?:SKILLS?|EDUCATION|EXPERIENCE|PROJECTS?|CERTIF|TECHNI|LANGUAGES?\b))",
-        text, re.I,
-    )
-    summary = re.sub(r"\s+", " ", summary_m.group(1)).strip()[:500] if summary_m else ""
-
-    # Projects
-    proj_m = re.search(
-        r"(?:PROJECTS?)\s*[:\s\n]+([\s\S]+?)"
-        r"(?=\s*(?:EDUCATION|CERTIF|SKILLS?|ACHIEVEMENTS?\b|$))",
-        text, re.I,
-    )
-    projects = proj_m.group(1).strip()[:800] if proj_m else ""
-
-    # Certifications
-    cert_m = re.search(
-        r"(?:CERTIFICATIONS?|CERTIFICATES?)\s*[:\s\n]+([\s\S]+?)"
-        r"(?=\s*(?:PROJECTS?|EDUCATION|SKILLS?|ACHIEVEMENTS?\b|$))",
-        text, re.I,
-    )
-    certifications = cert_m.group(1).strip()[:500] if cert_m else ""
+    if not parsed_json:
+        groq_text = _call_groq_api(prompt)
+        if groq_text:
+            try:
+                parsed_json = json.loads(_clean_ai_json(groq_text))
+            except Exception:
+                pass
+                
+    if not parsed_json:
+        # Fallback to basic empty if AI fails completely
+        parsed_json = {
+            "name": "Unknown", "email": "", "phone": "", "linkedin": "", "github": "",
+            "education": "", "experience": 0, "skills": [], "role": "",
+            "summary": "", "projects": "", "certifications": ""
+        }
 
     return {
         "raw_text": text,
-        "parsed": {
-            "name": name,
-            "email": email,
-            "phone": phone,
-            "linkedin": linkedin,
-            "github": github,
-            "education": education,
-            "experience": experience,
-            "skills": matched_skills,
-            "role": role,
-            "summary": summary,
-            "projects": projects,
-            "certifications": certifications,
-        },
+        "parsed": parsed_json
     }
+
+# Remove legacy regex block
+
+class ExplainMatchRequest(BaseModel):
+    resume_text: str
+    job_description: str
+    match_score: float
+
+@router.post("/ai/explain-match")
+def explain_match(req: ExplainMatchRequest):
+    """Generate a conversational explanation of why a candidate matches the JD."""
+    prompt = f"""You are an expert technical recruiter. You just scored a candidate's resume an {req.match_score}% match against a job description.
+Write a 3-4 sentence professional summary explaining EXACTLY why they are or aren't a good fit. Focus on specific skills overlapping or missing.
+Tone: Professional, direct, encouraging.
+
+Resume:
+{req.resume_text[:2000]}
+
+Job Description:
+{req.job_description[:2000]}
+"""
+    
+    text = "AI Explanation unavailable."
+    try:
+        model = _get_gemini()
+        if model:
+            res = model.generate_content(prompt)
+            text = res.text.strip()
+        else:
+            groq_text = _call_groq_api(prompt)
+            if groq_text:
+                text = groq_text.strip()
+    except Exception as e:
+        text = f"Explanation generation failed: {str(e)}"
+        
+    return {"explanation": text}

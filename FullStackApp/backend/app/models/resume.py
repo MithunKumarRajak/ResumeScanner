@@ -11,30 +11,30 @@ class Resume(Base):
     id      = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
 
-    # ── File info ─
+    #  File info ─
     file_name = Column(String(255), nullable=True)
     file_url  = Column(String(500), nullable=True)
     file_size = Column(Integer,     nullable=True)    # bytes
 
-    # ── Raw content ──
+    #  Raw content 
     raw_text = Column(Text, nullable=True)
 
-    # ── NLP-parsed fields ────
+    #  NLP-parsed fields 
     parsed_name      = Column(String(255), nullable=True)
     parsed_education = Column(Text,        nullable=True)
     experience_years = Column(Integer,     default=0)
     preferred_role   = Column(String(255), nullable=True)
 
-    # ── ML classification ────
+    #  ML classification 
     predicted_category = Column(String(255), nullable=True)
     confidence_score   = Column(Float,       nullable=True)
 
-    # ── Phase 3: Multilingual & Bias ──
+    #  Advanced: Multilingual & Bias 
     language            = Column(String(10), default="en")
     language_confidence = Column(Float, nullable=True)
     has_hindi_content   = Column(Boolean, default=False)
 
-    # ── Status 
+    #  Status 
     # pending | parsed | classified | error
     status        = Column(String(50), default="pending")
     error_message = Column(Text,       nullable=True)

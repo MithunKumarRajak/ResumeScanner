@@ -41,9 +41,9 @@ from app.config import settings
 router = APIRouter(tags=["Auth"])
 
 
-# ─────────────────────────────────────────────
+# ─
 #  Modern JWT endpoints  (app/ architecture)
-# ─────────────────────────────────────────────
+# ─
 
 @router.post("/auth/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 def register(payload: UserCreate, db: Session = Depends(get_db)):
@@ -88,9 +88,9 @@ def login_jwt(
     return Token(access_token=token, token_type="bearer", user=UserOut.model_validate(user))
 
 
-# ─────────────────────────────────────────────
+# ─
 #  Legacy-compatible endpoints  (frontend uses these)
-# ─────────────────────────────────────────────
+# ─
 
 from pydantic import BaseModel
 from typing import Optional
@@ -266,9 +266,9 @@ def legacy_delete_account(
     return {"status": "account_deleted"}
 
 
-# ─────────────────────────────────────────────
+# ─
 #  User Data endpoints  (key-value JSON blobs)
-# ─────────────────────────────────────────────
+# ─
 
 @router.post("/user/data")
 def save_user_data(

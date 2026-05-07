@@ -7,7 +7,7 @@ from typing import Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
-from passlib.context import CryptContext
+import bcrypt
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -15,22 +15,26 @@ from app.database.session import get_db
 from app.models.user import User
 from app.schemas.user import TokenData
 
-# ── Password hashing ─
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+#  Password hashing ─
 
-# ── OAuth2 bearer token ──────
+#  OAuth2 bearer token 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 
 
 def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
+    return hashed.decode('utf-8')
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
+    try:
+        return bcrypt.checkpw(plain.encode('utf-8'), hashed.encode('utf-8'))
+    except Exception:
+        return False
 
 
-# ── JWT ───────
+#  JWT ─
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
     expire = datetime.utcnow() + (
@@ -57,7 +61,7 @@ def verify_token(token: str) -> TokenData:
         raise credentials_exc
 
 
-# ── FastAPI dependency ───────
+#  FastAPI dependency ─
 def get_current_user(
     token: str = Depends(oauth2_scheme),
     db:    Session = Depends(get_db),

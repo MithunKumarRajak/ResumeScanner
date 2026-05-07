@@ -15,11 +15,11 @@ import { useMatch } from '../hooks/useMatch'
 import { getModels } from '../services/api'
 import useStore from '../store'
 
-const ALLOWED = ['application/pdf','application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+const ALLOWED = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
 const MAX_SIZE = 5 * 1024 * 1024
 const LATEST_MODEL_ID = 'ResumeModel_v6'
 const FALLBACK_MODELS = [
-  { id: 'ResumeModel_v6', name: 'Latest Model', desc: 'Final Phase 3 model with multilingual semantic matching and XAI support' },
+  { id: 'ResumeModel_v6', name: 'Latest Model', desc: 'Final Advanced model with multilingual semantic matching and XAI support' },
   { id: 'ResumeModel_v5', name: 'Production Model', desc: 'Adaptive hybrid model with semantic and feature support' },
   { id: 'ResumeModel_v3', name: 'Updated Model', desc: 'Linear SVM + balanced classes (TF-IDF 10K features)' },
   { id: 'ResumeModel_v2', name: 'Base Model', desc: 'KNN + OneVsRest (TF-IDF 5K features)' },
@@ -67,7 +67,7 @@ function MiniDropZone({ file, onFile, onClear }) {
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-500/10 text-sky-400"><FileText className="h-5 w-5" /></div>
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-white">{file.name}</p>
-          <p className="text-xs text-slate-400">{(file.size/1024).toFixed(1)} KB</p>
+          <p className="text-xs text-slate-400">{(file.size / 1024).toFixed(1)} KB</p>
         </div>
       </div>
       <button onClick={onClear} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-700 bg-slate-900 text-slate-400 cursor-pointer hover:text-red-400 transition-colors"><X className="h-4 w-4" /></button>
@@ -76,15 +76,15 @@ function MiniDropZone({ file, onFile, onClear }) {
 
   return (
     <div className="space-y-2">
-      <div onDragOver={e=>{e.preventDefault();setDrag(true)}} onDragLeave={()=>setDrag(false)}
-        onDrop={e=>{e.preventDefault();setDrag(false);e.dataTransfer.files?.[0]&&handle(e.dataTransfer.files[0])}}
-        onTouchStart={()=>setDrag(true)} onTouchEnd={()=>setDrag(false)}
-        onClick={()=>ref.current?.click()}
-        className={`cursor-pointer rounded-2xl border-2 border-dashed p-10 text-center transition-all ${drag?'dropzone-active':'border-slate-700/60 bg-white/[0.02] hover:border-indigo-500/40 hover:bg-indigo-500/[0.03]'}`}>
+      <div onDragOver={e => { e.preventDefault(); setDrag(true) }} onDragLeave={() => setDrag(false)}
+        onDrop={e => { e.preventDefault(); setDrag(false); e.dataTransfer.files?.[0] && handle(e.dataTransfer.files[0]) }}
+        onTouchStart={() => setDrag(true)} onTouchEnd={() => setDrag(false)}
+        onClick={() => ref.current?.click()}
+        className={`cursor-pointer rounded-2xl border-2 border-dashed p-10 text-center transition-all ${drag ? 'dropzone-active' : 'border-slate-700/60 bg-white/[0.02] hover:border-indigo-500/40 hover:bg-indigo-500/[0.03]'}`}>
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-500/10 text-indigo-400 mb-4"><Upload className="h-6 w-6" /></div>
         <p className="text-sm font-medium text-slate-300">Drop your resume here or <span className="text-indigo-400">browse</span></p>
         <p className="text-xs text-slate-500 mt-1">PDF or DOCX, up to 5 MB</p>
-        <input ref={ref} type="file" accept=".pdf,.docx" onChange={e=>e.target.files?.[0]&&handle(e.target.files[0])} className="hidden" id="candidate-resume-upload" />
+        <input ref={ref} type="file" accept=".pdf,.docx" onChange={e => e.target.files?.[0] && handle(e.target.files[0])} className="hidden" id="candidate-resume-upload" />
       </div>
       {error && <p className="flex items-center gap-1.5 text-xs text-red-400"><AlertCircle className="h-3.5 w-3.5" />{error}</p>}
     </div>
@@ -95,7 +95,7 @@ function CardModelSelector({ value, onChange, models }) {
   const [open, setOpen] = useState(false)
   const dropRef = useRef(null)
   const safeModels = models?.length ? models : FALLBACK_MODELS
-  const cur = safeModels.find(m=>m.id===value) || safeModels[0]
+  const cur = safeModels.find(m => m.id === value) || safeModels[0]
 
   useEffect(() => {
     const handler = (e) => { if (dropRef.current && !dropRef.current.contains(e.target)) setOpen(false) }
@@ -105,20 +105,20 @@ function CardModelSelector({ value, onChange, models }) {
 
   return (
     <div className="mt-4" ref={dropRef}>
-      <button onClick={()=>setOpen(!open)} className="flex w-full items-center justify-between rounded-xl border border-slate-700/60 bg-slate-900/50 px-4 py-2.5 text-sm cursor-pointer transition-all hover:border-slate-600" id="candidate-model-selector">
+      <button onClick={() => setOpen(!open)} className="flex w-full items-center justify-between rounded-xl border border-slate-700/60 bg-slate-900/50 px-4 py-2.5 text-sm cursor-pointer transition-all hover:border-slate-600" id="candidate-model-selector">
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-indigo-400" />
           <span className="font-medium text-slate-200">
             {cur.name} {cur.id === LATEST_MODEL_ID && <span className="ml-1 text-[10px] text-amber-300 bg-amber-500/20 px-1.5 py-0.5 rounded tracking-wide uppercase">Best Option</span>}
           </span>
         </div>
-        <ChevronDown className={`h-4 w-4 text-slate-500 transition-transform ${open?'rotate-180':''}`} />
+        <ChevronDown className={`h-4 w-4 text-slate-500 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
         <div className="mt-1.5 rounded-xl border border-slate-700/80 bg-slate-900/80 p-1.5 animate-fade-in z-10 relative">
-          {safeModels.map(m=>(
-            <button key={m.id} onClick={()=>{onChange(m.id);setOpen(false)}}
-              className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm cursor-pointer border-none transition-all ${value===m.id?'bg-indigo-500/15 text-indigo-300':'bg-transparent text-slate-400 hover:bg-white/5 hover:text-white'}`}>
+          {safeModels.map(m => (
+            <button key={m.id} onClick={() => { onChange(m.id); setOpen(false) }}
+              className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm cursor-pointer border-none transition-all ${value === m.id ? 'bg-indigo-500/15 text-indigo-300' : 'bg-transparent text-slate-400 hover:bg-white/5 hover:text-white'}`}>
               <div>
                 <p className="font-semibold text-xs flex items-center gap-1.5">
                   {m.name}
@@ -126,7 +126,7 @@ function CardModelSelector({ value, onChange, models }) {
                 </p>
                 <p className="text-[10px] opacity-60 mt-0.5">{m.desc}</p>
               </div>
-              {value===m.id && <CheckCircle2 className="h-3.5 w-3.5 text-indigo-400 shrink-0" />}
+              {value === m.id && <CheckCircle2 className="h-3.5 w-3.5 text-indigo-400 shrink-0" />}
             </button>
           ))}
         </div>
@@ -147,28 +147,28 @@ function MissingInputModal({ missingType, onProvide, onClose }) {
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/15 text-amber-400"><AlertTriangle className="h-5 w-5" /></div>
           <div><h3 className="text-lg font-bold text-white">Missing Input Required</h3>
-            <p className="text-sm text-slate-400 mt-1">This action requires {isResume?'a resume':'a job description'}. Please provide it below.</p></div>
+            <p className="text-sm text-slate-400 mt-1">This action requires {isResume ? 'a resume' : 'a job description'}. Please provide it below.</p></div>
         </div>
         {isResume ? (
           <div className="space-y-3">
             {file ? (
               <div className="flex items-center gap-3 rounded-xl border border-slate-700/60 bg-slate-900/50 p-3">
                 <FileText className="h-5 w-5 text-sky-400 shrink-0" /><span className="text-sm text-white truncate flex-1">{file.name}</span>
-                <button onClick={()=>setFile(null)} className="text-slate-500 hover:text-red-400 cursor-pointer bg-transparent border-none"><X className="h-4 w-4" /></button>
+                <button onClick={() => setFile(null)} className="text-slate-500 hover:text-red-400 cursor-pointer bg-transparent border-none"><X className="h-4 w-4" /></button>
               </div>
             ) : (
-              <button onClick={()=>ref.current?.click()} className="w-full rounded-xl border-2 border-dashed border-slate-700/60 p-6 text-center hover:border-indigo-500/40 cursor-pointer transition-colors bg-transparent">
+              <button onClick={() => ref.current?.click()} className="w-full rounded-xl border-2 border-dashed border-slate-700/60 p-6 text-center hover:border-indigo-500/40 cursor-pointer transition-colors bg-transparent">
                 <Upload className="h-5 w-5 text-indigo-400 mx-auto mb-2" /><p className="text-sm text-slate-400">Click to upload resume</p>
-                <input ref={ref} type="file" accept=".pdf,.docx" onChange={e=>e.target.files?.[0]&&setFile(e.target.files[0])} className="hidden" />
+                <input ref={ref} type="file" accept=".pdf,.docx" onChange={e => e.target.files?.[0] && setFile(e.target.files[0])} className="hidden" />
               </button>
             )}
           </div>
         ) : (
-          <textarea value={text} onChange={e=>setText(e.target.value)} placeholder="Paste the job description here…" className="form-textarea min-h-[140px]" id="modal-jd-input" />
+          <textarea value={text} onChange={e => setText(e.target.value)} placeholder="Paste the job description here…" className="form-textarea min-h-[140px]" id="modal-jd-input" />
         )}
         <div className="flex gap-3">
           <button onClick={onClose} className="btn-secondary flex-1" id="modal-cancel-btn">Cancel</button>
-          <button onClick={()=>onProvide(isResume?file:text)} disabled={isResume?!file:!text.trim()} className="btn-primary flex-1 flex items-center justify-center gap-2" id="modal-submit-btn">
+          <button onClick={() => onProvide(isResume ? file : text)} disabled={isResume ? !file : !text.trim()} className="btn-primary flex-1 flex items-center justify-center gap-2" id="modal-submit-btn">
             <CheckCircle2 className="h-4 w-4" /> Continue
           </button>
         </div>
@@ -180,10 +180,10 @@ function MissingInputModal({ missingType, onProvide, onClose }) {
 function ActionCard({ action, onClick }) {
   const Icon = action.icon
   const colors = {
-    indigo:{bg:'bg-indigo-500/12',text:'text-indigo-400',ring:'hover:ring-indigo-500/30',glow:'group-hover:shadow-[0_0_30px_rgba(99,102,241,0.15)]'},
-    violet:{bg:'bg-violet-500/12',text:'text-violet-400',ring:'hover:ring-violet-500/30',glow:'group-hover:shadow-[0_0_30px_rgba(139,92,246,0.15)]'},
-    sky:{bg:'bg-sky-500/12',text:'text-sky-400',ring:'hover:ring-sky-500/30',glow:'group-hover:shadow-[0_0_30px_rgba(14,165,233,0.15)]'},
-    emerald:{bg:'bg-emerald-500/12',text:'text-emerald-400',ring:'hover:ring-emerald-500/30',glow:'group-hover:shadow-[0_0_30px_rgba(16,185,129,0.15)]'},
+    indigo: { bg: 'bg-indigo-500/12', text: 'text-indigo-400', ring: 'hover:ring-indigo-500/30', glow: 'group-hover:shadow-[0_0_30px_rgba(99,102,241,0.15)]' },
+    violet: { bg: 'bg-violet-500/12', text: 'text-violet-400', ring: 'hover:ring-violet-500/30', glow: 'group-hover:shadow-[0_0_30px_rgba(139,92,246,0.15)]' },
+    sky: { bg: 'bg-sky-500/12', text: 'text-sky-400', ring: 'hover:ring-sky-500/30', glow: 'group-hover:shadow-[0_0_30px_rgba(14,165,233,0.15)]' },
+    emerald: { bg: 'bg-emerald-500/12', text: 'text-emerald-400', ring: 'hover:ring-emerald-500/30', glow: 'group-hover:shadow-[0_0_30px_rgba(16,185,129,0.15)]' },
   }
   const c = colors[action.color]
   return (
@@ -195,7 +195,7 @@ function ActionCard({ action, onClick }) {
   )
 }
 
-// ── Extract text from uploaded file ──
+//  Extract text from uploaded file 
 async function extractFileText(file) {
   if (file.type === 'application/pdf') {
     const pdfjsLib = await import('pdfjs-dist')
@@ -239,12 +239,12 @@ async function extractFileText(file) {
 
 function extractResumeFields(text = '') {
   // Split on newlines AND common delimiters (pipes, bullets) to handle PDF flat text
-  const rawLines = text.split('\n').map(l=>l.trim()).filter(Boolean)
+  const rawLines = text.split('\n').map(l => l.trim()).filter(Boolean)
   // Break long lines by pipe/bullet separators into shorter segments
   const lines = []
   for (const line of rawLines) {
     if (line.length > 120) {
-      const parts = line.split(/\s*[|•·]\s*/).map(p=>p.trim()).filter(Boolean)
+      const parts = line.split(/\s*[|•·]\s*/).map(p => p.trim()).filter(Boolean)
       if (parts.length > 1) { lines.push(...parts) } else { lines.push(line) }
     } else {
       lines.push(line)
@@ -252,7 +252,7 @@ function extractResumeFields(text = '') {
   }
   const cleanedLines = lines.map((line) => line.replace(/[|•·]/g, ' ').replace(/\s+/g, ' ').trim())
 
-  // ── Name extraction ──
+  //  Name extraction 
   // Try short lines in header first
   const headerLines = cleanedLines.slice(0, 12)
   let nameLine = headerLines.find((line) => {
@@ -278,13 +278,13 @@ function extractResumeFields(text = '') {
   const githubMatch = text.match(/github\.com\/[\w-]+/i)
   const github = githubMatch ? `https://${githubMatch[0]}` : ''
 
-  // ── Education (regex on full text, extract just the degree phrase) ──
+  //  Education (regex on full text, extract just the degree phrase) 
   const eduRegex = text.match(/((?:B\.?\s?Tech|B\.?S\.?c|B\.?E|M\.?\s?Tech|M\.?S\.?c|M\.?CA|Bachelor'?s?|Master'?s?|Ph\.?D|Diploma)\b[^|•\n]{0,100})/i)
   const edu = eduRegex ? eduRegex[1].replace(/\s+/g, ' ').trim().slice(0, 150) : ''
 
   const expMatch = text.match(/(\d+)\s*\+?\s*years?/i)
-  const experience = expMatch ? Math.min(parseInt(expMatch[1]),20) : 0
-  const skillKeywords = ['python','javascript','typescript','react','node','angular','vue','java','sql','mysql','postgresql','mongodb','aws','azure','docker','kubernetes','git','linux','machine learning','deep learning','tensorflow','pytorch','flask','django','fastapi','c\\+\\+','c#','html','css','rest api','rest','api']
+  const experience = expMatch ? Math.min(parseInt(expMatch[1]), 20) : 0
+  const skillKeywords = ['python', 'javascript', 'typescript', 'react', 'node', 'angular', 'vue', 'java', 'sql', 'mysql', 'postgresql', 'mongodb', 'aws', 'azure', 'docker', 'kubernetes', 'git', 'linux', 'machine learning', 'deep learning', 'tensorflow', 'pytorch', 'flask', 'django', 'fastapi', 'c\\+\\+', 'c#', 'html', 'css', 'rest api', 'rest', 'api']
   const lower = text.toLowerCase()
   // Use word-boundary matching to avoid 'java' matching inside 'javascript'
   const matchedSkills = new Set()
@@ -294,21 +294,21 @@ function extractResumeFields(text = '') {
   }
   const skills = [...matchedSkills]
 
-  // ── Role (only match short lines, not giant text blobs) ──
+  //  Role (only match short lines, not giant text blobs) 
   const shortLines = cleanedLines.filter(l => l.length < 80)
   const roleLine = shortLines.find((line) => ROLE_KEYWORDS.some((keyword) => line.toLowerCase().includes(keyword))) || ''
   const roleMatch = roleLine || text.match(/((?:Senior|Junior|Lead|Principal)?\s*(?:Software|Full[- ]Stack|Frontend|Backend|Java|Python|Web|Mobile|Data|Machine Learning|DevOps|QA|Product|Project|Business|UI\/?UX)?\s*(?:Engineer|Developer|Scientist|Analyst|Manager|Designer|Consultant|Specialist))/i)?.[1] || ''
   const role = roleMatch.replace(/\s+/g, ' ').trim()
 
-  // ── Summary ──
+  //  Summary 
   const summaryMatch = text.match(/(?:SUMMARY|OBJECTIVE|ABOUT\s*ME|PROFILE)\s*[:\s\n]+([\s\S]+?)(?=\s*(?:SKILLS?|EDUCATION|EXPERIENCE|PROJECTS?|CERTIF|TECHNI|LANGUAGES?\b))/i)
   const summary = summaryMatch ? summaryMatch[1].replace(/\s+/g, ' ').trim().slice(0, 500) : ''
 
-  // ── Projects ──
+  //  Projects 
   const projectsMatch = text.match(/(?:PROJECTS?)\s*[:\s\n]+([\s\S]+?)(?=\s*(?:EDUCATION|CERTIF|SKILLS?|ACHIEVEMENTS?\b|$))/i)
   const projects = projectsMatch ? projectsMatch[1].trim().slice(0, 800) : ''
 
-  // ── Certifications ──
+  //  Certifications 
   const certMatch = text.match(/(?:CERTIFICATIONS?|CERTIFICATES?)\s*[:\s\n]+([\s\S]+?)(?=\s*(?:PROJECTS?|EDUCATION|SKILLS?|ACHIEVEMENTS?\b|$))/i)
   const certifications = certMatch ? certMatch[1].trim().slice(0, 500) : ''
 
@@ -319,22 +319,22 @@ function extractResumeFields(text = '') {
 // MAIN CANDIDATE PAGE
 // ════════════════════════════════════════
 export default function CandidatePage() {
-  const selectedModel = useStore(s=>s.selectedModel)
-  const setSelectedModel = useStore(s=>s.setSelectedModel)
-  const storeSetResumeFile = useStore(s=>s.setResumeFile)
-  const storeSetResumeText = useStore(s=>s.setResumeText)
-  const storeSetJobDesc = useStore(s=>s.setJobDescription)
-  const setParsedResume = useStore(s=>s.setParsedResume)
-  const matchResult = useStore(s=>s.matchResult)
-  const isAnalyzing = useStore(s=>s.isAnalyzing)
-  const parsedResume = useStore(s=>s.parsedResume)
-  const clearAnalysis = useStore(s=>s.clearAnalysis)
+  const selectedModel = useStore(s => s.selectedModel)
+  const setSelectedModel = useStore(s => s.setSelectedModel)
+  const storeSetResumeFile = useStore(s => s.setResumeFile)
+  const storeSetResumeText = useStore(s => s.setResumeText)
+  const storeSetJobDesc = useStore(s => s.setJobDescription)
+  const setParsedResume = useStore(s => s.setParsedResume)
+  const matchResult = useStore(s => s.matchResult)
+  const isAnalyzing = useStore(s => s.isAnalyzing)
+  const parsedResume = useStore(s => s.parsedResume)
+  const clearAnalysis = useStore(s => s.clearAnalysis)
 
   const { mutate: runMatch, isError, error: matchError } = useMatch()
 
-  const initialResumeFile = useStore(s=>s.resumeFile)
-  const initialResumeText = useStore(s=>s.resumeText)
-  const initialJobDesc = useStore(s=>s.jobDescription)
+  const initialResumeFile = useStore(s => s.resumeFile)
+  const initialResumeText = useStore(s => s.resumeText)
+  const initialJobDesc = useStore(s => s.jobDescription)
 
   const [phase, setPhase] = useState('input') // input | dashboard | result
   const [activeAction, setActiveAction] = useState(null)
@@ -346,7 +346,7 @@ export default function CandidatePage() {
   const [extractError, setExtractError] = useState('')
   const [availableModels, setAvailableModels] = useState(FALLBACK_MODELS)
   const [modelLoadError, setModelLoadError] = useState('')
-  
+
   const navigate = useNavigate()
   const [atsData, setAtsData] = useState(null)
   const [expData, setExpData] = useState(null)
@@ -421,29 +421,29 @@ export default function CandidatePage() {
     if (!canProcess) return
     setProcessing(true)
     if (jobDesc) storeSetJobDesc(jobDesc)
-    await new Promise(r=>setTimeout(r,800))
+    await new Promise(r => setTimeout(r, 800))
     setProcessing(false)
     setPhase('dashboard')
   }
 
   const executeAction = (actionId, rtText, jdText) => {
     setActiveAction(actionId)
-    if (actionId==='checker'||actionId==='match'||actionId==='scores') {
+    if (actionId === 'checker' || actionId === 'match' || actionId === 'scores') {
       runMatch({ resumeText: rtText, jobDescription: jdText, modelVersion: selectedModel })
     }
     setPhase('result')
   }
 
   const handleAction = (action) => {
-    if (action.needs==='both'&&(!hasResume||!hasJD)) { setMissingFor(action); return }
-    if (action.needs==='resume'&&!hasResume) { setMissingFor(action); return }
+    if (action.needs === 'both' && (!hasResume || !hasJD)) { setMissingFor(action); return }
+    if (action.needs === 'resume' && !hasResume) { setMissingFor(action); return }
     executeAction(action.id, resumeText, jobDesc)
   }
 
   const handleMissingProvide = async (value) => {
     if (!missingFor) return
     const action = missingFor
-    const needsResume = (action.needs==='both'&&!hasResume)||action.needs==='resume'
+    const needsResume = (action.needs === 'both' && !hasResume) || action.needs === 'resume'
     let updatedResumeText = resumeText
     let updatedJobDesc = jobDesc
     if (needsResume && value) {
@@ -459,7 +459,7 @@ export default function CandidatePage() {
   }
 
   const missingType = missingFor
-    ? (missingFor.needs==='both'&&!hasResume)||missingFor.needs==='resume' ? 'resume' : 'jd'
+    ? (missingFor.needs === 'both' && !hasResume) || missingFor.needs === 'resume' ? 'resume' : 'jd'
     : null
 
   const resetAll = () => { clearAnalysis(); setPhase('input'); setLocalFile(null); setResumeText(''); setJobDesc(''); setActiveAction(null); setAtsData(null); setExpData(null); }
@@ -484,7 +484,7 @@ export default function CandidatePage() {
             ]
           })
         }
-        
+
         try {
           const expRes = await extractExperience('dummy-id')
           setExpData(expRes)
@@ -506,6 +506,31 @@ export default function CandidatePage() {
     }
   }, [phase, activeAction])
 
+  
+  const handleExportPDF = async () => {
+    const element = document.getElementById('report-container');
+    if (!element) return;
+    const toastId = toast.loading('Generating PDF...');
+    try {
+      const html2canvas = (await import('html2canvas')).default;
+      const { jsPDF } = await import('jspdf');
+      
+      const canvas = await html2canvas(element, { scale: 2, backgroundColor: '#0f172a' });
+      const imgData = canvas.toDataURL('image/png');
+      
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`Candidate_Report_${parsedResume?.name?.replace(/\s+/g, '_') || 'Result'}.pdf`);
+      
+      toast.success('PDF generated!', { id: toastId });
+    } catch (err) {
+      toast.error('Failed to generate PDF', { id: toastId });
+    }
+  };
+
   const handleSendNotification = async (type) => {
     setNotifMenuOpen(false)
     const toastId = toast.loading('Sending email...')
@@ -522,8 +547,8 @@ export default function CandidatePage() {
     }
   }
 
-  // ── INPUT PHASE ──
-  if (phase==='input') return (
+  //  INPUT PHASE 
+  if (phase === 'input') return (
     <div className="min-h-[calc(100vh-64px)] flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 py-12">
       <div className="text-center mb-10 animate-slide-up">
         <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-indigo-500/25 bg-indigo-500/10 px-4 py-1.5">
@@ -537,7 +562,7 @@ export default function CandidatePage() {
           Upload your resume, paste a job description, or both — then let our AI do the heavy lifting.
         </p>
       </div>
-      <div className="w-full max-w-4xl animate-slide-up" style={{animationDelay:'0.1s'}}>
+      <div className="w-full max-w-4xl animate-slide-up" style={{ animationDelay: '0.1s' }}>
         <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-0 items-stretch">
           <div className="glass-card p-6 space-y-4 rounded-b-none md:rounded-b-[20px] md:rounded-r-none">
             <div className="flex items-center gap-2"><FileText className="h-5 w-5 text-indigo-400" /><h2 className="text-base font-bold text-white">Resume Input</h2></div>
@@ -553,11 +578,11 @@ export default function CandidatePage() {
           </div>
           <div className="glass-card p-6 space-y-4 rounded-t-none md:rounded-t-[20px] md:rounded-l-none">
             <div className="flex items-center gap-2"><ClipboardCheck className="h-5 w-5 text-violet-400" /><h2 className="text-base font-bold text-white">Job Description</h2></div>
-            <textarea value={jobDesc} onChange={e=>setJobDesc(e.target.value)} placeholder="Paste the full job description here…" className="form-textarea min-h-[200px]" id="candidate-jd-input" />
+            <textarea value={jobDesc} onChange={e => setJobDesc(e.target.value)} placeholder="Paste the full job description here…" className="form-textarea min-h-[200px]" id="candidate-jd-input" />
           </div>
         </div>
-        <div className="flex justify-center mt-8 animate-slide-up" style={{animationDelay:'0.2s'}}>
-          <button onClick={handleProcess} disabled={!canProcess||processing} className="btn-primary flex items-center gap-3 px-10 py-3.5 text-base" id="candidate-process-btn">
+        <div className="flex justify-center mt-8 animate-slide-up" style={{ animationDelay: '0.2s' }}>
+          <button onClick={handleProcess} disabled={!canProcess || processing} className="btn-primary flex items-center gap-3 px-10 py-3.5 text-base" id="candidate-process-btn">
             {processing ? <><Loader2 className="h-5 w-5 animate-spin" /> Processing…</> : <><Sparkles className="h-5 w-5" /> Process</>}
           </button>
         </div>
@@ -565,11 +590,11 @@ export default function CandidatePage() {
     </div>
   )
 
-  // ── DASHBOARD PHASE ──
-  if (phase==='dashboard') return (
+  //  DASHBOARD PHASE 
+  if (phase === 'dashboard') return (
     <div className="min-h-[calc(100vh-64px)] flex flex-col items-center px-4 sm:px-6 lg:px-8 py-12">
       <div className="w-full max-w-3xl mb-8 animate-fade-in">
-        <button onClick={()=>setPhase('input')} className="btn-ghost flex items-center gap-2" id="dashboard-back-btn"><ArrowLeft className="h-4 w-4" /> Back to Input</button>
+        <button onClick={() => setPhase('input')} className="btn-ghost flex items-center gap-2" id="dashboard-back-btn"><ArrowLeft className="h-4 w-4" /> Back to Input</button>
       </div>
       <div className="text-center mb-10 animate-slide-up">
         <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-4 py-1.5">
@@ -578,23 +603,23 @@ export default function CandidatePage() {
         <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white mb-2">Choose an <span className="gradient-text">Action</span></h1>
         <p className="text-sm text-slate-400">Select what you'd like to do with your data</p>
       </div>
-      <div className="flex items-center justify-center gap-4 mb-8 animate-slide-up" style={{animationDelay:'0.05s'}}>
+      <div className="flex items-center justify-center gap-4 mb-8 animate-slide-up" style={{ animationDelay: '0.05s' }}>
         {hasResume && <span className="flex items-center gap-1.5 rounded-full bg-sky-500/10 border border-sky-500/20 px-3 py-1.5 text-xs font-medium text-sky-300"><FileText className="h-3 w-3" /> Resume uploaded</span>}
         {hasJD && <span className="flex items-center gap-1.5 rounded-full bg-violet-500/10 border border-violet-500/20 px-3 py-1.5 text-xs font-medium text-violet-300"><ClipboardCheck className="h-3 w-3" /> Job description</span>}
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-2xl animate-slide-up" style={{animationDelay:'0.1s'}}>
-        {ACTIONS.map(a => <ActionCard key={a.id} action={a} onClick={()=>handleAction(a)} />)}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-2xl animate-slide-up" style={{ animationDelay: '0.1s' }}>
+        {ACTIONS.map(a => <ActionCard key={a.id} action={a} onClick={() => handleAction(a)} />)}
       </div>
-      {missingFor && <MissingInputModal missingType={missingType} onProvide={handleMissingProvide} onClose={()=>setMissingFor(null)} />}
+      {missingFor && <MissingInputModal missingType={missingType} onProvide={handleMissingProvide} onClose={() => setMissingFor(null)} />}
     </div>
   )
 
-  // ── RESULT PHASE ──
+  //  RESULT PHASE 
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-8 max-w-3xl mx-auto space-y-6">
-      <button onClick={()=>setPhase('dashboard')} className="btn-ghost flex items-center gap-2" id="result-back-btn"><ArrowLeft className="h-4 w-4" /> Back to Actions</button>
+      <button onClick={() => setPhase('dashboard')} className="btn-ghost flex items-center gap-2" id="result-back-btn"><ArrowLeft className="h-4 w-4" /> Back to Actions</button>
 
-      {(activeAction==='match'||activeAction==='scores'||activeAction==='checker') && (
+      {(activeAction === 'match' || activeAction === 'scores' || activeAction === 'checker') && (
         isAnalyzing ? (
           <div className="space-y-6 w-full animate-fade-in">
             <div className="glass-card p-6 h-[200px] skeleton-shimmer"></div>
@@ -604,41 +629,49 @@ export default function CandidatePage() {
             </div>
             <div className="flex flex-col items-center gap-3 mt-4">
               <Loader2 className="h-6 w-6 animate-spin text-indigo-400/50" />
-              <p className="text-sm text-slate-400 font-medium">Running ML {activeAction==='checker'?'analysis':'matching'} pipeline…</p>
+              <p className="text-sm text-slate-400 font-medium">Running ML {activeAction === 'checker' ? 'analysis' : 'matching'} pipeline…</p>
             </div>
           </div>
         ) : isError ? (
-          <div className="flex items-start gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /><p>{matchError?.response?.data?.detail||'Backend API unavailable.'}</p></div>
+          <div className="flex items-start gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /><p>{matchError?.response?.data?.detail || 'Backend API unavailable.'}</p></div>
         ) : matchResult ? (
-          <div className="space-y-6">
+          <div id="report-container" className="space-y-6 bg-slate-900 p-6 -mx-6 sm:mx-0 sm:p-4 rounded-2xl">
             <MatchResultCard result={matchResult} />
-            
+
             {activeAction === 'checker' && atsData && (
-              <ATSScoreCard 
-                atsScore={atsData.ats_score} 
-                passed={atsData.passed} 
-                issues={atsData.issues} 
+              <ATSScoreCard
+                atsScore={atsData.ats_score}
+                passed={atsData.passed}
+                issues={atsData.issues}
               />
             )}
-            
+
             {activeAction === 'checker' && expData && (
-              <ExperienceTimeline 
-                workHistory={expData.work_history} 
-                totalYears={expData.total_years} 
-                careerGaps={expData.career_gaps} 
+              <ExperienceTimeline
+                workHistory={expData.work_history}
+                totalYears={expData.total_years}
+                careerGaps={expData.career_gaps}
               />
             )}
-            
+
             <div className="flex flex-wrap items-center justify-between gap-4 pt-6 border-t border-slate-700/50 mt-8">
-              <button 
-                onClick={() => navigate('/compare')} 
+              <button
+                onClick={() => navigate('/compare')}
                 className="btn-secondary flex items-center gap-2"
               >
                 <Users className="h-4 w-4" /> Compare with Others
               </button>
-              
+
+              <button
+                onClick={handleExportPDF}
+                className="btn-secondary flex items-center gap-2"
+              >
+                <FileText className="h-4 w-4" /> Export PDF
+              </button>
+
+
               <div className="relative">
-                <button 
+                <button
                   onClick={() => setNotifMenuOpen(!notifMenuOpen)}
                   className="btn-primary flex items-center gap-2"
                 >
@@ -661,7 +694,7 @@ export default function CandidatePage() {
         )
       )}
 
-      {activeAction==='edit' && (
+      {activeAction === 'edit' && (
         parsedResume ? <ParsedResumeEditor /> : <div className="glass-card p-10 text-center text-slate-400">No parsed resume data available.</div>
       )}
 

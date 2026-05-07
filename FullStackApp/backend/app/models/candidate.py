@@ -22,7 +22,7 @@ class CandidateProfile(Base):
 
     total_experience_years = Column(Float, nullable=True)
 
-    # ── JSONB structured data ──────────────────────────────────
+    #  JSONB structured data 
     skills       = Column(JSONB, default=list)    # ["Python", "SQL", ...]
     education    = Column(JSONB, default=list)    # [{degree, institution, year}, ...]
     work_history = Column(JSONB, default=list)    # [{title, company, start_date, end_date, is_current}, ...]

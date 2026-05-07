@@ -16,7 +16,7 @@ _BASE_DIR = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "..", "..", "..", "..")
 )
 
-# ── Lazy singletons ──
+#  Lazy singletons 
 _model         = None
 _tfidf         = None
 _label_encoder = None
@@ -68,17 +68,17 @@ def load_models() -> bool:
         _nlp           = spacy.load("en_core_web_sm")
 
         _models_loaded = True
-        logger.info("✅ ML models loaded successfully")
+        logger.info(" ML models loaded successfully")
         return True
 
     except FileNotFoundError as e:
-        logger.error(f"❌ Model file not found: {e}")
+        logger.error(f" Model file not found: {e}")
     except Exception as e:
-        logger.error(f"❌ Model load error: {e}")
+        logger.error(f" Model load error: {e}")
     return False
 
 
-# ── Text preprocessing (mirrors original main.py) ─
+#  Text preprocessing (mirrors original main.py) ─
 
 def _clean_text(text: str) -> str:
     text = re.sub(r"http\S+|www\S+|https\S+", " ", text, flags=re.MULTILINE)
@@ -98,7 +98,7 @@ def _preprocess(text: str) -> str:
     return " ".join(token.lemma_ for token in doc if not token.is_stop)
 
 
-# ── Public API 
+#  Public API 
 
 def classify_resume(text: str) -> Dict[str, Any]:
     """
@@ -192,7 +192,7 @@ def preprocess_text(text: str) -> str:
     """Public wrapper used by matcher service."""
     latest_bundle, predict_routes = _get_latest_predict_bundle()
     if latest_bundle is not None and predict_routes is not None:
-        if latest_bundle.get("model_type") == "phase3_v6":
+        if latest_bundle.get("model_type") == "advanced_v6":
             processed, _ = predict_routes._preprocess_v6_text(text)
             return processed
         return predict_routes._preprocess_text(text)

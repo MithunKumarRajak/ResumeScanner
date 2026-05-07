@@ -79,7 +79,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (!user) { navigate('/'); return }
-    apiGetMe().then(u => setAccountInfo(u)).catch(() => {})
+    apiGetMe().then(u => setAccountInfo(u)).catch(() => { })
   }, [user, navigate])
 
   if (!user) return null
@@ -155,7 +155,7 @@ export default function ProfilePage() {
         )}
       </div>
 
-      {/* ── Profile Info ── */}
+      {/*  Profile Info  */}
       <SectionCard icon={User} title="Profile Information" subtitle="Update your name and email">
         <StatusBanner type={profileMsg.type} message={profileMsg.text} onClose={() => setProfileMsg({ type: '', text: '' })} />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -187,7 +187,7 @@ export default function ProfilePage() {
         </button>
       </SectionCard>
 
-      {/* ── Change Password ── */}
+      {/*  Change Password  */}
       <SectionCard icon={Lock} title="Change Password" subtitle="Keep your account secure" color="amber">
         <StatusBanner type={pwMsg.type} message={pwMsg.text} onClose={() => setPwMsg({ type: '', text: '' })} />
         <div className="space-y-3">
@@ -241,7 +241,7 @@ export default function ProfilePage() {
         </button>
       </SectionCard>
 
-      {/* ── Saved Data ── */}
+      {/*  Saved Data  */}
       <SectionCard icon={Database} title="Saved Data" subtitle="Your persisted data on the server" color="emerald">
         <div className="space-y-2">
           {[
@@ -260,7 +260,7 @@ export default function ProfilePage() {
         </div>
       </SectionCard>
 
-      {/* ── Delete Account ── */}
+      {/*  Delete Account  */}
       <SectionCard icon={Trash2} title="Delete Account" subtitle="Permanently delete your account and all data" color="red">
         <StatusBanner type={deleteMsg.type} message={deleteMsg.text} onClose={() => setDeleteMsg({ type: '', text: '' })} />
         <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4 space-y-3">

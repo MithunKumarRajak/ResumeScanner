@@ -1,0 +1,28 @@
+{
+  "version": "v6",
+  "trained_at": "Fri May  8 00:42:28 2026",
+  "accuracy": 0.7628318584070797,
+  "num_samples": 2824,
+  "num_classes": 46,
+  "languages_detected": {
+    "en": 2824
+  },
+  "training_time_seconds": 31.296185970306396,
+  "features": {
+    "tfidf_dims": 15000,
+    "transformer_dims": 384,
+    "numerical_features": 15,
+    "total_dims": 15399
+  },
+  "semantic_model": "paraphrase-multilingual-MiniLM-L12-v2",
+  "advanced_features": [
+    "semantic_matching",
+    "bias_detection",
+    "xai_shap",
+    "multilingual",
+    "custom_training"
+  ],
+  "bias_audit": {
+    "demographic_parity_difference": 0.0
+  }
+}

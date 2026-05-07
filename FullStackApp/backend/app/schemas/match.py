@@ -3,13 +3,13 @@ from typing import List, Optional
 from datetime import datetime
 
 
-# ── Request ───
+#  Request ─
 class MatchRequest(BaseModel):
     resume_id: str
     job_id:    str
 
 
-# ── Score breakdown (shared sub-model) 
+#  Score breakdown (shared sub-model) 
 class ScoreBreakdown(BaseModel):
     skill_score:      Optional[float] = None
     experience_score: Optional[float] = None
@@ -18,7 +18,7 @@ class ScoreBreakdown(BaseModel):
     total_score:      Optional[float] = None
 
 
-# ── Response ──
+#  Response 
 class MatchOut(BaseModel):
     id:               str
     resume_id:        str
@@ -28,7 +28,7 @@ class MatchOut(BaseModel):
     missing_skills:   List[str]
     resume_top_terms: List[str]
     jd_top_terms:     List[str]
-    # ── Composite scores ─────
+    #  Composite scores ─
     skill_score:      Optional[float] = None
     experience_score: Optional[float] = None
     education_score:  Optional[float] = None
@@ -39,7 +39,7 @@ class MatchOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
-# ── Ranked candidate (used by GET /rank-candidates/{job_id}) ─
+#  Ranked candidate (used by GET /rank-candidates/{job_id}) ─
 class RankedCandidate(BaseModel):
     rank:               int
     match_id:           str
@@ -50,7 +50,7 @@ class RankedCandidate(BaseModel):
     match_score:        float
     matched_skills:     List[str]
     missing_skills:     List[str]
-    # ── Composite scores ─────
+    #  Composite scores ─
     skill_score:        Optional[float] = None
     experience_score:   Optional[float] = None
     education_score:    Optional[float] = None
@@ -59,7 +59,7 @@ class RankedCandidate(BaseModel):
     matched_at:         datetime
 
 
-# ── Job recommendation (used by GET /recommend/{user_id}) ───
+#  Job recommendation (used by GET /recommend/{user_id}) ─
 class JobRecommendation(BaseModel):
     job_id:        str
     title:         str

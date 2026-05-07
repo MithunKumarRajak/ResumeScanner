@@ -43,11 +43,11 @@ from sklearn.metrics import accuracy_score, classification_report
 
 warnings.filterwarnings('ignore')
 
-# ── Load spaCy ───
+#  Load spaCy ─
 nlp = spacy.load('en_core_web_sm')
 print('All libraries loaded successfully.')
 
-# ── Step 1: Data Loading & Combining ─
+#  Step 1: Data Loading & Combining ─
 
 # Dataset 1: UpdatedResumeDataSet.csv
 df1 = pd.read_csv('Dataset/UpdatedResumeDataSet.csv')
@@ -114,7 +114,7 @@ print(f'\n FINAL COMBINED DATASET')
 print(f'Total Rows       : {len(df)}')
 print(f'Total Categories : {df["Category"].nunique()}')
 
-# ── Step 2: Text Cleaning 
+#  Step 2: Text Cleaning 
 
 def clean_text(text: str) -> str:
     """Clean resume text using regex."""
@@ -131,7 +131,7 @@ print('Cleaning text...')
 df['Cleaned_Resume'] = df['Resume'].apply(clean_text)
 print(f'Text cleaning complete. {len(df)} resumes processed.')
 
-# ── Step 3: NLP Preprocessing ────
+#  Step 3: NLP Preprocessing 
 
 def spacy_preprocess(text: str) -> str:
     """Use spaCy to tokenize, remove stopwords, and lemmatize."""
@@ -152,7 +152,7 @@ df['Processed_Resume'] = df['Cleaned_Resume'].apply(spacy_preprocess)
 elapsed = time.time() - t0
 print(f'Done in {elapsed:.0f}s. {len(df)} resumes preprocessed.')
 
-# ── Step 4: Feature Extraction (Enhanced TF-IDF) 
+#  Step 4: Feature Extraction (Enhanced TF-IDF) 
 
 # Encode target labels
 le = LabelEncoder()
@@ -170,7 +170,7 @@ X = tfidf.fit_transform(df['Processed_Resume'])
 print(f'TF-IDF matrix shape : {X.shape}')
 print(f'Vocabulary size     : {len(tfidf.vocabulary_)}')
 
-# ── Step 5: Model Building ───────
+#  Step 5: Model Building ─
 
 # Train-Test Split (80/20) with stratification
 X_train, X_test, y_train, y_test = train_test_split(
@@ -201,7 +201,7 @@ print('Training OneVsRestClassifier(CalibratedClassifierCV(SGDClassifier)) ...')
 model.fit(X_train, y_train)
 print('Training complete.')
 
-# ── Step 6: Evaluation ───
+#  Step 6: Evaluation ─
 
 y_pred = model.predict(X_test)
 
@@ -219,7 +219,7 @@ print(classification_report(
     target_names=le.classes_
 ))
 
-# ── Step 7: Save Model Artifacts ─
+#  Step 7: Save Model Artifacts ─
 
 project_root = 'FullStackApp'
 v3_dir = os.path.join(project_root, 'v3')

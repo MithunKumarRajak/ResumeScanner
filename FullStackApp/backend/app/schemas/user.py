@@ -4,7 +4,7 @@ from datetime import datetime
 from app.models.user import UserRole
 
 
-# ── Register / Login ─
+#  Register / Login ─
 class UserCreate(BaseModel):
     email:     EmailStr
     password:  str
@@ -24,7 +24,7 @@ class UserLogin(BaseModel):
     password: str
 
 
-# ── Response ──
+#  Response 
 class UserOut(BaseModel):
     id:         str
     email:      str
@@ -36,7 +36,7 @@ class UserOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
-# ── JWT Token ─
+#  JWT Token ─
 class Token(BaseModel):
     access_token: str
     token_type:   str = "bearer"

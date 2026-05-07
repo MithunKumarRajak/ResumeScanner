@@ -5,14 +5,14 @@ import {
 } from 'lucide-react'
 import { aiGenerateJD, aiRefineJD } from '../services/api'
 
-/* ── Constants  */
+/*  Constants  */
 const DEPARTMENTS = ['Engineering', 'Design', 'Product', 'Marketing', 'Data Science', 'DevOps', 'Sales']
 const EXP_LEVELS = ['Entry Level (0-2 yrs)', 'Mid Level (3-5 yrs)', 'Senior (5-8 yrs)', 'Lead / Principal (8+ yrs)']
 const WORK_MODES = ['On-site', 'Hybrid', 'Remote']
 const TONES = ['Professional & Direct', 'Energetic & Visionary', 'Casual & Approachable', 'Technical & Academic']
 const FOCUS_AREAS = ['Culture & Impact', 'Technical Depth', 'Growth & Leadership']
 
-/* ── Pill selector  */
+/*  Pill selector  */
 function PillSelect({ options, value, onChange }) {
   return (
     <div className="flex flex-wrap gap-2">
@@ -33,7 +33,7 @@ function PillSelect({ options, value, onChange }) {
   )
 }
 
-/* ── Sample generated content  */
+/*  Sample generated content  */
 function sampleOutput(title, dept, expLevel, workMode) {
   return {
     title: title || 'Senior Frontend Engineer',
@@ -54,7 +54,7 @@ function sampleOutput(title, dept, expLevel, workMode) {
   }
 }
 
-/* ── Main Page  */
+/*  Main Page  */
 export default function AIGeneratorPage() {
   const [jobTitle, setJobTitle] = useState('')
   const [department, setDepartment] = useState('Engineering')
@@ -117,7 +117,7 @@ export default function AIGeneratorPage() {
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-8 max-w-7xl mx-auto space-y-8">
 
-      {/* ── Header  */}
+      {/*  Header  */}
       <div className="animate-slide-up">
         <div className="flex items-center gap-3 mb-2">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/15 text-indigo-400">
@@ -134,7 +134,7 @@ export default function AIGeneratorPage() {
         </div>
       </div>
 
-      {/* ── Two-column layout ──── */}
+      {/*  Two-column layout  */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
         {/*  LEFT: Input & Config  */}
@@ -282,7 +282,7 @@ export default function AIGeneratorPage() {
           </button>
         </div>
 
-        {/*  RIGHT: Output Preview ────── */}
+        {/*  RIGHT: Output Preview  */}
         <div className="lg:col-span-7 animate-slide-up" style={{ animationDelay: '0.12s' }}>
           <div className="glass-card flex flex-col overflow-hidden relative"
             style={{ minHeight: '680px' }}>

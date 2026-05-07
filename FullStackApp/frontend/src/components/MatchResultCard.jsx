@@ -152,7 +152,7 @@ export default function MatchResultCard({ result }) {
               </div>
               <div className="flex flex-wrap gap-2">
                 {matchingSkills.map((s) => (
-                  <span key={s} className="skill-match">✓ {s}</span>
+                  <span key={s} className="skill-match"> {s}</span>
                 ))}
               </div>
             </div>

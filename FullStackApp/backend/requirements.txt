@@ -40,15 +40,15 @@ spacy==3.8.11
 dateparser==1.4.0
 
 # ML and scoring pipeline
-# - numpy: vector math in classifier/matcher/predict/phase3
+# - numpy: vector math in classifier/matcher/predict/advanced
 # - scikit-learn: TF-IDF, cosine similarity, model operations
 # - joblib: loading serialized model artifacts
 numpy==2.2.3
 scikit-learn==1.7.2
 joblib==1.5.3
 
-# Phase-3 semantic and bias modules (used via ResumeModel_v6.py)
-# - pandas: custom CSV/model processing in app/routes/phase3.py
+# Advanced semantic and bias modules (used via ResumeModel_v6.py)
+# - pandas: custom CSV/model processing in app/routes/advanced.py
 # - sentence-transformers: semantic embedding matching
 # - fairlearn: fairness metrics and bias checks
 # - shap: explainability outputs

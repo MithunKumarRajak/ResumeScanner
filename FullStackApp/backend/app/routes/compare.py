@@ -15,7 +15,7 @@ from app.utils.auth import get_current_active_user
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/compare", tags=["Candidate Comparison"])
 
-# ── Schemas ──
+#  Schemas 
 
 class CompareRequest(BaseModel):
     resume_ids: List[str]

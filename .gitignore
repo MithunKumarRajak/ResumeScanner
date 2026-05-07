@@ -1,9 +1,9 @@
-# ── Global ignores ──
+#  Global ignores 
 .DS_Store
 Thumbs.db
 *.log
 
-# ── Python & FastAPI ──
+#  Python & FastAPI 
 __pycache__/
 *.py[cod]
 *$py.class
@@ -28,7 +28,7 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-# ── Virtual Environments ──
+#  Virtual Environments 
 .env
 .venv
 env/
@@ -37,7 +37,7 @@ ENV/
 env.bak/
 venv.bak/
 
-# ── Node & React ──
+#  Node & React 
 node_modules/
 dist/
 build/
@@ -48,24 +48,24 @@ yarn-error.log*
 .vite/
 
 
-# ── Project Specific Custom Rules ──
+#  Project Specific Custom Rules 
 !Resume_Editor/
 !Resume_Editor/**
 Report/
 uploads/
 /FullStackApp/backend/uploads/
 
-# ── Databases ──
+#  Databases 
 *.sqlite
 *.sqlite3
 *.db
 
-# ── Environment Variables ──
+#  Environment Variables 
 .env
 .env.*
 !.env.example
 
-# ── IDEs & Tools ──
+#  IDEs & Tools 
 .vscode/
 .idea/
 *.swp

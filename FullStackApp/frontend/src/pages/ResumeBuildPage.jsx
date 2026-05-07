@@ -41,7 +41,7 @@ function SkillBadge({ skill, onRemove }) {
   )
 }
 
-// ── Resume Preview (right panel) ──
+//  Resume Preview (right panel) 
 function hexToRgb(hex) {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
   return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : '99, 102, 241'
@@ -130,7 +130,7 @@ function ResumePreview({ data, template }) {
   )
 }
 
-// ── Entry Modal ──
+//  Entry Modal 
 function ResumeEntryModal({ onEdit, onFresh, isExtracting }) {
   const [file, setFile] = useState(null)
   const [error, setError] = useState('')
@@ -228,7 +228,7 @@ function ResumeEntryModal({ onEdit, onFresh, isExtracting }) {
   )
 }
 
-// ── Main Page ──
+//  Main Page 
 export default function ResumeBuildPage() {
   const resumeBuildData = useStore(s => s.resumeBuildData)
   const setResumeBuildData = useStore(s => s.setResumeBuildData)
@@ -309,10 +309,10 @@ export default function ResumeBuildPage() {
   const handleDownload = () => {
     const el = document.getElementById('resume-preview')
     if (!el) return
-    
+
     // Create a wrapper to enforce A4/Letter size exactly for the PDF
     const wrapper = document.createElement('div');
-    wrapper.style.width = '800px'; 
+    wrapper.style.width = '800px';
     wrapper.style.backgroundColor = 'white';
     wrapper.innerHTML = el.innerHTML;
     // Hide rounded corners and shadows for the print version
@@ -322,11 +322,11 @@ export default function ResumeBuildPage() {
     document.body.appendChild(wrapper);
 
     const opt = {
-      margin:       0,
-      filename:     `${data.name || 'Resume'}.pdf`,
-      image:        { type: 'jpeg', quality: 1 },
-      html2canvas:  { scale: 2, useCORS: true, windowWidth: 800 },
-      jsPDF:        { unit: 'px', format: [800, wrapper.scrollHeight || 1131], orientation: 'portrait' }
+      margin: 0,
+      filename: `${data.name || 'Resume'}.pdf`,
+      image: { type: 'jpeg', quality: 1 },
+      html2canvas: { scale: 2, useCORS: true, windowWidth: 800 },
+      jsPDF: { unit: 'px', format: [800, wrapper.scrollHeight || 1131], orientation: 'portrait' }
     };
 
     html2pdf().from(wrapper).set(opt).save().then(() => {
@@ -371,7 +371,7 @@ export default function ResumeBuildPage() {
     setPhase('editor')
   }
 
-  // ── ENTRY MODAL PHASE ──
+  //  ENTRY MODAL PHASE 
   if (phase === 'entry') {
     return (
       <>
@@ -393,10 +393,10 @@ export default function ResumeBuildPage() {
     )
   }
 
-  // ── EDITOR PHASE ──
+  //  EDITOR PHASE 
   return (
     <div className="min-h-[calc(100vh-64px)] flex flex-col lg:flex-row">
-      {/* ── Left: Editor Panel ── */}
+      {/*  Left: Editor Panel  */}
       <div className="w-full lg:w-[420px] xl:w-[480px] flex-shrink-0 border-r border-slate-700/40 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 64px)' }}>
         <div className="p-5 space-y-5">
           {/* Top bar */}
@@ -495,7 +495,7 @@ export default function ResumeBuildPage() {
         </div>
       </div>
 
-      {/* ── Right: Preview Panel ── */}
+      {/*  Right: Preview Panel  */}
       <div className={`flex-1 overflow-y-auto bg-slate-800/30 p-6 ${showPreview ? '' : 'hidden lg:block'}`} style={{ maxHeight: 'calc(100vh - 64px)' }}>
         <div className="max-w-[640px] mx-auto">
           <div className="flex items-center justify-between mb-4">

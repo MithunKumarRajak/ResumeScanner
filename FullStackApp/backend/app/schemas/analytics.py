@@ -5,21 +5,21 @@ from pydantic import BaseModel
 from typing import Optional, List
 
 
-# ── Skill Demand ──
+#  Skill Demand 
 class SkillDemand(BaseModel):
     skill:        str
     demand_count: int
     percentage:   float
 
 
-# ── Skill Supply ──
+#  Skill Supply 
 class SkillSupply(BaseModel):
     skill:        str
     supply_count: int
     percentage:   float
 
 
-# ── Match Distribution ───────
+#  Match Distribution ─
 class MatchDistribution(BaseModel):
     range: str
     low:   int
@@ -27,19 +27,19 @@ class MatchDistribution(BaseModel):
     count: int
 
 
-# ── Category Breakdown ───────
+#  Category Breakdown ─
 class CategoryBreakdown(BaseModel):
     category: str
     count:    int
 
 
-# ── Experience Distribution ──
+#  Experience Distribution 
 class ExperienceDistribution(BaseModel):
     range: str
     count: int
 
 
-# ── Top Candidate ─
+#  Top Candidate ─
 class TopCandidate(BaseModel):
     resume_id:          str
     candidate_name:     Optional[str]

@@ -22,7 +22,7 @@ router = APIRouter(tags=["ML Prediction"])
 MODEL_PRIORITY = ("ResumeModel_v6", "ResumeModel_v5", "ResumeModel_v3", "ResumeModel_v2")
 
 
-# ── Request / Response ─────────────
+#  Request / Response ─
 
 class ResumeInput(BaseModel):
     resume_text: str
@@ -39,7 +39,7 @@ class PredictionOutput(BaseModel):
     jd_top_terms: Optional[List[str]] = None
 
 
-# ── Multi-model support (same as original main.py) ──
+#  Multi-model support (same as original main.py) 
 
 import joblib
 import spacy
@@ -82,10 +82,10 @@ class _FallbackEmbedder:
 MODEL_REGISTRY = {
     "ResumeModel_v6": {
         "dir": os.path.join("..", "v6"),
-        "description": "Final Phase 3 model with multilingual semantic matching, bias checks, and SHAP support",
+        "description": "Final Advanced model with multilingual semantic matching, bias checks, and SHAP support",
         "algorithm": "Calibrated SGD/SVM with transformer embeddings + TF-IDF + 15 structured features",
         "badge": "Latest Model",
-        "model_type": "phase3_v6",
+        "model_type": "advanced_v6",
     },
     "ResumeModel_v2": {
         "dir": "..",
@@ -146,36 +146,43 @@ def _load_single_model(version_id: str, model_dir: str):
         return None
 
 
-def load_predict_models():
-    """Called during startup to load multi-model prediction artifacts."""
+def get_nlp():
     global nlp
-    nlp = spacy.load("en_core_web_sm")
-    logger.info("spaCy model loaded for prediction routes")
+    if nlp is None:
+        nlp = spacy.load("en_core_web_sm")
+        logger.info("spaCy model loaded lazily")
+    return nlp
 
-    ordered_ids = [model_id for model_id in MODEL_PRIORITY if model_id in MODEL_REGISTRY]
-    ordered_ids.extend(model_id for model_id in MODEL_REGISTRY if model_id not in ordered_ids)
-    for version_id in ordered_ids:
-        meta = MODEL_REGISTRY[version_id]
-        arts = _load_single_model(version_id, meta["dir"])
-        if arts is not None:
-            loaded_models[version_id] = arts
-
-    if not loaded_models:
-        logger.error("ERROR: No model versions could be loaded!")
-    else:
-        logger.info(f"Loaded model versions: {list(loaded_models.keys())}")
+def load_predict_models():
+    """Backward compatibility dummy function, unused with lazy loading."""
+    pass
 
 
 def _resolve_model(version_id: Optional[str] = None):
-    if version_id and version_id in loaded_models:
-        return loaded_models[version_id]
+    target_id = version_id if (version_id and version_id in MODEL_REGISTRY) else MODEL_PRIORITY[0]
+    
+    if target_id not in loaded_models:
+        meta = MODEL_REGISTRY[target_id]
+        arts = _load_single_model(target_id, meta["dir"])
+        if arts is not None:
+            loaded_models[target_id] = arts
+
+    if target_id in loaded_models:
+        return loaded_models[target_id]
+
+    # Fallback
     for fallback in MODEL_PRIORITY:
+        if fallback not in loaded_models:
+            meta = MODEL_REGISTRY[fallback]
+            arts = _load_single_model(fallback, meta["dir"])
+            if arts is not None:
+                loaded_models[fallback] = arts
         if fallback in loaded_models:
             return loaded_models[fallback]
     return None
 
 
-# ── Text helpers ─────────────
+#  Text helpers ─
 
 def _clean_text(text: str) -> str:
     text = re.sub(r"http\S+|www\S+|https\S+", " ", text, flags=re.MULTILINE)
@@ -189,7 +196,7 @@ def _clean_text(text: str) -> str:
 
 def _preprocess_text(text: str) -> str:
     cleaned = _clean_text(text)
-    doc = nlp(cleaned.lower())
+    doc = get_nlp()(cleaned.lower())
     return " ".join(token.lemma_ for token in doc if not token.is_stop)
 
 
@@ -276,7 +283,7 @@ def _build_inference_vector(processed_text: str, raw_text: str, model_bundle: di
     feature_dim = int(feature_vector.shape[1])
     expected_dim = int(getattr(model, "n_features_in_", tfidf_dim) or tfidf_dim)
 
-    if model_bundle.get("model_type") == "phase3_v6":
+    if model_bundle.get("model_type") == "advanced_v6":
         processed_v6, lang = _preprocess_v6_text(raw_text)
         tfidf_vector = tfidf.transform([processed_v6])
         tfidf_dim = int(tfidf_vector.shape[1])
@@ -324,7 +331,7 @@ def _build_inference_vector(processed_text: str, raw_text: str, model_bundle: di
     )
 
 
-# ── Endpoints ─────────────────
+#  Endpoints ─
 
 @router.post("/predict", response_model=PredictionOutput)
 def predict_resume(input_data: ResumeInput):
@@ -333,7 +340,8 @@ def predict_resume(input_data: ResumeInput):
     Optionally compute cosine similarity match score against a job description.
     """
     resolved = _resolve_model(input_data.model_version)
-    if resolved is None or nlp is None:
+    if resolved is None:
+        get_nlp() # ensure loaded
         raise HTTPException(
             status_code=500,
             detail="No model versions loaded. Please check backend logs.",
@@ -363,7 +371,7 @@ def predict_resume(input_data: ResumeInput):
         jd_top_terms = None
 
         if input_data.job_description and len(input_data.job_description.strip()) > 0:
-            if resolved.get("model_type") == "phase3_v6":
+            if resolved.get("model_type") == "advanced_v6":
                 processed_jd, _ = _preprocess_v6_text(input_data.job_description)
             else:
                 processed_jd = _preprocess_text(input_data.job_description)

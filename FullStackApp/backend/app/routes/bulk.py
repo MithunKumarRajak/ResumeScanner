@@ -26,7 +26,7 @@ MAX_BULK_FILES = 50
 MAX_FILE_BYTES = 5 * 1024 * 1024  # 5 MB per file
 ALLOWED_EXTS = {".pdf", ".docx"}
 
-# ── Schemas ──
+#  Schemas 
 
 class BulkUploadResponse(BaseModel):
     bulk_job_id: str
@@ -40,7 +40,7 @@ class BulkStatusResponse(BaseModel):
     progress_percent: float
     results: Optional[List[dict]] = None
 
-# ── Background processing ──
+#  Background processing 
 
 def _process_bulk(bulk_job_id: str, file_infos: List[dict]):
     """Process all uploaded files in background."""
@@ -103,7 +103,7 @@ def _process_bulk(bulk_job_id: str, file_infos: List[dict]):
         db.close()
 
 
-# ── Routes ──
+#  Routes 
 
 @router.post("/upload", response_model=BulkUploadResponse, status_code=status.HTTP_202_ACCEPTED)
 async def bulk_upload(

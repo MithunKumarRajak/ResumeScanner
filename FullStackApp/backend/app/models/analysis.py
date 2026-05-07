@@ -18,20 +18,20 @@ class ResumeAnalysis(Base):
     resume_id          = Column(String(36), ForeignKey("resumes.id", ondelete="CASCADE"), nullable=False, index=True)
     job_description_id = Column(String(36), ForeignKey("jobs.id", ondelete="SET NULL"), nullable=True, index=True)
 
-    # ── Score breakdown (0-100) ────────────────────────────────
+    #  Score breakdown (0-100) 
     overall_score       = Column(Float, nullable=False)
     keyword_match_score = Column(Float, nullable=False)
     skills_match_score  = Column(Float, nullable=False)
     experience_score    = Column(Float, nullable=False)
     ats_score           = Column(Float, nullable=True)
 
-    # ── JSONB structured data ──────────────────────────────────
+    #  JSONB structured data 
     matched_keywords  = Column(JSONB, default=list)    # ["python", "aws", ...]
     missing_keywords  = Column(JSONB, default=list)    # ["kubernetes", ...]
     ats_issues        = Column(JSONB, nullable=True)   # [{issue, severity, suggestion}, ...]
     optimization_tips = Column(JSONB, nullable=True)   # ["Tip 1", "Tip 2", ...]  (from Gemini/Groq)
 
-    # ── Phase 3: Semantic, XAI & Bias ──────────────────────────
+    #  Advanced: Semantic, XAI & Bias 
     job_description_text  = Column(Text, nullable=True)
     semantic_score        = Column(Float, nullable=True)           # 0–100
     keyword_overlap_score = Column(Float, nullable=True)   # 0–100

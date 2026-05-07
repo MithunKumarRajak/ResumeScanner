@@ -108,7 +108,7 @@ export default function OnboardingWizard({ onComplete }: { onComplete: () => voi
       subtitle: "Your resume is ready to edit",
       content: (
         <div style={{ textAlign: 'center', padding: '20px 0' }}>
-          <div style={{ fontSize: 64, marginBottom: 16 }}>✅</div>
+          <div style={{ fontSize: 64, marginBottom: 16 }}></div>
           <p style={{ fontSize: 15, color: 'var(--text-secondary)', lineHeight: 1.8 }}>
             <strong>{name}</strong>'s resume has been created with the <strong style={{ color: 'var(--accent)', textTransform: 'capitalize' }}>{template}</strong> template and {skills.length} skill{skills.length !== 1 ? 's' : ''}.
           </p>

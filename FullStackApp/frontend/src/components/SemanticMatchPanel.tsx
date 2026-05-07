@@ -36,7 +36,7 @@ export default function SemanticMatchPanel({ resumeText }: Props) {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch('/api/v1/phase3/match', {
+      const res = await fetch('/api/v1/advanced/match', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -134,7 +134,7 @@ export default function SemanticMatchPanel({ resumeText }: Props) {
           {/* Keywords */}
           <div className="keywords-section">
             <div className="keywords-col">
-              <h4>✅ Matched Keywords ({result.matched_keywords.length})</h4>
+              <h4> Matched Keywords ({result.matched_keywords.length})</h4>
               <div className="keyword-chips">
                 {result.matched_keywords.slice(0, 15).map(k => (
                   <span key={k} className="chip chip-green">{k}</span>
@@ -142,7 +142,7 @@ export default function SemanticMatchPanel({ resumeText }: Props) {
               </div>
             </div>
             <div className="keywords-col">
-              <h4>❌ Missing Keywords ({result.missing_keywords.length})</h4>
+              <h4> Missing Keywords ({result.missing_keywords.length})</h4>
               <div className="keyword-chips">
                 {result.missing_keywords.slice(0, 15).map(k => (
                   <span key={k} className="chip chip-red">{k}</span>

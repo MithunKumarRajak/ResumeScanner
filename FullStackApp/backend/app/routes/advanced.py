@@ -11,11 +11,11 @@ import pandas as pd
 
 from ..config import settings
 from ..database.session import get_db
-from ..schemas.phase3 import (SemanticMatchRequest, SemanticMatchResponse, ExplainRequest,
+from ..schemas.advanced import (SemanticMatchRequest, SemanticMatchResponse, ExplainRequest,
                               ExplainResponse, BiasCheckRequest, BiasCheckResponse,
                               LanguageDetectResponse, FineTuneRequest, FineTuneResponse)
 from ..models.analysis import ResumeAnalysis
-from ..models.phase3 import BiasAuditLog, CustomModelConfig
+from ..models.advanced import BiasAuditLog, CustomModelConfig
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
 
@@ -86,13 +86,13 @@ def get_xai_explainer():
     return _xai_explainer
 
 
-router = APIRouter(prefix="/api/v1/phase3", tags=["Phase 3 — Advanced ML"])
+router = APIRouter(prefix="/api/v1/advanced", tags=["Advanced — Advanced ML"])
 
 
 @router.post("/match", response_model=SemanticMatchResponse)
 async def semantic_match(request: SemanticMatchRequest, db: Session = Depends(get_db)):
     """
-    POST /api/v1/phase3/match
+    POST /api/v1/advanced/match
     Semantic matching between a resume and job description.
     Returns combined score, matched/missing keywords, and optional XAI + bias check.
     """
@@ -197,7 +197,7 @@ async def semantic_match(request: SemanticMatchRequest, db: Session = Depends(ge
 @router.post("/explain", response_model=ExplainResponse)
 async def explain_prediction(request: ExplainRequest):
     """
-    POST /api/v1/phase3/explain
+    POST /api/v1/advanced/explain
     Get SHAP-based XAI explanation for why a resume got a certain score/category.
     """
     try:
@@ -231,7 +231,7 @@ async def explain_prediction(request: ExplainRequest):
 @router.post("/bias-check", response_model=BiasCheckResponse)
 async def check_bias(request: BiasCheckRequest, db: Session = Depends(get_db)):
     """
-    POST /api/v1/phase3/bias-check
+    POST /api/v1/advanced/bias-check
     Scan resume text for potential protected-attribute indicators.
     """
     bias_det = get_bias_detector()
@@ -259,7 +259,7 @@ async def check_bias(request: BiasCheckRequest, db: Session = Depends(get_db)):
 
 @router.post("/detect-language", response_model=LanguageDetectResponse)
 async def detect_language(text: str):
-    """POST /api/v1/phase3/detect-language — Detect resume language."""
+    """POST /api/v1/advanced/detect-language — Detect resume language."""
     preprocessor = get_preprocessor()
     result = preprocessor.lang_detector.detect(text)
     lang_names = {'en': 'English', 'hi': 'Hindi'}
@@ -273,7 +273,7 @@ async def detect_language(text: str):
 @router.post("/fine-tune", response_model=FineTuneResponse)
 async def fine_tune_model(request: FineTuneRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """
-    POST /api/v1/phase3/fine-tune
+    POST /api/v1/advanced/fine-tune
     Upload a company CSV and fine-tune the v6 model in the background.
     CSV must have columns: Resume, Category
     """
@@ -340,7 +340,7 @@ async def fine_tune_model(request: FineTuneRequest, background_tasks: Background
 
 @router.get("/fine-tune/status/{config_id}")
 async def fine_tune_status(config_id: str, db: Session = Depends(get_db)):
-    """GET /api/v1/phase3/fine-tune/status/{id} — Check fine-tune job status."""
+    """GET /api/v1/advanced/fine-tune/status/{id} — Check fine-tune job status."""
     config = db.query(CustomModelConfig).filter_by(id=config_id).first()
     if not config:
         raise HTTPException(status_code=404, detail="Config not found")
@@ -356,7 +356,7 @@ async def fine_tune_status(config_id: str, db: Session = Depends(get_db)):
 
 @router.get("/bias-report")
 async def get_bias_report(limit: int = 50, db: Session = Depends(get_db)):
-    """GET /api/v1/phase3/bias-report — Recent bias audit log."""
+    """GET /api/v1/advanced/bias-report — Recent bias audit log."""
     logs = db.query(BiasAuditLog).order_by(
         BiasAuditLog.created_at.desc()).limit(limit).all()
     return {'logs': [{'id': l.id, 'assessment': l.bias_assessment,

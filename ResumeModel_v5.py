@@ -197,7 +197,7 @@ def main(args):
     print('ResumeModel V5 — Final Production Training')
     print('='*80)
 
-    # ── Load & merge datasets 
+    #  Load & merge datasets 
     print('\n[1/8] Loading datasets...')
     df = load_datasets(data_dir)
     print(f'  Loaded {len(df)} rows, {df["Category"].nunique()} categories')
@@ -205,12 +205,12 @@ def main(args):
     # Merge small classes
     df = merge_small_classes(df)
 
-    # ── Text preprocessing ───
+    #  Text preprocessing ─
     print('\n[2/8] Cleaning text...')
     df['Cleaned_Resume'] = df['Resume'].apply(clean_text)
     df['Processed_Resume'] = df['Cleaned_Resume'].apply(spacy_preprocess)
 
-    # ── Feature engineering ──
+    #  Feature engineering 
     print('\n[3/8] Extracting numerical features...')
     features_list = []
     for idx, row in df.iterrows():
@@ -221,13 +221,13 @@ def main(args):
     print(f'  Extracted {features_df.shape[1]} features per resume')
     print(f'  Feature sample:\n{features_df.describe()}')
 
-    # ── Label encoding ───
+    #  Label encoding ─
     print('\n[4/8] Encoding labels...')
     le = LabelEncoder()
     y = le.fit_transform(df['Category'])
     print(f'  Classes: {len(le.classes_)}')
 
-    # ── Build feature matrices ──
+    #  Build feature matrices 
     print('\n[5/8] Building feature matrices...')
 
     # TF-IDF features
@@ -268,14 +268,14 @@ def main(args):
 
     print(f'  Combined: {X_combined.shape}')
 
-    # ── Train / Test split ───
+    #  Train / Test split ─
     print('\n[6/8] Train/test split...')
     X_train, X_test, y_train, y_test = train_test_split(
         X_combined, y, test_size=0.2, random_state=42, stratify=y
     )
     print(f'  Train: {X_train.shape[0]}, Test: {X_test.shape[0]}')
 
-    # ── Train ensemble model ─
+    #  Train ensemble model ─
     print('\n[7/8] Training ensemble classifier...')
 
     # Calibrated SVM
@@ -291,7 +291,7 @@ def main(args):
     train_time = time.time() - t0
     print(f'  Training complete in {train_time:.1f}s')
 
-    # ── Evaluation ───────
+    #  Evaluation ─
     print('\n[8/8] Evaluation...')
     y_pred = clf.predict(X_test)
     y_pred_proba = clf.predict_proba(X_test)
@@ -313,7 +313,7 @@ def main(args):
     print(f'  Mean confidence: {max_probs.mean():.3f}')
     print(f'  Min confidence: {max_probs.min():.3f}')
 
-    # ── Save artifacts ───
+    #  Save artifacts ─
     print('\n' + '='*80)
     print('Saving artifacts to', out_dir)
     print('='*80)
@@ -363,15 +363,15 @@ def main(args):
     with open(out_dir / 'manifest.json', 'w') as f:
         json.dump(manifest, f, indent=2)
 
-    print(f'\n✓ model.pkl')
-    print(f'✓ tfidf.pkl')
-    print(f'✓ encoder.pkl')
-    print(f'✓ feature_stats.pkl')
-    print(f'✓ skills.txt')
+    print(f'\n model.pkl')
+    print(f' tfidf.pkl')
+    print(f' encoder.pkl')
+    print(f' feature_stats.pkl')
+    print(f' skills.txt')
     if X_transformer is not None:
-        print(f'✓ resume_embeddings.npy')
-        print(f'✓ embedder.txt')
-    print(f'✓ manifest.json')
+        print(f' resume_embeddings.npy')
+        print(f' embedder.txt')
+    print(f' manifest.json')
 
     print('\n' + '='*80)
     print('V5 Training Complete!')

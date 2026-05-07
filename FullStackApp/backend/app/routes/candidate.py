@@ -23,7 +23,7 @@ from app.utils.auth          import get_current_active_user
 router = APIRouter(prefix="/candidate", tags=["Candidate"])
 
 
-# ── Schemas (local — only used here) ──
+#  Schemas (local — only used here) 
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
@@ -48,7 +48,7 @@ class ResumeHistoryItem(BaseModel):
     model_config = {"from_attributes": True}
 
 
-# ── Helpers ───
+#  Helpers ─
 
 def _resume_skill_names(db: Session, resume_id: str) -> List[str]:
     rows = (
@@ -70,7 +70,7 @@ def _job_skill_names(db: Session, job_id: str) -> List[str]:
     return [r.name for r in rows]
 
 
-# ── Routes ────
+#  Routes 
 
 @router.get("/resume-history", response_model=List[ResumeHistoryItem])
 def get_resume_history(

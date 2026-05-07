@@ -18,12 +18,12 @@ from app.config import settings
 from app.database.base    import Base
 from app.database.session import engine
 
-# ── Import all models so SQLAlchemy sees them ─────
+#  Import all models so SQLAlchemy sees them ─
 import app.models  # noqa: F401  (triggers __init__.py)
 
-# ── Routes ────
+#  Routes 
 from app.routes import auth, resume, job, match, recommend, dashboard, candidate, analytics, ai, predict
-from app.routes import ats_checker, experience, compare, bulk, notifications, phase3
+from app.routes import ats_checker, experience, compare, bulk, notifications, advanced
 
 logging.basicConfig(
     level   = logging.INFO if settings.DEBUG else logging.WARNING,
@@ -33,16 +33,16 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-# ── Lifespan (startup / shutdown) ─────
+#  Lifespan (startup / shutdown) ─
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # ── Startup ───
+    #  Startup ─
     logger.info("🚀 Starting Resume Screener API v2")
 
     # Create all DB tables (idempotent — does nothing if they exist)
     Base.metadata.create_all(bind=engine)
-    logger.info("✅ Database tables ready")
+    logger.info(" Database tables ready")
 
     # Ensure upload directory exists
     os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
@@ -56,18 +56,16 @@ async def lifespan(app: FastAPI):
     else:
         logger.warning("⚠️  ML models could not be loaded — /match and /classify will return 503")
 
-    # Pre-load multi-version predict models (used by /predict and /models)
-    from app.routes.predict import load_predict_models
-    load_predict_models()
-    logger.info("🤖 Multi-version predict models loaded")
+    # ML Models are lazily loaded inside predict.py to save RAM
+    logger.info("🤖 ML models configured for lazy loading")
 
     yield
 
-    # ── Shutdown ──
+    #  Shutdown 
     logger.info("👋 Shutting down")
 
 
-# ── App factory ───
+#  App factory ─
 
 app = FastAPI(
     title       = settings.APP_NAME,
@@ -91,7 +89,7 @@ Production-ready backend with:
     redoc_url   = "/redoc",
 )
 
-# ── CORS ──────
+#  CORS 
 app.add_middleware(
     CORSMiddleware,
     allow_origins     = settings.ALLOWED_ORIGINS,
@@ -100,11 +98,11 @@ app.add_middleware(
     allow_headers     = ["*"],
 )
 
-# ── Serve uploaded files as static ────
+#  Serve uploaded files as static 
 os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
 app.mount("/files", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
 
-# ── Register routers ─
+#  Register routers ─
 app.include_router(auth.router)
 app.include_router(resume.router)
 app.include_router(job.router)
@@ -116,17 +114,17 @@ app.include_router(analytics.router)
 app.include_router(ai.router)
 app.include_router(predict.router)
 
-# ── Phase-2 routers ──
+#  Phase-2 routers 
 app.include_router(ats_checker.router)
 app.include_router(experience.router)
 app.include_router(compare.router)
 app.include_router(bulk.router)
 app.include_router(notifications.router)
 
-# ── Phase-3 routers ──
-app.include_router(phase3.router)
+#  Advanced routers 
+app.include_router(advanced.router)
 
-# ── Global exception handler ─
+#  Global exception handler ─
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     logger.error(f"Unhandled error on {request.url}: {exc}", exc_info=True)
@@ -135,7 +133,7 @@ async def global_exception_handler(request: Request, exc: Exception):
         content     = {"detail": "An internal server error occurred."},
     )
 
-# ── Health & root ─
+#  Health & root ─
 @app.get("/health", tags=["System"])
 def health():
     """Liveness check — returns 200 when the server is running."""
@@ -175,7 +173,7 @@ def root():
             "compare":     ["POST /api/compare/candidates"],
             "bulk":        ["POST /api/bulk/upload", "GET /api/bulk/{id}/status"],
             "notifications": ["POST /api/notifications/send"],
-            "phase3":      ["POST /api/v1/phase3/match", "POST /api/v1/phase3/explain", "POST /api/v1/phase3/bias-check", "POST /api/v1/phase3/detect-language", "POST /api/v1/phase3/fine-tune", "GET /api/v1/phase3/fine-tune/status/{id}", "GET /api/v1/phase3/bias-report"],
+            "advanced":      ["POST /api/v1/advanced/match", "POST /api/v1/advanced/explain", "POST /api/v1/advanced/bias-check", "POST /api/v1/advanced/detect-language", "POST /api/v1/advanced/fine-tune", "GET /api/v1/advanced/fine-tune/status/{id}", "GET /api/v1/advanced/bias-report"],
         },
     }
 

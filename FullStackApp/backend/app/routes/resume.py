@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Resumes"])
 
 
-# ── Helpers ───
+#  Helpers ─
 
 def _get_or_create_skill(db: Session, name: str) -> Skill:
     skill = db.query(Skill).filter(Skill.name == name.lower()).first()
@@ -58,7 +58,7 @@ def _resume_skill_names(db: Session, resume_id: str) -> List[str]:
     return [r.name for r in rows]
 
 
-# ── Background task: parse + classify ─
+#  Background task: parse + classify ─
 
 def _parse_and_classify(resume_id: str, file_url: str, db_factory):
     """Runs after the upload response is sent."""
@@ -89,7 +89,7 @@ def _parse_and_classify(resume_id: str, file_url: str, db_factory):
         resume.status             = "classified"
 
         db.commit()
-        logger.info(f"✅ Resume {resume_id} parsed & classified as '{clf['predicted_category']}'")
+        logger.info(f" Resume {resume_id} parsed & classified as '{clf['predicted_category']}'")
 
     except Exception as e:
         db.rollback()
@@ -98,12 +98,12 @@ def _parse_and_classify(resume_id: str, file_url: str, db_factory):
             resume.status        = "error"
             resume.error_message = str(e)
             db.commit()
-        logger.error(f"❌ Parse/classify error for {resume_id}: {e}")
+        logger.error(f" Parse/classify error for {resume_id}: {e}")
     finally:
         db.close()
 
 
-# ── Routes ────
+#  Routes 
 
 @router.post("/upload-resume", response_model=ParsedResumeOut, status_code=status.HTTP_202_ACCEPTED)
 async def upload_resume(

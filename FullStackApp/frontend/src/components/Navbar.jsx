@@ -27,7 +27,7 @@ export default function Navbar() {
     { to: '/ai-generator',  label: 'AI Generator',  icon: Wand2,       showTo: ['recruiter'] },
     { to: '/bulk-upload', label: 'Bulk Upload',  icon: UploadCloud, showTo: ['recruiter'] },
     { to: '/compare',     label: 'Compare',      icon: Columns,     showTo: ['recruiter'] },
-    { to: '/phase3',      label: 'Advanced AI',  icon: Cpu,         showTo: ['recruiter'] },
+    { to: '/advanced',      label: 'Advanced AI',  icon: Cpu,         showTo: ['recruiter'] },
   ]
 
   const userRole = user?.role || 'all'

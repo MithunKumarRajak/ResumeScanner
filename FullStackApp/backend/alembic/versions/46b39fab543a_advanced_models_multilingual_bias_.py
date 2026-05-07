@@ -1,4 +1,4 @@
-"""Phase 3 models: multilingual, bias, semantic match
+"""Advanced models: multilingual, bias, semantic match
 
 Revision ID: 46b39fab543a
 Revises: 97a323ec476e

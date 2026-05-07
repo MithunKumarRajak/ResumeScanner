@@ -22,7 +22,7 @@ from app.utils.auth import get_current_active_user
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/notifications", tags=["Notifications"])
 
-# ── Schemas ──
+#  Schemas 
 
 class SendRequest(BaseModel):
     candidate_email: EmailStr
@@ -36,7 +36,7 @@ class SendResponse(BaseModel):
     message_id: str
 
 
-# ── HTML templates ──
+#  HTML templates 
 
 _TEMPLATES = {
     "shortlisted": {
@@ -100,7 +100,7 @@ def _build_email(notif_type: str, name: str, job_title: str):
     return subject, body
 
 
-# ── Sending backends ──
+#  Sending backends 
 
 def _send_sendgrid(to: str, subject: str, html: str) -> str:
     """Send via SendGrid HTTP API. Returns message ID."""
@@ -146,7 +146,7 @@ def _send_smtp(to: str, subject: str, html: str) -> str:
     return str(uuid.uuid4())
 
 
-# ── Route ──
+#  Route 
 
 @router.post("/send", response_model=SendResponse)
 def send_notification(

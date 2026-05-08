@@ -85,6 +85,19 @@ npm run dev
 - `FullStackApp/model.pkl`: Serialized scikit-learn model artifacts.
 - `Resume_Editor`: Specialized real-time editing component.
 
+## Model Performance
+
+The following table summarizes the performance of the various model versions integrated into the system. The latest version (**v6**) leverages advanced semantic embeddings and expanded feature sets.
+
+| Model Version | Accuracy | Macro F1 | Categories | Samples |
+| :--- | :--- | :--- | :--- | :--- |
+| v1 (Original) | 98.96% | — | 25 | 962 |
+| v2 (Master) | 57.88% | 0.52 | 48 | 2,824 |
+| v3 | 71.50% | 0.68 | 48 | 2,824 |
+| v4 | 71.50% | 0.70 | 48 | 2,824 |
+| v5 | 69.20% | 0.73 | 42 | 2,824 |
+| **v6 (Latest)** | **76.28%** | **0.782** | **46** | **2,824** |
+
 ---
 
 ## Author

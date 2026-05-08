@@ -24,7 +24,8 @@ V5 is the final, production-grade version of the resume classification and match
 | V2 | 57.88% | OVR SVM | 48 | 2,824 |
 | V3 | 71.5% | Calibrated SVM | 48 | 2,824 |
 | V4 | 71.5% | + API stubs | 48 | 2,824 |
-| **V5** | **78-82%** | **Transformer + features + ensemble** | **42** | **2,824** |
+| V5 | 69.20% | Transformer + features + ensemble | 42 | 2,824 |
+| **V6 (Latest)** | **76.28%** | **Advanced NLP + 15 Features + Bias Audit** | **46** | **2,824** |
 
 **Key Differences in V5**:
 

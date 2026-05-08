@@ -54,7 +54,7 @@ export default function LoginForm() {
             onClick={() => setRole('candidate')}
             className={`flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold cursor-pointer border transition-all ${
               role === 'candidate'
-                ? 'bg-indigo-500/15 border-indigo-500/40 text-indigo-300 shadow-sm shadow-indigo-500/10'
+                ? 'bg-white text-black border-white shadow-md'
                 : 'bg-transparent border-slate-700/50 text-slate-400 hover:border-slate-600 hover:text-slate-300'
             }`}
             id="login-role-candidate"
@@ -67,7 +67,7 @@ export default function LoginForm() {
             onClick={() => setRole('recruiter')}
             className={`flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold cursor-pointer border transition-all ${
               role === 'recruiter'
-                ? 'bg-violet-500/15 border-violet-500/40 text-violet-300 shadow-sm shadow-violet-500/10'
+                ? 'bg-white text-black border-white shadow-md'
                 : 'bg-transparent border-slate-700/50 text-slate-400 hover:border-slate-600 hover:text-slate-300'
             }`}
             id="login-role-recruiter"

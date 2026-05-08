@@ -62,7 +62,7 @@ export default function Navbar() {
           className="flex items-center gap-2.5 bg-transparent border-none cursor-pointer group"
           id="nav-logo"
         >
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-glow-brand group-hover:scale-105 transition-transform">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-black shadow-glow-brand group-hover:scale-105 transition-transform">
             <ScanLine className="h-5 w-5" />
           </div>
           <span className="hidden text-base font-bold text-white sm:inline tracking-tight">
@@ -88,7 +88,7 @@ export default function Navbar() {
                 className="flex items-center gap-2 rounded-xl border border-slate-700/60 bg-slate-900/60 px-3 py-2 text-sm text-slate-200 cursor-pointer hover:bg-slate-800/80 transition-colors"
                 id="nav-user-menu"
               >
-                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 text-white">
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-black">
                   <User className="h-3 w-3" />
                 </div>
                 <span className="hidden sm:inline font-medium">{user.name}</span>
@@ -102,8 +102,8 @@ export default function Navbar() {
                     <p className="text-[11px] text-slate-500 truncate">{user.email}</p>
                     <span className={`inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide ${
                       user.role === 'recruiter'
-                        ? 'bg-violet-500/15 text-violet-300 border border-violet-500/25'
-                        : 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/25'
+                        ? 'bg-white text-black border border-white/20'
+                        : 'bg-slate-700 text-slate-200 border border-slate-600/40'
                     }`}>
                       {user.role === 'recruiter' ? 'Recruiter' : 'Candidate'}
                     </span>
@@ -130,7 +130,7 @@ export default function Navbar() {
           ) : (
             <button
               onClick={openAuthModal}
-              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 px-4 py-2 text-sm font-semibold text-white cursor-pointer hover:opacity-90 transition-all shadow-md shadow-indigo-500/25 whitespace-nowrap"
+              className="btn-primary flex items-center gap-2 px-4 py-2 text-sm whitespace-nowrap"
               id="nav-signin-btn"
             >
               <LogIn className="h-4 w-4" />

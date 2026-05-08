@@ -46,18 +46,18 @@ async def lifespan(app: FastAPI):
 
     # Ensure upload directory exists
     os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
-    logger.info(f"📁 Upload directory: {settings.UPLOAD_DIR}")
+    logger.info(f" Upload directory: {settings.UPLOAD_DIR}")
 
     # Pre-load ML models (classifier service — used by /match and /classify)
     from app.services.classifier import load_models
     ok = load_models()
     if ok:
-        logger.info("🤖 ML models loaded (classifier service)")
+        logger.info(" ML models loaded (classifier service)")
     else:
         logger.warning("⚠️  ML models could not be loaded — /match and /classify will return 503")
 
     # ML Models are lazily loaded inside predict.py to save RAM
-    logger.info("🤖 ML models configured for lazy loading")
+    logger.info(" ML models configured for lazy loading")
 
     yield
 

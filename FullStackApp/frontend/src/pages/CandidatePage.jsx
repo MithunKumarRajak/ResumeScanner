@@ -549,7 +549,7 @@ export default function CandidatePage() {
 
   //  INPUT PHASE 
   if (phase === 'input') return (
-    <div className="min-h-[calc(100vh-64px)] flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 py-12">
+    <div className="min-h-[calc(100vh-64px)] flex flex-col items-center justify-start px-4 sm:px-6 lg:px-8 py-12 overflow-y-auto">
       <div className="text-center mb-10 animate-slide-up">
         <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-indigo-500/25 bg-indigo-500/10 px-4 py-1.5">
           <Sparkles className="h-3.5 w-3.5 text-indigo-400" />

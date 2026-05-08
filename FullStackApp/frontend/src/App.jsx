@@ -13,6 +13,7 @@ import BulkUpload from './components/BulkUpload'
 import ErrorBoundary from './components/ErrorBoundary'
 import { Toaster } from 'react-hot-toast'
 import AdvancedDashboard from './pages/AdvancedDashboard'
+import { AboutPage, PrivacyPage, TermsPage, ContactPage, DocsPage } from './pages/FooterPages'
 
 export default function App() {
   const location = useLocation()
@@ -25,15 +26,20 @@ export default function App() {
         <ErrorBoundary>
           <Routes>
             <Route path="/" element={<HomePage />} />
-          <Route path="/candidate" element={<CandidatePage />} />
-          <Route path="/recruiter" element={<RecruiterPage />} />
-          <Route path="/resume-build" element={<ResumeBuildPage />} />
-          <Route path="/ai-generator" element={<AIGeneratorPage />} />
-          <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/compare" element={<CompareView />} />
-          <Route path="/bulk-upload" element={<BulkUpload />} />
-          <Route path="/advanced" element={<AdvancedDashboard />} />
-          <Route path="/results" element={<Navigate to="/candidate" replace />} />
+            <Route path="/candidate" element={<CandidatePage />} />
+            <Route path="/recruiter" element={<RecruiterPage />} />
+            <Route path="/resume-build" element={<ResumeBuildPage />} />
+            <Route path="/ai-generator" element={<AIGeneratorPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/compare" element={<CompareView />} />
+            <Route path="/bulk-upload" element={<BulkUpload />} />
+            <Route path="/advanced" element={<AdvancedDashboard />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/contact" element={<ContactPage />} />
+            <Route path="/docs" element={<DocsPage />} />
+            <Route path="/results" element={<Navigate to="/candidate" replace />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </ErrorBoundary>

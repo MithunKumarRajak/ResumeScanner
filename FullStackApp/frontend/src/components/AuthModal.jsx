@@ -33,7 +33,7 @@ export default function AuthModal() {
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/65 backdrop-blur-sm animate-fade-in"
+        className="absolute inset-0 bg-black/80 backdrop-blur-md animate-fade-in"
         onClick={closeAuthModal}
       />
 
@@ -44,7 +44,7 @@ export default function AuthModal() {
           {/* Header */}
           <div className="mb-6 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-lg shadow-indigo-500/25">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-black shadow-lg">
                 <ScanLine className="h-5 w-5" />
               </div>
               <div>
@@ -67,7 +67,7 @@ export default function AuthModal() {
               onClick={() => setTab('login')}
               className={`flex-1 rounded-lg px-3 py-2.5 text-sm font-semibold cursor-pointer transition-all border-none ${
                 tab === 'login'
-                  ? 'bg-gradient-to-r from-indigo-500 to-violet-600 text-white shadow-md shadow-indigo-500/30'
+                  ? 'bg-white text-black shadow-md'
                   : 'bg-transparent text-slate-400 hover:text-slate-200'
               }`}
               id="auth-tab-login"
@@ -78,7 +78,7 @@ export default function AuthModal() {
               onClick={() => setTab('signup')}
               className={`flex-1 rounded-lg px-3 py-2.5 text-sm font-semibold cursor-pointer transition-all border-none ${
                 tab === 'signup'
-                  ? 'bg-gradient-to-r from-indigo-500 to-violet-600 text-white shadow-md shadow-indigo-500/30'
+                  ? 'bg-white text-black shadow-md'
                   : 'bg-transparent text-slate-400 hover:text-slate-200'
               }`}
               id="auth-tab-signup"

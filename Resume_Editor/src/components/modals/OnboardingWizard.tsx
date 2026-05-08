@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 const TEMPLATES = ['modern', 'classic', 'minimal', 'creative', 'tech', 'two-column', 'executive', 'academic', 'ats-safe', 'infographic'];
 const TEMPLATE_EMOJI: Record<string, string> = {
   modern: '⚡', classic: '📄', minimal: '🌿', creative: '🎨',
-  tech: '💻', 'two-column': '⬜', executive: '👔', academic: '🎓', 'ats-safe': '🤖', infographic: '📊',
+  tech: '💻', 'two-column': '⬜', executive: '👔', academic: '🎓', 'ats-safe': '', infographic: '📊',
 };
 
 export default function OnboardingWizard({ onComplete }: { onComplete: () => void }) {

@@ -1,14 +1,15 @@
 import { ScanLine, Github, Twitter, Linkedin, Heart } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
 export default function Footer() {
   const currentYear = new Date().getFullYear()
 
   const footerLinks = [
-    { label: 'About', href: '#' },
-    { label: 'Privacy', href: '#' },
-    { label: 'Terms', href: '#' },
-    { label: 'Contact', href: '#' },
-    { label: 'Documentation', href: '#' },
+    { label: 'About', href: '/about' },
+    { label: 'Privacy', href: '/privacy' },
+    { label: 'Terms', href: '/terms' },
+    { label: 'Contact', href: '/contact' },
+    { label: 'Documentation', href: '/docs' },
   ]
 
   const socialLinks = [
@@ -25,7 +26,7 @@ export default function Footer() {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-6 py-8">
           {/* Brand */}
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 text-white">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-black">
               <ScanLine className="h-4 w-4" />
             </div>
             <span className="text-sm font-bold text-white tracking-tight">
@@ -33,16 +34,15 @@ export default function Footer() {
             </span>
           </div>
 
-          {/* Links */}
           <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
             {footerLinks.map((link) => (
-              <a
+              <Link
                 key={link.label}
-                href={link.href}
+                to={link.href}
                 className="text-xs font-medium text-slate-500 hover:text-slate-300 transition-colors"
               >
                 {link.label}
-              </a>
+              </Link>
             ))}
           </div>
 

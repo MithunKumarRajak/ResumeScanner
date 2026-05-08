@@ -139,7 +139,7 @@ export default function ProfilePage() {
       {/* Header */}
       <div className="animate-slide-up">
         <div className="flex items-center gap-3 mb-1">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-lg shadow-indigo-500/25">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-black shadow-lg">
             <User className="h-6 w-6" />
           </div>
           <div>
@@ -235,7 +235,7 @@ export default function ProfilePage() {
           </div>
         </div>
         <button onClick={handlePasswordChange} disabled={pwLoading}
-          className="btn-primary flex items-center gap-2 px-5 py-2.5 text-sm bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700" id="change-password-btn">
+          className="btn-primary flex items-center gap-2 px-5 py-2.5 text-sm" id="change-password-btn">
           {pwLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Shield className="h-4 w-4" />}
           Change Password
         </button>

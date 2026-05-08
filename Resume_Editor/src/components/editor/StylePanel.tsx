@@ -11,7 +11,7 @@ const TEMPLATES: { id: TemplateId; label: string; emoji: string; desc: string }[
   { id: 'academic', label: 'Academic', emoji: '🎓', desc: 'Research, academia' },
   { id: 'two-column', label: 'Two-Col', emoji: '⬜', desc: 'Sidebar layout' },
   { id: 'infographic', label: 'Infographic', emoji: '📊', desc: 'Visual, graphic' },
-  { id: 'ats-safe', label: 'ATS-Safe', emoji: '🤖', desc: 'Maximum compatibility' },
+  { id: 'ats-safe', label: 'ATS-Safe', emoji: '', desc: 'Maximum compatibility' },
 ];
 
 const FONTS = ['Inter', 'Roboto', 'Merriweather', 'Playfair Display', 'Lato', 'Fira Code', 'Source Serif 4'];

@@ -35,7 +35,7 @@ export default function ResumeDashboard() {
   const TEMPLATE_EMOJIS: Record<string, string> = {
     modern: '⚡', classic: '📄', minimal: '🌿', creative: '🎨',
     executive: '👔', tech: '💻', academic: '🎓', 'two-column': '⬜',
-    infographic: '📊', 'ats-safe': '🤖',
+    infographic: '📊', 'ats-safe': '',
   };
 
   return (

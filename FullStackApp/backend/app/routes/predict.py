@@ -212,50 +212,15 @@ def _resolve_model(version_id: Optional[str] = None):
     return None
 
 
-#  Text helpers ─
+#  Text helpers — delegates to app.services.common ─
 
-def _clean_text(text: str) -> str:
-    text = re.sub(r"http\S+|www\S+|https\S+", " ", text, flags=re.MULTILINE)
-    text = re.sub(r"\bRT\b|\bcc\b", " ", text)
-    text = re.sub(r"#\S+", " ", text)
-    text = re.sub(r"@\S+", " ", text)
-    text = re.sub(r"<.*?>", " ", text)
-    text = re.sub(r"[^a-zA-Z\s]", " ", text)
-    return re.sub(r"\s+", " ", text).strip()
+from app.services.common import clean_text as _clean_text
+from app.services.common import preprocess_text as _common_preprocess
+from app.services.common import get_top_tfidf_terms as _get_top_tfidf_terms
 
 
 def _preprocess_text(text: str) -> str:
-    cleaned = _clean_text(text)
-    doc = get_nlp()(cleaned.lower())
-    return " ".join(token.lemma_ for token in doc if not token.is_stop)
-
-
-def _ensure_repo_root_on_path() -> None:
-    repo_root_str = str(REPO_ROOT)
-    if repo_root_str not in sys.path:
-        sys.path.insert(0, repo_root_str)
-
-
-def _preprocess_v6_text(text: str) -> tuple[str, str]:
-    """Use ResumeModel_v6 preprocessing when available; fall back safely."""
-    try:
-        if "v6" not in loaded_preprocessors:
-            _ensure_repo_root_on_path()
-            from ResumeModel_v6 import MultilingualPreprocessor
-            loaded_preprocessors["v6"] = MultilingualPreprocessor()
-        result = loaded_preprocessors["v6"].preprocess(text)
-        return result["processed"], result["lang"]
-    except Exception as exc:
-        logger.warning(
-            "V6 preprocessing unavailable; using legacy preprocessing: %s", exc)
-        return _preprocess_text(text), "en"
-
-
-def _get_top_tfidf_terms(tfidf_vector, vectorizer, n: int = 10) -> list:
-    feature_names = vectorizer.get_feature_names_out()
-    scores = tfidf_vector.toarray().flatten()
-    sorted_indices = np.argsort(scores)[::-1][:n]
-    return [feature_names[i] for i in sorted_indices if scores[i] > 0]
+    return _common_preprocess(text, get_nlp())
 
 
 def _build_candidate_guidance(classification: Dict[str, object], resume_terms: list[str], jd_terms: list[str], match_score: Optional[float]) -> Dict[str, object]:

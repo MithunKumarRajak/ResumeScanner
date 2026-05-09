@@ -11,8 +11,10 @@ import os
 import re
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, UploadFile, File
+from fastapi import APIRouter, HTTPException, UploadFile, File, Depends
 from pydantic import BaseModel
+from app.models import User
+from app.utils.auth import get_current_active_user
 
 router = APIRouter(tags=["AI"])
 
@@ -32,6 +34,11 @@ class JDGenerateRequest(BaseModel):
 class JDRefineRequest(BaseModel):
     current_jd: dict      # the generated JD object
     instruction: str      # user's refinement instruction
+
+class CoverLetterRequest(BaseModel):
+    resume_text: str
+    job_description: str
+    tone: str = "Professional & Confident"
 
 
 #  Gemini AI Client ─
@@ -97,7 +104,7 @@ def _clean_ai_json(text: str) -> str:
 #  Endpoints ─
 
 @router.post("/ai/generate-jd")
-def ai_generate_jd(req: JDGenerateRequest):
+def ai_generate_jd(req: JDGenerateRequest, current_user: User = Depends(get_current_active_user)):
     """Generate a job description using Gemini or Groq AI."""
     prompt = f"""You are an expert HR recruiter and job description writer.
 Generate a compelling, detailed job description based on these parameters:
@@ -161,7 +168,7 @@ Use the specified tone throughout. Focus on the specified focus area.
 
 
 @router.post("/ai/refine-jd")
-def ai_refine_jd(req: JDRefineRequest):
+def ai_refine_jd(req: JDRefineRequest, current_user: User = Depends(get_current_active_user)):
     """Refine an existing job description using Gemini or Groq AI."""
     current_json = json.dumps(req.current_jd, indent=2)
     prompt = f"""You are an expert HR recruiter. Here is a current job description as JSON:
@@ -212,7 +219,7 @@ Keep the same JSON structure with fields: title, meta, about, tasks (array), req
 #  Resume Extraction Endpoint (PyMuPDF) ─
 
 @router.post("/extract-resume")
-async def extract_resume(file: UploadFile = File(...)):
+async def extract_resume(file: UploadFile = File(...), current_user: User = Depends(get_current_active_user)):
     """Extract structured resume data from PDF or DOCX using PyMuPDF."""
     if not file.filename:
         raise HTTPException(status_code=400, detail="No file provided")
@@ -302,7 +309,7 @@ class ExplainMatchRequest(BaseModel):
     match_score: float
 
 @router.post("/ai/explain-match")
-def explain_match(req: ExplainMatchRequest):
+def explain_match(req: ExplainMatchRequest, current_user: User = Depends(get_current_active_user)):
     """Generate a conversational explanation of why a candidate matches the JD."""
     prompt = f"""You are an expert technical recruiter. You just scored a candidate's resume an {req.match_score}% match against a job description.
 Write a 3-4 sentence professional summary explaining EXACTLY why they are or aren't a good fit. Focus on specific skills overlapping or missing.
@@ -329,3 +336,42 @@ Job Description:
         text = f"Explanation generation failed: {str(e)}"
         
     return {"explanation": text}
+
+
+@router.post("/ai/generate-cover-letter")
+def generate_cover_letter(req: CoverLetterRequest, current_user: User = Depends(get_current_active_user)):
+    """Generate a highly tailored cover letter based on resume and JD."""
+    prompt = f"""You are an expert career coach and professional copywriter. 
+Write a compelling, concise cover letter for the following candidate applying for the following job.
+Keep it under 300 words. Highlight the overlapping skills and experiences that make the candidate a great fit.
+Tone: {req.tone}. Do NOT include placeholder brackets like [Your Name] if the information is missing from the resume, just write it smoothly or invent a generic sign-off.
+Respond with ONLY the text of the cover letter.
+
+Candidate Resume:
+{req.resume_text[:3000]}
+
+Job Description:
+{req.job_description[:3000]}
+"""
+    text = None
+    try:
+        model = _get_gemini()
+        if model is not None:
+            response = model.generate_content(prompt)
+            text = response.text.strip()
+    except Exception as e:
+        print(f"[WARN] Gemini cover letter generation failed: {e}")
+
+    if not text:
+        groq_text = _call_groq_api(prompt)
+        if groq_text:
+            text = groq_text.strip()
+
+    if not text:
+        raise HTTPException(
+            status_code=503,
+            detail="Failed to generate cover letter. Please check your API keys."
+        )
+
+    return {"cover_letter": text}
+

@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import SemanticMatchPanel from '../components/SemanticMatchPanel'
 import BiasCheckWidget from '../components/BiasCheckWidget'
+import AnalyticsTab from '../components/AnalyticsTab'
 
 export default function AdvancedDashboard() {
-  const [activeTab, setActiveTab] = useState<'match' | 'bias' | 'finetune'>('match')
+  const [activeTab, setActiveTab] = useState<'match' | 'bias' | 'finetune' | 'analytics'>('analytics')
   const [resumeText, setResumeText] = useState('')
   const [ftCompany, setFtCompany] = useState('')
   const [ftFile, setFtFile] = useState<File | null>(null)
@@ -26,6 +27,7 @@ export default function AdvancedDashboard() {
   }
 
   const tabs = [
+    { id: 'analytics', label: '📊 System Analytics' },
     { id: 'match', label: '🧠 Semantic Match' },
     { id: 'bias', label: '⚖️ Bias Check' },
     { id: 'finetune', label: '🔧 Custom Training' }
@@ -73,6 +75,8 @@ export default function AdvancedDashboard() {
       </div>
 
       {/* Tab content */}
+      {activeTab === 'analytics' && <AnalyticsTab />}
+      
       {activeTab === 'match' && <SemanticMatchPanel resumeText={resumeText} />}
       
       {activeTab === 'bias' && (

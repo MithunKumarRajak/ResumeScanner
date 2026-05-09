@@ -44,9 +44,9 @@ export default function LandingPage() {
       }} />
 
       <div style={{ textAlign: 'center', marginBottom: 48, zIndex: 1 }}>
-        <h1 style={{ 
-          fontSize: 'clamp(2.5rem, 8vw, 3.5rem)', 
-          fontWeight: 900, 
+        <h1 style={{
+          fontSize: 'clamp(2.5rem, 8vw, 3.5rem)',
+          fontWeight: 900,
           letterSpacing: '-0.02em',
           marginBottom: 16,
           background: 'linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%)',
@@ -56,20 +56,20 @@ export default function LandingPage() {
           Build Your Future.
         </h1>
         <p style={{ fontSize: 18, color: 'var(--text-muted)', maxWidth: 600, margin: '0 auto' }}>
-          Craft a professional, ATS-optimized resume in minutes with our AI-powered editor.
+          Craft a professional, ATS-optimized resume in minutes with our ML-Powered editor.
         </p>
       </div>
 
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', 
-        gap: 24, 
-        width: '100%', 
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+        gap: 24,
+        width: '100%',
         maxWidth: 900,
-        zIndex: 1 
+        zIndex: 1
       }}>
         {/* OPTION 1: Parse */}
-        <div 
+        <div
           className="landing-card"
           onClick={() => setShowParseModal(true)}
           style={{
@@ -97,15 +97,15 @@ export default function LandingPage() {
             e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
           }}
         >
-          <div style={{ 
-            width: 80, 
-            height: 80, 
-            borderRadius: 20, 
-            background: 'rgba(99, 102, 241, 0.1)', 
+          <div style={{
+            width: 80,
+            height: 80,
+            borderRadius: 20,
+            background: 'rgba(99, 102, 241, 0.1)',
             color: 'var(--accent)',
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center' 
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
           }}>
             <Upload size={36} strokeWidth={1.5} />
           </div>
@@ -115,12 +115,12 @@ export default function LandingPage() {
               Upload a PDF or paste your text. AI extracts everything into beautiful editable sections.
             </p>
           </div>
-          <div style={{ 
-            padding: '8px 16px', 
-            borderRadius: 12, 
-            background: 'var(--bg-app)', 
-            fontSize: 12, 
-            fontWeight: 600, 
+          <div style={{
+            padding: '8px 16px',
+            borderRadius: 12,
+            background: 'var(--bg-app)',
+            fontSize: 12,
+            fontWeight: 600,
             color: 'var(--accent)',
             border: '1px solid rgba(99, 102, 241, 0.2)'
           }}>
@@ -129,7 +129,7 @@ export default function LandingPage() {
         </div>
 
         {/* OPTION 2: Scratch */}
-        <div 
+        <div
           className="landing-card"
           onClick={() => createEmptyResume('My New Resume')}
           style={{
@@ -157,15 +157,15 @@ export default function LandingPage() {
             e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
           }}
         >
-          <div style={{ 
-            width: 80, 
-            height: 80, 
-            borderRadius: 20, 
-            background: 'rgba(16, 185, 129, 0.1)', 
+          <div style={{
+            width: 80,
+            height: 80,
+            borderRadius: 20,
+            background: 'rgba(16, 185, 129, 0.1)',
             color: 'var(--success)',
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center' 
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
           }}>
             <Plus size={36} strokeWidth={1.5} />
           </div>
@@ -175,12 +175,12 @@ export default function LandingPage() {
               Begin with a blank canvas. Add sections manually and use AI to polish each one.
             </p>
           </div>
-          <div style={{ 
-            padding: '8px 16px', 
-            borderRadius: 12, 
-            background: 'var(--bg-app)', 
-            fontSize: 12, 
-            fontWeight: 600, 
+          <div style={{
+            padding: '8px 16px',
+            borderRadius: 12,
+            background: 'var(--bg-app)',
+            fontSize: 12,
+            fontWeight: 600,
             color: 'var(--success)',
             border: '1px solid rgba(16, 185, 129, 0.2)'
           }}>
@@ -192,8 +192,8 @@ export default function LandingPage() {
       {/* Footer / Secondary Actions */}
       <div style={{ marginTop: 64, display: 'flex', gap: 32, alignItems: 'center', zIndex: 1 }}>
         {resumes.length > 0 && (
-          <button 
-            className="btn btn-secondary" 
+          <button
+            className="btn btn-secondary"
             onClick={() => setActiveView('dashboard')}
             style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 24px' }}
           >

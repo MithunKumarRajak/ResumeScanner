@@ -40,68 +40,9 @@ class SendResponse(BaseModel):
     message_id: str
 
 
-#  HTML templates
+#  HTML templates — delegates to app.services.common ─
 
-_TEMPLATES = {
-    "shortlisted": {
-        "subject": "Congratulations! You've been shortlisted — {job_title}",
-        "body": """<html><body style="font-family:Arial,sans-serif;color:#333">
-<h2 style="color:#16a34a">Congratulations, {name}! 🎉</h2>
-<p>We're pleased to inform you that you have been <strong>shortlisted</strong>
-for the <strong>{job_title}</strong> position.</p>
-<p>Our team was impressed with your profile and we'd like to move forward
-with the next steps in our hiring process.</p>
-<p>We'll be in touch shortly with more details. In the meantime, please
-don't hesitate to reach out if you have any questions.</p>
-<p style="margin-top:24px">Best regards,<br><em>The Hiring Team</em></p>
-</body></html>""",
-    },
-    "rejected": {
-        "subject": "Application Update — {job_title}",
-        "body": """<html><body style="font-family:Arial,sans-serif;color:#333">
-<h2>Dear {name},</h2>
-<p>Thank you for your interest in the <strong>{job_title}</strong> position
-and for taking the time to apply.</p>
-<p>After careful consideration, we have decided to move forward with other
-candidates whose qualifications more closely match our current needs.</p>
-<p>We encourage you to apply for future openings that match your skill set.
-We wish you all the best in your career journey.</p>
-<p style="margin-top:24px">Warm regards,<br><em>The Hiring Team</em></p>
-</body></html>""",
-    },
-    "on_hold": {
-        "subject": "Your Application is Under Review — {job_title}",
-        "body": """<html><body style="font-family:Arial,sans-serif;color:#333">
-<h2>Dear {name},</h2>
-<p>Thank you for applying for the <strong>{job_title}</strong> position.</p>
-<p>Your application is currently <strong>on hold</strong> while we complete
-our review of all candidates. We appreciate your patience.</p>
-<p>We'll update you as soon as we have more information.</p>
-<p style="margin-top:24px">Best regards,<br><em>The Hiring Team</em></p>
-</body></html>""",
-    },
-    "interview_invite": {
-        "subject": "Interview Invitation — {job_title}",
-        "body": """<html><body style="font-family:Arial,sans-serif;color:#333">
-<h2>Dear {name},</h2>
-<p>We're excited to invite you for an interview for the
-<strong>{job_title}</strong> position!</p>
-<p>Please reply to this email with your availability for the coming week
-so we can schedule a convenient time.</p>
-<p style="margin-top:24px">Looking forward to meeting you!<br>
-<em>The Hiring Team</em></p>
-</body></html>""",
-    },
-}
-
-
-def _build_email(notif_type: str, name: str, job_title: str):
-    tpl = _TEMPLATES.get(notif_type)
-    if not tpl:
-        raise ValueError(f"Unknown notification type: {notif_type}")
-    subject = tpl["subject"].format(name=name, job_title=job_title)
-    body = tpl["body"].format(name=name, job_title=job_title)
-    return subject, body
+from app.services.common import build_email as _build_email
 
 
 #  Sending backends

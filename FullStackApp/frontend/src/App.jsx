@@ -1,7 +1,9 @@
+import { useState, useEffect, useCallback } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import AuthModal from './components/AuthModal'
+import SearchOverlay from './components/SearchOverlay'
 import HomePage from './pages/HomePage'
 import CandidatePage from './pages/CandidatePage'
 import RecruiterPage from './pages/RecruiterPage'
@@ -11,6 +13,7 @@ import ProfilePage from './pages/ProfilePage'
 import CompareView from './pages/CompareView'
 import BulkUpload from './components/BulkUpload'
 import ErrorBoundary from './components/ErrorBoundary'
+import NotFoundPage from './pages/NotFoundPage'
 import { Toaster } from 'react-hot-toast'
 import AdvancedDashboard from './pages/AdvancedDashboard'
 import { AboutPage, PrivacyPage, TermsPage, ContactPage, DocsPage } from './pages/FooterPages'
@@ -18,10 +21,27 @@ import { AboutPage, PrivacyPage, TermsPage, ContactPage, DocsPage } from './page
 export default function App() {
   const location = useLocation()
   const isEditorPage = location.pathname === '/resume-build' || location.pathname === '/ai-generator'
+  const [searchOpen, setSearchOpen] = useState(false)
+
+  const openSearch = useCallback(() => setSearchOpen(true), [])
+  const closeSearch = useCallback(() => setSearchOpen(false), [])
+
+  // Global Ctrl+K / Cmd+K shortcut
+  useEffect(() => {
+    const handler = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault()
+        setSearchOpen((prev) => !prev)
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Navbar />
+      <Navbar onSearch={openSearch} />
+      <SearchOverlay isOpen={searchOpen} onClose={closeSearch} />
       <main className="flex-1">
         <ErrorBoundary>
           <Routes>
@@ -40,7 +60,7 @@ export default function App() {
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/docs" element={<DocsPage />} />
             <Route path="/results" element={<Navigate to="/candidate" replace />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </ErrorBoundary>
       </main>

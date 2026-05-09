@@ -68,7 +68,7 @@ export default function HomePage() {
         </h1>
 
         <p className="max-w-xl text-base sm:text-lg text-slate-400 mb-10 animate-slide-up leading-relaxed" style={{ animationDelay: '0.1s' }}>
-          Upload resumes, analyze job descriptions, and instantly get AI-powered
+          Upload resumes, analyze job descriptions, and instantly get ML-Powered
           match scores, skill gap analysis, and recruiter-ready rankings.
         </p>
 

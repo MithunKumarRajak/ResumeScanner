@@ -3,44 +3,6 @@ import os
 class EmailService:
     """Supports SendGrid (primary) and SMTP fallback."""
     
-    TEMPLATES = {
-        "shortlisted": {
-            "subject": "Congratulations! You've been shortlisted — {job_title}",
-            "body": """
-            <h2>Great news, {candidate_name}!</h2>
-            <p>We are pleased to inform you that your application for <strong>{job_title}</strong>
-            has been shortlisted. Our team will contact you soon with next steps.</p>
-            <p>Thank you for your interest.</p>
-            """
-        },
-        "rejected": {
-            "subject": "Application Update — {job_title}",
-            "body": """
-            <h2>Dear {candidate_name},</h2>
-            <p>Thank you for applying for <strong>{job_title}</strong>.
-            After careful consideration, we have decided to move forward with other candidates
-            whose experience more closely matches our current needs.</p>
-            <p>We encourage you to apply for future openings.</p>
-            """
-        },
-        "on_hold": {
-            "subject": "Application Status Update — {job_title}",
-            "body": """
-            <h2>Dear {candidate_name},</h2>
-            <p>Your application for <strong>{job_title}</strong> is currently under review.
-            We will update you as soon as a decision is made. Thank you for your patience.</p>
-            """
-        },
-        "interview_invite": {
-            "subject": "Interview Invitation — {job_title}",
-            "body": """
-            <h2>Dear {candidate_name},</h2>
-            <p>We are delighted to invite you for an interview for <strong>{job_title}</strong>.
-            Please reply to this email to confirm your availability.</p>
-            """
-        }
-    }
-
     def __init__(self):
         self.sendgrid_key = os.getenv("SENDGRID_API_KEY")
         self.smtp_host = os.getenv("SMTP_HOST")
@@ -48,12 +10,11 @@ class EmailService:
 
     async def send(self, to_email: str, notification_type: str,
                    candidate_name: str, job_title: str) -> dict:
-        template = self.TEMPLATES.get(notification_type)
-        if not template:
-            raise ValueError(f"Unknown notification type: {notification_type}")
-        
-        subject = template["subject"].format(job_title=job_title)
-        body = template["body"].format(candidate_name=candidate_name, job_title=job_title)
+        from app.services.common import build_email
+        try:
+            subject, body = build_email(notification_type, candidate_name, job_title)
+        except ValueError as e:
+            raise ValueError(str(e))
         
         if self.sendgrid_key:
             return await self._send_sendgrid(to_email, subject, body)

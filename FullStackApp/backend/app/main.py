@@ -124,8 +124,14 @@ app.include_router(advanced.router)
 #  Global exception handler ─
 
 
+from fastapi import HTTPException
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
+    if isinstance(exc, HTTPException):
+        # Let FastAPI's default handler process it
+        raise exc
+    
     logger.error(f"Unhandled error on {request.url}: {exc}", exc_info=True)
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

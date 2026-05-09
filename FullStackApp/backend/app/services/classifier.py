@@ -79,24 +79,14 @@ def load_models() -> bool:
     return False
 
 
-#  Text preprocessing (mirrors original main.py) ─
+#  Text preprocessing — delegates to app.services.common ─
 
-def _clean_text(text: str) -> str:
-    text = re.sub(r"http\S+|www\S+|https\S+", " ", text, flags=re.MULTILINE)
-    text = re.sub(r"\bRT\b|\bcc\b", " ", text)
-    text = re.sub(r"#\S+", " ", text)
-    text = re.sub(r"@\S+", " ", text)
-    text = re.sub(r"<.*?>", " ", text)
-    text = re.sub(r"[^a-zA-Z\s]", " ", text)
-    return re.sub(r"\s+", " ", text).strip()
+from app.services.common import clean_text as _clean_text
+from app.services.common import preprocess_text as _common_preprocess
 
 
 def _preprocess(text: str) -> str:
-    if _nlp is None:
-        return _clean_text(text).lower()
-    cleaned = _clean_text(text)
-    doc = _nlp(cleaned.lower())
-    return " ".join(token.lemma_ for token in doc if not token.is_stop)
+    return _common_preprocess(text, _nlp)
 
 
 def _build_prediction_payload(

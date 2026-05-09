@@ -1,18 +1,19 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
+import { ResultPageSkeleton } from '../components/Skeleton'
 import {
   Upload, FileText, X, AlertCircle, ChevronDown, Sparkles,
   ClipboardCheck, GitCompare, FileEdit, BarChart3, ArrowLeft,
-  Loader2, CheckCircle2, AlertTriangle, Send, Users, ChevronDown as ChevronDownIcon
+  Loader2, CheckCircle2, AlertTriangle, Send, Users, ChevronDown as ChevronDownIcon, Download
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-hot-toast'
 import ATSScoreCard from '../components/ATSScoreCard'
 import ExperienceTimeline from '../components/ExperienceTimeline'
-import { checkATS, extractExperience, sendNotification, uploadResume } from '../services/api'
+import { predictResume, checkATS, extractExperience, sendNotification, uploadResume, generateCoverLetter } from '../services/api'
 import MatchResultCard from '../components/MatchResultCard'
 import ParsedResumeEditor from '../components/ParsedResumeEditor'
 import { useMatch } from '../hooks/useMatch'
-import { getModels } from '../services/api'
+import { useModels } from '../hooks/useModels'
 import useStore from '../store'
 
 const ALLOWED = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
@@ -152,9 +153,14 @@ function MissingInputModal({ missingType, onProvide, onClose }) {
         {isResume ? (
           <div className="space-y-3">
             {file ? (
-              <div className="flex items-center gap-3 rounded-xl border border-slate-700/60 bg-slate-900/50 p-3">
-                <FileText className="h-5 w-5 text-sky-400 shrink-0" /><span className="text-sm text-white truncate flex-1">{file.name}</span>
-                <button onClick={() => setFile(null)} className="text-slate-500 hover:text-red-400 cursor-pointer bg-transparent border-none"><X className="h-4 w-4" /></button>
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-3 rounded-xl border border-slate-700/60 bg-slate-900/50 p-3">
+                  <FileText className="h-5 w-5 text-sky-400 shrink-0" /><span className="text-sm text-white truncate flex-1">{file.name}</span>
+                  <button onClick={() => { setFile(null); onClear && onClear(); }} className="text-slate-500 hover:text-red-400 cursor-pointer bg-transparent border-none"><X className="h-4 w-4" /></button>
+                </div>
+                {file.type === 'application/pdf' && (
+                  <iframe src={URL.createObjectURL(file)} className="w-full h-[400px] rounded-xl border border-slate-700/60 bg-slate-900/30" title="PDF Preview" />
+                )}
               </div>
             ) : (
               <button onClick={() => ref.current?.click()} className="w-full rounded-xl border-2 border-dashed border-slate-700/60 p-6 text-center hover:border-indigo-500/40 cursor-pointer transition-colors bg-transparent">
@@ -350,6 +356,9 @@ export default function CandidatePage() {
   const [availableModels, setAvailableModels] = useState(FALLBACK_MODELS)
   const [modelLoadError, setModelLoadError] = useState('')
   const [backendDefaultModel, setBackendDefaultModel] = useState(LATEST_MODEL_ID)
+  
+  const [coverLetter, setCoverLetter] = useState(null)
+  const [isGeneratingCL, setIsGeneratingCL] = useState(false)
 
   const navigate = useNavigate()
   const [atsData, setAtsData] = useState(null)
@@ -360,43 +369,38 @@ export default function CandidatePage() {
   const hasJD = !!jobDesc.trim()
   const canProcess = hasResume || hasJD
 
+  const { data: modelsData, isLoading: modelsLoading, isError: modelsError } = useModels()
+
   useEffect(() => {
-    let mounted = true
+    if (modelsLoading) return
 
-    async function loadModelOptions() {
-      try {
-        const response = await getModels()
-        const backendDefault = response?.default_model || LATEST_MODEL_ID
-        const models = Array.isArray(response?.models) ? response.models : []
-        const normalized = models
-          .filter((m) => m.available)
-          .map((m) => ({
-            id: m.id,
-            name: m.badge || m.id,
-            desc: m.description || m.algorithm || 'Model available',
-          }))
-
-        if (!mounted) return
-
-        if (normalized.length > 0) {
-          setAvailableModels(normalized)
-          setBackendDefaultModel(backendDefault)
-          setModelLoadError('')
-        } else {
-          setAvailableModels(FALLBACK_MODELS)
-          setBackendDefaultModel(LATEST_MODEL_ID)
-          setModelLoadError('No active backend model metadata found, using fallback list.')
-        }
-      } catch {
-        if (!mounted) return
-        setAvailableModels(FALLBACK_MODELS)
-        setModelLoadError('Could not fetch model list from backend, using fallback list.')
-      }
+    if (modelsError || !modelsData) {
+      setAvailableModels(FALLBACK_MODELS)
+      setBackendDefaultModel(LATEST_MODEL_ID)
+      setModelLoadError('Could not fetch model list from backend, using fallback list.')
+      return
     }
 
-    loadModelOptions()
-    return () => { mounted = false }
-  }, [])
+    const backendDefault = modelsData.default_model || LATEST_MODEL_ID
+    const models = Array.isArray(modelsData.models) ? modelsData.models : []
+    const normalized = models
+      .filter((m) => m.available)
+      .map((m) => ({
+        id: m.id,
+        name: m.badge || m.id,
+        desc: m.description || m.algorithm || 'Model available',
+      }))
+
+    if (normalized.length > 0) {
+      setAvailableModels(normalized)
+      setBackendDefaultModel(backendDefault)
+      setModelLoadError('')
+    } else {
+      setAvailableModels(FALLBACK_MODELS)
+      setBackendDefaultModel(LATEST_MODEL_ID)
+      setModelLoadError('No active backend model metadata found, using fallback list.')
+    }
+  }, [modelsData, modelsLoading, modelsError])
 
   useEffect(() => {
     if (!availableModels.length) return
@@ -534,7 +538,7 @@ export default function CandidatePage() {
     }
   }, [phase, activeAction, currentResumeId])
 
-  
+
   const handleExportPDF = async () => {
     const element = document.getElementById('report-container');
     if (!element) return;
@@ -542,17 +546,17 @@ export default function CandidatePage() {
     try {
       const html2canvas = (await import('html2canvas')).default;
       const { jsPDF } = await import('jspdf');
-      
+
       const canvas = await html2canvas(element, { scale: 2, backgroundColor: '#0f172a' });
       const imgData = canvas.toDataURL('image/png');
-      
+
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      
+
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
       pdf.save(`Candidate_Report_${parsedResume?.name?.replace(/\s+/g, '_') || 'Result'}.pdf`);
-      
+
       toast.success('PDF generated!', { id: toastId });
     } catch (err) {
       toast.error('Failed to generate PDF', { id: toastId });
@@ -575,13 +579,31 @@ export default function CandidatePage() {
     }
   }
 
+  const handleGenerateCoverLetter = async () => {
+    if (!resumeText || !jobDesc) {
+      toast.error('Both Resume and Job Description are required for a cover letter.')
+      return
+    }
+    setIsGeneratingCL(true)
+    const toastId = toast.loading('Generating cover letter with AI...')
+    try {
+      const data = await generateCoverLetter(resumeText, jobDesc)
+      setCoverLetter(data.cover_letter)
+      toast.success('Cover letter generated!', { id: toastId })
+    } catch (err) {
+      toast.error('Failed to generate cover letter. Try again later.', { id: toastId })
+    } finally {
+      setIsGeneratingCL(false)
+    }
+  }
+
   //  INPUT PHASE 
   if (phase === 'input') return (
     <div className="min-h-[calc(100vh-64px)] flex flex-col items-center justify-start px-4 sm:px-6 lg:px-8 py-12 overflow-y-auto">
       <div className="text-center mb-10 animate-slide-up">
         <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-indigo-500/25 bg-indigo-500/10 px-4 py-1.5">
           <Sparkles className="h-3.5 w-3.5 text-indigo-400" />
-          <span className="text-xs font-semibold text-indigo-300 tracking-wide">AI-Powered Resume Analysis</span>
+          <span className="text-xs font-semibold text-indigo-300 tracking-wide">ML-Powered Resume Analysis</span>
         </div>
         <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white mb-3">
           Scan, Match & <span className="gradient-text">Optimize</span>
@@ -650,17 +672,7 @@ export default function CandidatePage() {
 
       {(activeAction === 'match' || activeAction === 'scores' || activeAction === 'checker') && (
         isAnalyzing ? (
-          <div className="space-y-6 w-full animate-fade-in">
-            <div className="glass-card p-6 h-[200px] skeleton-shimmer"></div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="glass-card p-6 h-[150px] skeleton-shimmer"></div>
-              <div className="glass-card p-6 h-[150px] skeleton-shimmer"></div>
-            </div>
-            <div className="flex flex-col items-center gap-3 mt-4">
-              <Loader2 className="h-6 w-6 animate-spin text-indigo-400/50" />
-              <p className="text-sm text-slate-400 font-medium">Running ML {activeAction === 'checker' ? 'analysis' : 'matching'} pipeline…</p>
-            </div>
-          </div>
+          <ResultPageSkeleton />
         ) : isError ? (
           <div className="flex items-start gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /><p>{matchError?.response?.data?.detail || 'Backend API unavailable.'}</p></div>
         ) : matchResult ? (
@@ -685,6 +697,15 @@ export default function CandidatePage() {
 
             <div className="flex flex-wrap items-center justify-between gap-4 pt-6 border-t border-slate-700/50 mt-8">
               <button
+                onClick={handleGenerateCoverLetter}
+                disabled={isGeneratingCL}
+                className="btn-primary flex items-center gap-2"
+              >
+                {isGeneratingCL ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 text-amber-200" />}
+                Generate Cover Letter
+              </button>
+
+              <button
                 onClick={() => navigate('/compare')}
                 className="btn-secondary flex items-center gap-2"
               >
@@ -692,10 +713,22 @@ export default function CandidatePage() {
               </button>
 
               <button
+                onClick={() => {
+                  if (parsedResume) {
+                    sessionStorage.setItem('rs_resume_builder_data', JSON.stringify(parsedResume))
+                  }
+                  navigate('/resume-build')
+                }}
+                className="btn-secondary flex items-center gap-2"
+              >
+                <FileText className="h-4 w-4" /> Edit in Builder
+              </button>
+
+              <button
                 onClick={handleExportPDF}
                 className="btn-secondary flex items-center gap-2"
               >
-                <FileText className="h-4 w-4" /> Export PDF
+                <Download className="h-4 w-4" /> Export PDF
               </button>
 
 
@@ -717,6 +750,39 @@ export default function CandidatePage() {
                 )}
               </div>
             </div>
+
+            {/* Cover Letter Modal/Panel */}
+            {coverLetter && (
+              <div className="mt-8 animate-fade-in">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 text-indigo-400" />
+                    AI-Generated Cover Letter
+                  </h3>
+                  <button onClick={() => setCoverLetter(null)} className="text-slate-500 hover:text-white">
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+                <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700/50">
+                  <textarea 
+                    value={coverLetter}
+                    onChange={(e) => setCoverLetter(e.target.value)}
+                    className="w-full min-h-[300px] bg-transparent text-slate-300 text-sm leading-relaxed outline-none resize-y"
+                  />
+                  <div className="flex justify-end mt-4">
+                    <button 
+                      onClick={() => {
+                        navigator.clipboard.writeText(coverLetter)
+                        toast.success('Copied to clipboard!')
+                      }}
+                      className="btn-secondary text-xs py-1.5 px-3"
+                    >
+                      Copy to Clipboard
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div className="glass-card p-12 flex flex-col items-center gap-4"><Loader2 className="h-10 w-10 animate-spin text-indigo-400" /><p className="text-slate-300 font-medium">Preparing analysis…</p></div>

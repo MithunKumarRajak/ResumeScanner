@@ -26,26 +26,10 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 
 
-#  Helpers ─
+#  Helpers — delegates to app.services.common ─
 
-def _resume_skill_names(db: Session, resume_id: str) -> List[str]:
-    rows = (
-        db.query(Skill.name)
-        .join(ResumeSkill, ResumeSkill.skill_id == Skill.id)
-        .filter(ResumeSkill.resume_id == resume_id)
-        .all()
-    )
-    return [r.name for r in rows]
-
-
-def _job_skill_names(db: Session, job_id: str) -> List[str]:
-    rows = (
-        db.query(Skill.name)
-        .join(JobSkill, JobSkill.skill_id == Skill.id)
-        .filter(JobSkill.job_id == job_id)
-        .all()
-    )
-    return [r.name for r in rows]
+from app.services.common import resume_skill_names as _resume_skill_names
+from app.services.common import job_skill_names as _job_skill_names
 
 
 #  Routes 

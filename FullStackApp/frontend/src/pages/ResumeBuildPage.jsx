@@ -163,7 +163,7 @@ function ResumeEntryModal({ onEdit, onFresh, isExtracting }) {
             <Upload className="h-4 w-4 text-indigo-400" />
             Upload Existing Resume
           </h3>
-          <p className="text-xs text-slate-400">Upload your resume (PDF/DOCX) and we'll extract your data using AI-powered parsing so you can edit and improve it.</p>
+          <p className="text-xs text-slate-400">Upload your resume (PDF/DOCX) and we'll extract your data using ML-Powered parsing so you can edit and improve it.</p>
 
           {file ? (
             <div className="flex items-center gap-3 rounded-xl border border-slate-700/60 bg-slate-900/50 p-3">

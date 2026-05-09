@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { ScanLine, LogIn, LogOut, User, ChevronDown, Home, Cpu, Users, FileEdit, Wand2, Menu, X, UploadCloud, Columns } from 'lucide-react'
+import { ScanLine, LogIn, LogOut, User, ChevronDown, Home, Cpu, Users, FileEdit, Wand2, Menu, X, UploadCloud, Columns, Search } from 'lucide-react'
 import DarkModeToggle from './DarkModeToggle'
 import useStore from '../store'
 
-export default function Navbar() {
+export default function Navbar({ onSearch }) {
   const user           = useStore((s) => s.user)
   const logout         = useStore((s) => s.logout)
   const openAuthModal  = useStore((s) => s.openAuthModal)
@@ -79,6 +79,17 @@ export default function Navbar() {
 
         {/* Right side */}
         <div className="flex items-center gap-2">
+          {/* Search trigger */}
+          <button
+            onClick={onSearch}
+            className="flex items-center gap-2 rounded-xl border border-slate-700/50 bg-slate-900/40 px-3 py-1.5 text-sm text-slate-400 hover:text-slate-200 hover:border-slate-600 cursor-pointer transition-all"
+            id="nav-search-btn"
+          >
+            <Search className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline text-xs">Search</span>
+            <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-[10px] font-medium text-slate-500 ml-1">⌘K</kbd>
+          </button>
+
           <DarkModeToggle />
 
           {user ? (

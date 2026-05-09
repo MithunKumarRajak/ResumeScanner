@@ -14,6 +14,7 @@ api.interceptors.request.use(
   },
   (error) => Promise.reject(error)
 )
+import useStore from '../store'
 
 //  Response interceptor 
 api.interceptors.response.use(
@@ -21,7 +22,16 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('rs_user')
+      useStore.getState().openAuthModal()
     }
+    
+    // Normalize error message
+    const message = error.response?.data?.detail 
+                 || error.response?.data?.message 
+                 || error.message 
+                 || 'An unexpected API error occurred'
+    
+    error.message = typeof message === 'string' ? message : JSON.stringify(message)
     return Promise.reject(error)
   }
 )
@@ -147,6 +157,51 @@ export async function aiExplainMatch(resumeText, jobDescription, matchScore) {
   return data
 }
 
+export async function sendNotification(candidateEmail, type, name, jobTitle, analysisId = null) {
+  const { data } = await api.post('/api/notifications/send', {
+    candidate_email: candidateEmail,
+    notification_type: type,
+    candidate_name: name,
+    job_title: jobTitle,
+    resume_analysis_id: analysisId
+  })
+  return data
+}
+
+// ────────────────────────────────────────────────────────────
+//  Analytics APIs
+// ────────────────────────────────────────────────────────────
+
+export async function getSkillDemand(topN = 20) {
+  const { data } = await api.get('/analytics/skill-demand', { params: { top_n: topN } })
+  return data
+}
+
+export async function getSkillSupply(topN = 20) {
+  const { data } = await api.get('/analytics/skill-supply', { params: { top_n: topN } })
+  return data
+}
+
+export async function getMatchDistribution() {
+  const { data } = await api.get('/analytics/match-distribution')
+  return data
+}
+
+export async function getCategoryBreakdown() {
+  const { data } = await api.get('/analytics/category-breakdown')
+  return data
+}
+
+export async function getExperienceDistribution() {
+  const { data } = await api.get('/analytics/experience-distribution')
+  return data
+}
+
+export async function getTopCandidates(limit = 10) {
+  const { data } = await api.get('/analytics/top-candidates', { params: { limit } })
+  return data
+}
+
 //  Resume Extraction API (PyMuPDF backend) 
 export async function extractResume(file) {
   const formData = new FormData()
@@ -205,8 +260,12 @@ export async function getBulkStatus(jobId) {
   return data
 }
 
-export async function sendNotification(params) {
-  const { data } = await api.post('/api/notifications/send', params)
+export async function generateCoverLetter(resumeText, jobDescription, tone = "Professional & Confident") {
+  const { data } = await api.post('/ai/generate-cover-letter', {
+    resume_text: resumeText,
+    job_description: jobDescription,
+    tone: tone
+  })
   return data
 }
 

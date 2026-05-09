@@ -48,14 +48,7 @@ def _sync_resume_skills(db: Session, resume: Resume, skill_names: List[str],
         db.add(ResumeSkill(resume_id=resume.id, skill_id=skill.id, source=source))
 
 
-def _resume_skill_names(db: Session, resume_id: str) -> List[str]:
-    rows = (
-        db.query(Skill.name)
-        .join(ResumeSkill, ResumeSkill.skill_id == Skill.id)
-        .filter(ResumeSkill.resume_id == resume_id)
-        .all()
-    )
-    return [r.name for r in rows]
+from app.services.common import resume_skill_names as _resume_skill_names
 
 
 #  Background task: parse + classify ─

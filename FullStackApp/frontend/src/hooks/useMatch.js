@@ -61,16 +61,40 @@ export function useMatch() {
         ? Math.round(data.match_score)
         : null
 
+      const topCategories = Array.isArray(data.top_categories)
+        ? data.top_categories.map((item) => ({
+            category: item.category,
+            score: Math.round((item.score || 0) * 1000) / 10,
+          }))
+        : []
+
+      const reviewReason = data.review_reason || ''
+
       const result = {
         matchScore:      score,
         category:        data.predicted_category,
         confidence:      data.confidence,
+        confidencePct:   data.confidence_pct,
         modelVersion:    data.model_version || null,
+        modelType:       data.model_type || null,
+        categoryCount:   data.category_count ?? null,
+        featureCount:    data.feature_count ?? null,
+        predictionMargin: data.prediction_margin ?? null,
+        needsHumanReview: Boolean(data.needs_human_review),
+        reviewReason,
+        topCategories,
+        allProbabilities: data.all_probabilities || {},
+        roleSuggestions: data.role_suggestions || [],
+        resumeGaps:      data.resume_gaps || [],
+        applyNowReadiness: data.apply_now_readiness || null,
+        improvementTips: data.improvement_tips || [],
         matchingSkills:  matching,
         missingSkills:   missing,
         resumeTopTerms:  data.resume_top_terms || [],
         jdTopTerms:      data.jd_top_terms || [],
-        recommendation:  buildRecommendation(score, data.predicted_category, matching, missing),
+        recommendation:  reviewReason
+          ? `${reviewReason}. ${buildRecommendation(score, data.predicted_category, matching, missing)}`
+          : buildRecommendation(score, data.predicted_category, matching, missing),
       }
 
       setMatchResult(result)

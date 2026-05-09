@@ -13,12 +13,14 @@ import re
 import hashlib
 import logging
 import sys
-from typing import Optional, List
+from typing import Optional, List, Dict
 
 import numpy as np
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, ConfigDict
 from sklearn.metrics.pairwise import cosine_similarity
+
+from app.services import classifier as classifier_svc
 
 logger = logging.getLogger(__name__)
 
@@ -38,12 +40,30 @@ class ResumeInput(BaseModel):
     model_version: Optional[str] = None
 
 
+class CategoryScore(BaseModel):
+    category: str
+    score: float
+
+
 class PredictionOutput(BaseModel):
     model_config = ConfigDict(protected_namespaces=())
 
     predicted_category: str
     confidence: float
+    confidence_pct: float
     model_version: Optional[str] = None
+    model_type: Optional[str] = None
+    category_count: Optional[int] = None
+    feature_count: Optional[int] = None
+    prediction_margin: Optional[float] = None
+    needs_human_review: Optional[bool] = None
+    review_reason: Optional[str] = None
+    all_probabilities: Optional[Dict[str, float]] = None
+    top_categories: Optional[List[CategoryScore]] = None
+    role_suggestions: Optional[List[str]] = None
+    resume_gaps: Optional[List[Dict[str, str]]] = None
+    apply_now_readiness: Optional[Dict[str, object]] = None
+    improvement_tips: Optional[List[str]] = None
     match_score: Optional[float] = None
     resume_top_terms: Optional[List[str]] = None
     jd_top_terms: Optional[List[str]] = None
@@ -238,6 +258,115 @@ def _get_top_tfidf_terms(tfidf_vector, vectorizer, n: int = 10) -> list:
     return [feature_names[i] for i in sorted_indices if scores[i] > 0]
 
 
+def _build_candidate_guidance(classification: Dict[str, object], resume_terms: list[str], jd_terms: list[str], match_score: Optional[float]) -> Dict[str, object]:
+    top_categories = classification.get("top_categories") or []
+    predicted_category = str(classification.get(
+        "predicted_category") or "Unknown")
+    confidence_pct = float(classification.get("confidence_pct") or 0.0)
+    needs_review = bool(classification.get("needs_human_review"))
+
+    role_suggestions = [predicted_category]
+    for item in top_categories:
+        category = item.get("category") if isinstance(item, dict) else None
+        if category and category not in role_suggestions:
+            role_suggestions.append(category)
+        if len(role_suggestions) >= 4:
+            break
+
+    role_aliases = {
+        "ENGINEER": ["Software Engineer", "Backend Developer", "Full Stack Developer"],
+        "INFORMATION-TECHNOLOGY": ["IT Analyst", "Systems Engineer", "Support Engineer"],
+        "FINANCE": ["Financial Analyst", "Accounting Associate", "FP&A Analyst"],
+        "HR": ["HR Executive", "Talent Acquisition Specialist", "People Operations Associate"],
+        "SALES": ["Sales Executive", "Business Development Associate", "Account Manager"],
+        "DESIGNER": ["UI/UX Designer", "Product Designer", "Visual Designer"],
+        "TEACHER": ["Teacher", "Instructional Coordinator", "Academic Tutor"],
+        "BANKING": ["Banking Associate", "Credit Analyst", "Relationship Manager"],
+        "CONSULTANT": ["Business Consultant", "Strategy Analyst", "Operations Consultant"],
+    }
+    for alias in role_aliases.get(predicted_category.upper(), []):
+        if alias not in role_suggestions:
+            role_suggestions.append(alias)
+
+    resume_term_set = {term.lower() for term in (resume_terms or [])}
+    jd_term_set = {term.lower() for term in (jd_terms or [])}
+    missing_terms = [term for term in jd_terms if term.lower()
+                     not in resume_term_set]
+
+    resume_gaps = []
+    for term in missing_terms[:8]:
+        resume_gaps.append({
+            "type": "job-keyword",
+            "item": term,
+            "priority": "high" if len(resume_gaps) < 3 else "medium",
+            "suggestion": f"Add evidence of {term} in your summary, projects, or experience bullets.",
+        })
+
+    if confidence_pct < 60:
+        resume_gaps.append({
+            "type": "category-confidence",
+            "item": predicted_category,
+            "priority": "medium",
+            "suggestion": "Tailor the resume with role-specific achievements to improve classification confidence.",
+        })
+
+    if match_score is not None and match_score < 60:
+        resume_gaps.append({
+            "type": "match-score",
+            "item": f"{match_score}% match",
+            "priority": "medium",
+            "suggestion": "Rework the resume to mirror the target job description more closely.",
+        })
+
+    readiness_score = round(
+        (confidence_pct * 0.45)
+        + (float(match_score or 0.0) * 0.45)
+        + (max(0.0, 100.0 - min(len(missing_terms) * 6.0, 30.0)) * 0.10),
+        1,
+    )
+    if needs_review:
+        readiness_score = max(0.0, readiness_score - 10.0)
+
+    if readiness_score >= 80:
+        readiness_label = "Ready to apply"
+        readiness_detail = "Strong category confidence and solid job alignment."
+    elif readiness_score >= 60:
+        readiness_label = "Almost ready"
+        readiness_detail = "Good fit, but a few job-specific edits will improve the outcome."
+    else:
+        readiness_label = "Needs tailoring"
+        readiness_detail = "The resume should be edited before applying to this role."
+
+    improvement_tips = []
+    if missing_terms:
+        improvement_tips.append(
+            f"Use the job description language for: {', '.join(missing_terms[:3])}.")
+    if confidence_pct < 70:
+        improvement_tips.append(
+            "Add concrete achievements and tools to strengthen category confidence.")
+    if len(resume_terms or []) < 5:
+        improvement_tips.append(
+            "Add more role-specific keywords and measurable outcomes.")
+    if match_score is not None and match_score < 70:
+        improvement_tips.append(
+            "Mirror the target role's responsibilities in your experience bullets.")
+    if not improvement_tips:
+        improvement_tips.append(
+            "Keep the resume concise and continue tailoring it for each job.")
+
+    return {
+        "role_suggestions": role_suggestions[:4],
+        "resume_gaps": resume_gaps,
+        "apply_now_readiness": {
+            "score": readiness_score,
+            "label": readiness_label,
+            "detail": readiness_detail,
+            "should_apply": readiness_score >= 70,
+        },
+        "improvement_tips": improvement_tips[:5],
+    }
+
+
 def _extract_structured_features(text: str) -> np.ndarray:
     text_lower = text.lower()
     years = 0.0
@@ -370,31 +499,23 @@ def predict_resume(input_data: ResumeInput):
             detail="No model versions loaded. Please check backend logs.",
         )
 
-    model = resolved["model"]
-    tfidf = resolved["tfidf"]
-    label_encoder = resolved["label_encoder"]
-
     if not input_data.resume_text or len(input_data.resume_text.strip()) == 0:
         raise HTTPException(
             status_code=400, detail="Resume text cannot be empty")
 
     try:
-        processed_text = _preprocess_text(input_data.resume_text)
-        model_vectorized, tfidf_vector_for_terms = _build_inference_vector(
-            processed_text, input_data.resume_text, resolved
-        )
-
-        prediction = model.predict(model_vectorized)
-        prediction_proba = model.predict_proba(model_vectorized)
-
-        predicted_category = label_encoder.inverse_transform(prediction)[0]
-        confidence = float(max(prediction_proba[0]))
+        classification = classifier_svc.classify_resume(input_data.resume_text)
 
         match_score = None
         resume_top_terms = None
         jd_top_terms = None
 
         if input_data.job_description and len(input_data.job_description.strip()) > 0:
+            tfidf = resolved["tfidf"]
+            processed_text = _preprocess_text(input_data.resume_text)
+            _, tfidf_vector_for_terms = _build_inference_vector(
+                processed_text, input_data.resume_text, resolved
+            )
             if resolved.get("model_type") == "advanced_v6":
                 processed_jd, _ = _preprocess_v6_text(
                     input_data.job_description)
@@ -410,13 +531,27 @@ def predict_resume(input_data: ResumeInput):
                 tfidf_vector_for_terms, tfidf, n=10)
             jd_top_terms = _get_top_tfidf_terms(jd_vectorized, tfidf, n=10)
 
-        return PredictionOutput(
-            predicted_category=predicted_category,
-            confidence=round(confidence, 4),
-            model_version=resolved.get("id"),
+        guidance = _build_candidate_guidance(
+            classification=classification,
+            resume_terms=resume_top_terms or [],
+            jd_terms=jd_top_terms or [],
             match_score=match_score,
-            resume_top_terms=resume_top_terms,
-            jd_top_terms=jd_top_terms,
+        )
+
+        response_data = dict(classification)
+        response_data["model_version"] = resolved.get(
+            "id") or classification.get("model_version")
+        response_data["model_type"] = resolved.get(
+            "model_type") or classification.get("model_type")
+        response_data["feature_count"] = classification.get(
+            "feature_count") or resolved.get("input_features")
+        response_data.update(guidance)
+        response_data["match_score"] = match_score
+        response_data["resume_top_terms"] = resume_top_terms
+        response_data["jd_top_terms"] = jd_top_terms
+
+        return PredictionOutput(
+            **response_data,
         )
 
     except Exception as e:

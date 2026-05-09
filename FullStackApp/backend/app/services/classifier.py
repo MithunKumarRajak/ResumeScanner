@@ -16,11 +16,11 @@ _BASE_DIR = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "..", "..", "..", "..")
 )
 
-#  Lazy singletons 
-_model         = None
-_tfidf         = None
+#  Lazy singletons
+_model = None
+_tfidf = None
 _label_encoder = None
-_nlp           = None
+_nlp = None
 _models_loaded = False
 
 
@@ -32,7 +32,8 @@ def _get_latest_predict_bundle():
             predict_routes.load_predict_models()
         return predict_routes._resolve_model("ResumeModel_v6"), predict_routes
     except Exception as e:
-        logger.warning(f"Latest predict model unavailable, using legacy classifier artifacts: {e}")
+        logger.warning(
+            f"Latest predict model unavailable, using legacy classifier artifacts: {e}")
         return None, None
 
 
@@ -58,14 +59,14 @@ def load_models() -> bool:
         import joblib
         import spacy
 
-        model_path   = _get_model_path("model.pkl")
-        tfidf_path   = _get_model_path("tfidf.pkl")
+        model_path = _get_model_path("model.pkl")
+        tfidf_path = _get_model_path("tfidf.pkl")
         encoder_path = _get_model_path("encoder.pkl")
 
-        _model         = joblib.load(model_path)
-        _tfidf         = joblib.load(tfidf_path)
+        _model = joblib.load(model_path)
+        _tfidf = joblib.load(tfidf_path)
         _label_encoder = joblib.load(encoder_path)
-        _nlp           = spacy.load("en_core_web_sm")
+        _nlp = spacy.load("en_core_web_sm")
 
         _models_loaded = True
         logger.info(" ML models loaded successfully")
@@ -98,7 +99,52 @@ def _preprocess(text: str) -> str:
     return " ".join(token.lemma_ for token in doc if not token.is_stop)
 
 
-#  Public API 
+def _build_prediction_payload(
+    predicted_category: str,
+    probabilities,
+    label_encoder,
+    model_version: str,
+    model_type: Optional[str] = None,
+    feature_count: Optional[int] = None,
+) -> Dict[str, Any]:
+    probability_pairs = list(zip(label_encoder.classes_, probabilities))
+    sorted_pairs = sorted(
+        probability_pairs, key=lambda item: item[1], reverse=True)
+    top_categories = [
+        {"category": label, "score": round(float(score), 4)}
+        for label, score in sorted_pairs[:5]
+    ]
+
+    confidence = float(sorted_pairs[0][1]) if sorted_pairs else 0.0
+    runner_up = float(sorted_pairs[1][1]) if len(sorted_pairs) > 1 else 0.0
+    confidence_margin = round(confidence - runner_up, 4)
+
+    review_reasons = []
+    if confidence < 0.6:
+        review_reasons.append("low confidence")
+    if confidence_margin < 0.15:
+        review_reasons.append("close competition between top categories")
+
+    return {
+        "predicted_category": predicted_category,
+        "confidence": round(confidence, 4),
+        "confidence_pct": round(confidence * 100, 1),
+        "model_version": model_version,
+        "model_type": model_type,
+        "feature_count": feature_count,
+        "category_count": len(label_encoder.classes_),
+        "prediction_margin": confidence_margin,
+        "needs_human_review": bool(review_reasons),
+        "review_reason": "; ".join(review_reasons) if review_reasons else "",
+        "top_categories": top_categories,
+        "all_probabilities": {
+            label: round(float(prob), 4)
+            for label, prob in probability_pairs
+        },
+    }
+
+
+#  Public API
 
 def classify_resume(text: str) -> Dict[str, Any]:
     """
@@ -124,16 +170,14 @@ def classify_resume(text: str) -> Dict[str, Any]:
         prediction = model.predict(model_vectorized)
         probabilities = model.predict_proba(model_vectorized)[0]
         predicted_category = label_encoder.inverse_transform(prediction)[0]
-        confidence = float(max(probabilities))
-        all_probs = {
-            label: round(float(prob), 4)
-            for label, prob in zip(label_encoder.classes_, probabilities)
-        }
-        return {
-            "predicted_category": predicted_category,
-            "confidence": round(confidence, 4),
-            "all_probabilities": all_probs,
-        }
+        return _build_prediction_payload(
+            predicted_category=predicted_category,
+            probabilities=probabilities,
+            label_encoder=label_encoder,
+            model_version=latest_bundle.get("id", "ResumeModel_v6"),
+            model_type=latest_bundle.get("model_type"),
+            feature_count=latest_bundle.get("input_features"),
+        )
 
     if not _models_loaded:
         load_models()
@@ -146,24 +190,20 @@ def classify_resume(text: str) -> Dict[str, Any]:
 
     import numpy as np
 
-    processed      = _preprocess(text)
-    vectorized     = _tfidf.transform([processed])
-    prediction     = _model.predict(vectorized)
-    probabilities  = _model.predict_proba(vectorized)[0]
+    processed = _preprocess(text)
+    vectorized = _tfidf.transform([processed])
+    prediction = _model.predict(vectorized)
+    probabilities = _model.predict_proba(vectorized)[0]
 
     predicted_category = _label_encoder.inverse_transform(prediction)[0]
-    confidence         = float(max(probabilities))
-
-    all_probs = {
-        label: round(float(prob), 4)
-        for label, prob in zip(_label_encoder.classes_, probabilities)
-    }
-
-    return {
-        "predicted_category": predicted_category,
-        "confidence":         round(confidence, 4),
-        "all_probabilities":  all_probs,
-    }
+    return _build_prediction_payload(
+        predicted_category=predicted_category,
+        probabilities=probabilities,
+        label_encoder=_label_encoder,
+        model_version="legacy",
+        model_type="classic_tfidf",
+        feature_count=int(getattr(_tfidf, "vocabulary_", {}).__len__()),
+    )
 
 
 def get_tfidf_vectorizer():

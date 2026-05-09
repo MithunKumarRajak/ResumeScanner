@@ -9,18 +9,21 @@ A full-stack platform designed to analyze, score, and optimize resumes using Mac
 ## Key Features
 
 ### Core ML & NLP
+
 - **Resume Parsing:** Automated text extraction from PDF and DOCX files.
 - **Matching Engine:** TF-IDF and Cosine Similarity for keyword-based relevance scoring.
 - **Skill Extraction:** NLP-based entity recognition to identify technical and soft skills.
 - **Predictive Scoring:** Multi-version model pipeline (up to v6) for candidate classification.
 
 ### Advanced AI Capabilities
+
 - **Semantic Matching:** Uses Sentence Transformer embeddings for deep contextual analysis (multilingual support).
 - **Explainable AI (XAI):** Integrated SHAP support to visualize features influencing the model's scoring.
 - **Bias Auditing:** Fairness engine to monitor demographic parity in scoring.
 - **LLM Integration:** Utilizes Google Gemini and Groq (api) for resume summarization and JD refinement.
 
 ### System Features
+
 - **ATS Compatibility Checker:** Detects formatting issues like multi-column layouts and tables.
 - **Bulk Processing:** Support for batch uploading and scoring multiple resumes simultaneously.
 - **Candidate Comparison:** Side-by-side matrix view for comparing multiple candidates.
@@ -28,6 +31,7 @@ A full-stack platform designed to analyze, score, and optimize resumes using Mac
 - **Automated Notifications:** Email integration for status updates via SendGrid.
 
 ### Real-time Editor
+
 - Built-in editor to refine resumes based on system suggestions.
 - Native PDF export functionality for optimized documents.
 
@@ -49,17 +53,20 @@ A full-stack platform designed to analyze, score, and optimize resumes using Mac
 ## Getting Started
 
 ### Prerequisites
+
 - Python 3.10+
 - Node.js 18+
 - PostgreSQL
 
 ### 1. Clone & Setup
+
 ```bash
 git clone https://github.com/MithunKumarRajak/ResumeScanner.git
 cd ResumeScanner
 ```
 
 ### 2. Backend Installation
+
 ```bash
 cd FullStackApp/backend
 python -m venv venv
@@ -70,6 +77,7 @@ python -m uvicorn app.main:app --reload
 ```
 
 ### 3. Frontend Installation
+
 ```bash
 cd FullStackApp/frontend
 npm install
@@ -98,11 +106,14 @@ The following table summarizes the performance of the various model versions int
 | v5 | 69.20% | 0.73 | 42 | 2,824 |
 | **v6 (Latest)** | **76.28%** | **0.782** | **46** | **2,824** |
 
+> Note: V1 is not directly comparable to the later versions because it was trained on a much smaller 25-category dataset. For the final project demo and submission, use V6 as the recommended model.
+
 ---
 
 ## Author
 
 **Mithun Kumar Rajak**
+
 - [GitHub](https://github.com/MithunKumarRajak)
 - [LinkedIn](https://www.linkedin.com/in/mithun-kumar-rajak/)
 

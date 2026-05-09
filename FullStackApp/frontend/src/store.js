@@ -1,29 +1,51 @@
 import { create } from 'zustand'
-import { saveUserData, getAllUserData } from './services/api'
+import { saveUserData, getAllUserData, apiLogout } from './services/api'
+
+function sanitizeUser(userData) {
+  if (!userData) return null
+  const { token, access_token, ...safeUser } = userData
+  return safeUser
+}
 
 const useStore = create((set, get) => ({
   //  Auth ─
-  user: JSON.parse(localStorage.getItem('rs_user') || 'null'),
+  user: (() => {
+    const saved = JSON.parse(localStorage.getItem('rs_user') || 'null')
+    if (!saved) return null
+    const safe = sanitizeUser(saved)
+    if (safe && safe !== saved) {
+      localStorage.setItem('rs_user', JSON.stringify(safe))
+    }
+    return safe
+  })(),
   isAuthModalOpen: false,
   selectedModel: 'ResumeModel_v6',
 
   login: (userData) => {
-    localStorage.setItem('rs_user', JSON.stringify(userData))
-    set({ user: userData, isAuthModalOpen: false })
+    const safeUser = sanitizeUser(userData)
+    if (safeUser) {
+      localStorage.setItem('rs_user', JSON.stringify(safeUser))
+    }
+    set({ user: safeUser, isAuthModalOpen: false })
     // Load user's saved data from server
     get().loadUserDataFromServer()
   },
   signup: (userData) => {
-    localStorage.setItem('rs_user', JSON.stringify(userData))
-    set({ user: userData, isAuthModalOpen: false })
+    const safeUser = sanitizeUser(userData)
+    if (safeUser) {
+      localStorage.setItem('rs_user', JSON.stringify(safeUser))
+    }
+    set({ user: safeUser, isAuthModalOpen: false })
     // If there's existing parsed data, save it to the new account
     const { parsedResume, resumeBuildData } = get()
     if (parsedResume) get().saveUserDataToServer('parsed_resume', parsedResume)
     if (resumeBuildData) get().saveUserDataToServer('resume_build', resumeBuildData)
   },
   logout: () => {
+    void apiLogout().catch(() => {})
     localStorage.removeItem('rs_user')
     localStorage.removeItem('rs_resume_build')
+    localStorage.removeItem('rs_resume_id')
     set({
       user: null,
       resumeFile: null,
@@ -61,8 +83,6 @@ const useStore = create((set, get) => ({
   },
 
   saveUserDataToServer: async (dataType, data) => {
-    const user = get().user
-    if (!user?.token) return
     try { await saveUserData(dataType, data) } catch { /* silent */ }
   },
 
@@ -86,12 +106,21 @@ const useStore = create((set, get) => ({
 
   //  Resume Upload & Raw Analysis ─
   resumeFile: null,
+  currentResumeId: localStorage.getItem('rs_resume_id') || null,
   resumeText: '',
   jobDescription: '',
   analysisResult: null,
   isAnalyzing: false,
 
   setResumeFile: (file) => set({ resumeFile: file }),
+  setCurrentResumeId: (resumeId) => {
+    if (resumeId) {
+      localStorage.setItem('rs_resume_id', resumeId)
+    } else {
+      localStorage.removeItem('rs_resume_id')
+    }
+    set({ currentResumeId: resumeId || null })
+  },
   setResumeText: (text) => set({ resumeText: text }),
   setJobDescription: (text) => {
     set({ jobDescription: text })
@@ -160,8 +189,10 @@ const useStore = create((set, get) => ({
   //  Clear Everything 
   clearAnalysis: () => {
     localStorage.removeItem('rs_resume_build')
+    localStorage.removeItem('rs_resume_id')
     set({
       resumeFile: null,
+      currentResumeId: null,
       resumeText: '',
       jobDescription: '',
       analysisResult: null,
@@ -188,15 +219,17 @@ if (localStorage.getItem('rs_dark') === 'true') {
 
 // Auth-gated initialization: only load resume data if logged in
 const savedUser = JSON.parse(localStorage.getItem('rs_user') || 'null')
-if (savedUser?.token) {
+if (savedUser) {
   useStore.getState().loadUserDataFromServer()
 } else {
   // Not authenticated → clear any stale resume data from localStorage
   localStorage.removeItem('rs_resume_build')
+  localStorage.removeItem('rs_resume_id')
   useStore.setState({
     parsedResume: null,
     resumeBuildData: null,
     resumeFile: null,
+    currentResumeId: null,
     resumeText: '',
     jobDescription: '',
   })

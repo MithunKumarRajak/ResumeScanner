@@ -1,0 +1,17 @@
+:root {
+  --color-primary: #6366f1;
+  --color-secondary: #ec4899;
+  --bg: #ffffff;
+  --text: #111827;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  font-family: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial;
+  color: var(--text);
+  background: var(--bg);
+}
+
+/* Utility spacing */
+.container { padding: 1rem; }

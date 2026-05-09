@@ -2,27 +2,29 @@
 Application configuration — reads from .env file.
 Database: PostgreSQL (configured via DATABASE_URL in .env).
 """
-from pydantic_settings import BaseSettings
+import os
+import secrets
 from functools import lru_cache
 from typing import List
-import os
+
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
     #  App ─
     APP_NAME: str = "Resume Screener API"
     APP_VERSION: str = "2.0.0"
-    DEBUG: bool = True
+    DEBUG: bool = False
 
-    #  Database (PostgreSQL) 
-    DATABASE_URL: str = "postgresql://postgres:password@localhost:5432/resume_screener"
+    #  Database (PostgreSQL)
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "")
 
-    #  JWT Auth 
-    SECRET_KEY: str = "change-this-secret-key-in-production-min-32-chars"
+    #  JWT Auth
+    SECRET_KEY: str = os.getenv("SECRET_KEY", "") or secrets.token_urlsafe(64)
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
 
-    #  File Upload 
+    #  File Upload
     UPLOAD_DIR: str = "uploads"
     MAX_FILE_SIZE: int = 10 * 1024 * 1024  # 10 MB
     ALLOWED_CONTENT_TYPES: List[str] = [
@@ -37,7 +39,7 @@ class Settings(BaseSettings):
     TFIDF_PATH: str = "../tfidf.pkl"
     ENCODER_PATH: str = "../encoder.pkl"
 
-    #  Email / Notifications 
+    #  Email / Notifications
     SENDGRID_API_KEY: str = ""
     FROM_EMAIL: str = "noreply@resumescanner.app"
     SMTP_HOST: str = ""
@@ -45,7 +47,7 @@ class Settings(BaseSettings):
     SMTP_USER: str = ""
     SMTP_PASS: str = ""
 
-    #  CORS 
+    #  CORS
     ALLOWED_ORIGINS: List[str] = [
         "http://localhost:3000",
         "http://127.0.0.1:3000",

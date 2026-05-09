@@ -17,20 +17,22 @@ Also exposes the modern JWT endpoints:
   POST /auth/register  — register (returns UserOut)
   POST /auth/token     — OAuth2 form login → JWT
 """
+from typing import Optional
+from pydantic import BaseModel
 import json
 import secrets
 from datetime import timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from app.database.session import get_db
-from app.models.user      import User
+from app.models.user import User
 from app.models.user_data import UserData
-from app.schemas.user     import UserCreate, UserOut, Token
+from app.schemas.user import UserCreate, UserOut, Token
 from app.schemas.user_data import UserDataCreate
-from app.utils.auth       import (
+from app.utils.auth import (
     get_password_hash,
     verify_password,
     create_access_token,
@@ -41,12 +43,28 @@ from app.config import settings
 router = APIRouter(tags=["Auth"])
 
 
+def _set_auth_cookie(response: Response, token: str) -> None:
+    response.set_cookie(
+        key="access_token",
+        value=token,
+        httponly=True,
+        secure=not settings.DEBUG,
+        samesite="lax",
+        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        path="/",
+    )
+
+
+def _clear_auth_cookie(response: Response) -> None:
+    response.delete_cookie(key="access_token", path="/")
+
+
 # ─
 #  Modern JWT endpoints  (app/ architecture)
 # ─
 
 @router.post("/auth/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
-def register(payload: UserCreate, db: Session = Depends(get_db)):
+def register(payload: UserCreate, response: Response, db: Session = Depends(get_db)):
     """Register a new candidate or recruiter account (modern JWT flow)."""
     if db.query(User).filter(User.email == payload.email).first():
         raise HTTPException(
@@ -54,20 +72,26 @@ def register(payload: UserCreate, db: Session = Depends(get_db)):
             detail="Email already registered.",
         )
     user = User(
-        email           = payload.email,
-        hashed_password = get_password_hash(payload.password),
-        full_name       = payload.full_name,
-        role            = payload.role,
+        email=payload.email,
+        hashed_password=get_password_hash(payload.password),
+        full_name=payload.full_name,
+        role=payload.role,
     )
     db.add(user)
     db.commit()
     db.refresh(user)
+    token = create_access_token(
+        data={"sub": user.id, "email": user.email},
+        expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
+    )
+    _set_auth_cookie(response, token)
     return user
 
 
 @router.post("/auth/token", response_model=Token)
 def login_jwt(
     form_data: OAuth2PasswordRequestForm = Depends(),
+    response: Response = None,
     db: Session = Depends(get_db),
 ):
     """Login with email + password (OAuth2 form). Returns a JWT bearer token."""
@@ -85,15 +109,13 @@ def login_jwt(
         data={"sub": user.id, "email": user.email},
         expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
     )
+    _set_auth_cookie(response, token)
     return Token(access_token=token, token_type="bearer", user=UserOut.model_validate(user))
 
 
 # ─
 #  Legacy-compatible endpoints  (frontend uses these)
 # ─
-
-from pydantic import BaseModel
-from typing import Optional
 
 
 class _SignupReq(BaseModel):
@@ -102,18 +124,22 @@ class _SignupReq(BaseModel):
     password: str
     role: str = "candidate"
 
+
 class _LoginReq(BaseModel):
     email: str
     password: str
     role: Optional[str] = None
 
+
 class _ProfileUpdateReq(BaseModel):
     name: Optional[str] = None
     email: Optional[str] = None
 
+
 class _PasswordChangeReq(BaseModel):
     current_password: str
     new_password: str
+
 
 class _DeleteAccountReq(BaseModel):
     password: str
@@ -139,46 +165,53 @@ def _make_token(user: User) -> str:
 
 
 @router.post("/auth/signup")
-def legacy_signup(req: _SignupReq, db: Session = Depends(get_db)):
+def legacy_signup(req: _SignupReq, response: Response, db: Session = Depends(get_db)):
     """Register — returns {user: {id, name, email, role, token}}."""
     if not req.name.strip() or not req.email.strip() or not req.password.strip():
         raise HTTPException(status_code=400, detail="All fields are required")
     if len(req.password) < 6:
-        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+        raise HTTPException(
+            status_code=400, detail="Password must be at least 6 characters")
 
-    existing = db.query(User).filter(User.email == req.email.lower().strip()).first()
+    existing = db.query(User).filter(
+        User.email == req.email.lower().strip()).first()
     if existing:
         raise HTTPException(status_code=409, detail="Email already registered")
 
     role = req.role if req.role in ("candidate", "recruiter") else "candidate"
     user = User(
-        email           = req.email.lower().strip(),
-        hashed_password = get_password_hash(req.password),
-        full_name       = req.name.strip(),
-        role            = role,
+        email=req.email.lower().strip(),
+        hashed_password=get_password_hash(req.password),
+        full_name=req.name.strip(),
+        role=role,
     )
     db.add(user)
     db.commit()
     db.refresh(user)
 
     token = _make_token(user)
+    _set_auth_cookie(response, token)
     return {"user": _user_dict(user, token)}
 
 
 @router.post("/auth/login")
-def legacy_login(req: _LoginReq, db: Session = Depends(get_db)):
+def legacy_login(req: _LoginReq, response: Response, db: Session = Depends(get_db)):
     """Login — returns {user: {id, name, email, role, token}}."""
     if not req.email.strip() or not req.password.strip():
-        raise HTTPException(status_code=400, detail="Email and password are required")
+        raise HTTPException(
+            status_code=400, detail="Email and password are required")
 
-    user = db.query(User).filter(User.email == req.email.lower().strip()).first()
+    user = db.query(User).filter(
+        User.email == req.email.lower().strip()).first()
     if not user or not verify_password(req.password, user.hashed_password):
-        raise HTTPException(status_code=401, detail="Invalid email or password")
+        raise HTTPException(
+            status_code=401, detail="Invalid email or password")
 
     if not user.is_active:
         raise HTTPException(status_code=400, detail="Account is disabled.")
 
     token = _make_token(user)
+    _set_auth_cookie(response, token)
     return {"user": _user_dict(user, token)}
 
 
@@ -199,6 +232,7 @@ def legacy_me(current_user: User = Depends(get_current_active_user)):
 def legacy_update_profile(
     req: _ProfileUpdateReq,
     current_user: User = Depends(get_current_active_user),
+    response: Response = None,
     db: Session = Depends(get_db),
 ):
     """Update name and/or email."""
@@ -209,7 +243,8 @@ def legacy_update_profile(
             .first()
         )
         if existing:
-            raise HTTPException(status_code=409, detail="Email already in use by another account")
+            raise HTTPException(
+                status_code=409, detail="Email already in use by another account")
 
     changed = False
     if req.name and req.name.strip():
@@ -225,6 +260,8 @@ def legacy_update_profile(
     db.commit()
     db.refresh(current_user)
     token = _make_token(current_user)
+    if response is not None:
+        _set_auth_cookie(response, token)
     return {"user": _user_dict(current_user, token)}
 
 
@@ -232,19 +269,24 @@ def legacy_update_profile(
 def legacy_change_password(
     req: _PasswordChangeReq,
     current_user: User = Depends(get_current_active_user),
+    response: Response = None,
     db: Session = Depends(get_db),
 ):
     """Change password."""
     if len(req.new_password) < 6:
-        raise HTTPException(status_code=400, detail="New password must be at least 6 characters")
+        raise HTTPException(
+            status_code=400, detail="New password must be at least 6 characters")
 
     if not verify_password(req.current_password, current_user.hashed_password):
-        raise HTTPException(status_code=401, detail="Current password is incorrect")
+        raise HTTPException(
+            status_code=401, detail="Current password is incorrect")
 
     current_user.hashed_password = get_password_hash(req.new_password)
     db.commit()
 
     new_token = _make_token(current_user)
+    if response is not None:
+        _set_auth_cookie(response, new_token)
     return {"status": "password_changed", "token": new_token}
 
 
@@ -252,6 +294,7 @@ def legacy_change_password(
 def legacy_delete_account(
     req: _DeleteAccountReq,
     current_user: User = Depends(get_current_active_user),
+    response: Response = None,
     db: Session = Depends(get_db),
 ):
     """Delete account and all associated data."""
@@ -263,7 +306,16 @@ def legacy_delete_account(
     # Delete the user (cascades to resumes, jobs, etc.)
     db.delete(current_user)
     db.commit()
+    if response is not None:
+        _clear_auth_cookie(response)
     return {"status": "account_deleted"}
+
+
+@router.post("/auth/logout")
+def legacy_logout(response: Response):
+    """Clear the auth cookie on the client."""
+    _clear_auth_cookie(response)
+    return {"status": "logged_out"}
 
 
 # ─
@@ -286,9 +338,9 @@ def save_user_data(
         row.data_json = json.dumps(req.data)
     else:
         row = UserData(
-            user_id   = current_user.id,
-            data_type = req.data_type,
-            data_json = json.dumps(req.data),
+            user_id=current_user.id,
+            data_type=req.data_type,
+            data_json=json.dumps(req.data),
         )
         db.add(row)
     db.commit()

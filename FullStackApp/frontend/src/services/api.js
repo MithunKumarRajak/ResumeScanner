@@ -3,16 +3,13 @@ import axios from 'axios'
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
   timeout: 60000,
+  withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
 })
 
 //  Request interceptor ─
 api.interceptors.request.use(
   (config) => {
-    const user = JSON.parse(localStorage.getItem('rs_user') || 'null')
-    if (user?.token) {
-      config.headers.Authorization = `Bearer ${user.token}`
-    }
     return config
   },
   (error) => Promise.reject(error)
@@ -53,7 +50,7 @@ export async function predictResume(resumeText, jobDescription = '', modelVersio
  */
 export async function getModels() {
   const { data } = await api.get('/models')
-  return data.models || []
+  return data || { default_model: '', models: [] }
 }
 
 /**
@@ -95,6 +92,11 @@ export async function apiChangePassword(currentPassword, newPassword) {
 
 export async function apiDeleteAccount(password) {
   const { data } = await api.delete('/auth/delete-account', { data: { password } })
+  return data
+}
+
+export async function apiLogout() {
+  const { data } = await api.post('/auth/logout')
   return data
 }
 
@@ -152,6 +154,17 @@ export async function extractResume(file) {
   const { data } = await api.post('/extract-resume', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
     timeout: 30000,
+  })
+  return data
+}
+
+//  Resume upload API (creates a backend resume record and returns resume_id)
+export async function uploadResume(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  const { data } = await api.post('/api/resume/upload-resume', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 60000,
   })
   return data
 }

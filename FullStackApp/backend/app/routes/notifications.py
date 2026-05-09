@@ -3,7 +3,9 @@ POST /api/notifications/send  — Send email notification to a candidate.
 
 Supports SendGrid (SENDGRID_API_KEY) or SMTP fallback (SMTP_HOST).
 """
-import logging, smtplib, uuid
+import logging
+import smtplib
+import uuid
 from datetime import datetime
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -22,7 +24,8 @@ from app.utils.auth import get_current_active_user
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/notifications", tags=["Notifications"])
 
-#  Schemas 
+#  Schemas
+
 
 class SendRequest(BaseModel):
     candidate_email: EmailStr
@@ -31,12 +34,13 @@ class SendRequest(BaseModel):
     job_title: str
     resume_analysis_id: Optional[str] = None
 
+
 class SendResponse(BaseModel):
     success: bool
     message_id: str
 
 
-#  HTML templates 
+#  HTML templates
 
 _TEMPLATES = {
     "shortlisted": {
@@ -100,7 +104,7 @@ def _build_email(notif_type: str, name: str, job_title: str):
     return subject, body
 
 
-#  Sending backends 
+#  Sending backends
 
 def _send_sendgrid(to: str, subject: str, html: str) -> str:
     """Send via SendGrid HTTP API. Returns message ID."""
@@ -109,7 +113,8 @@ def _send_sendgrid(to: str, subject: str, html: str) -> str:
     from_email = getattr(settings, "FROM_EMAIL", "noreply@resumescanner.app")
     resp = httpx.post(
         "https://api.sendgrid.com/v3/mail/send",
-        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+        headers={"Authorization": f"Bearer {api_key}",
+                 "Content-Type": "application/json"},
         json={
             "personalizations": [{"to": [{"email": to}]}],
             "from": {"email": from_email},
@@ -128,7 +133,7 @@ def _send_smtp(to: str, subject: str, html: str) -> str:
     host = getattr(settings, "SMTP_HOST", "")
     port = int(getattr(settings, "SMTP_PORT", 587))
     user = getattr(settings, "SMTP_USER", "")
-    pwd = getattr(settings, "SMTP_PASSWORD", "")
+    pwd = getattr(settings, "SMTP_PASS", "")
     from_email = getattr(settings, "FROM_EMAIL", "noreply@resumescanner.app")
 
     msg = MIMEMultipart("alternative")
@@ -146,7 +151,7 @@ def _send_smtp(to: str, subject: str, html: str) -> str:
     return str(uuid.uuid4())
 
 
-#  Route 
+#  Route
 
 @router.post("/send", response_model=SendResponse)
 def send_notification(
@@ -155,11 +160,19 @@ def send_notification(
     current_user: User = Depends(get_current_active_user),
 ):
     """Send an email notification and persist the record."""
+    user_role = current_user.role.value if hasattr(
+        current_user.role, "value") else str(current_user.role)
+    if user_role not in {"recruiter", "admin"}:
+        raise HTTPException(
+            status_code=403, detail="Only recruiters can send candidate notifications.")
+
     valid_types = [t.value for t in NotificationType]
     if payload.notification_type not in valid_types:
-        raise HTTPException(status_code=400, detail=f"Type must be one of: {valid_types}")
+        raise HTTPException(
+            status_code=400, detail=f"Type must be one of: {valid_types}")
 
-    subject, body = _build_email(payload.notification_type, payload.candidate_name, payload.job_title)
+    subject, body = _build_email(
+        payload.notification_type, payload.candidate_name, payload.job_title)
 
     # Create DB record
     notif = EmailNotification(

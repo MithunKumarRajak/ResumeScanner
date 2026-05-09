@@ -15,20 +15,20 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
-from app.database.base    import Base
+from app.database.base import Base
 from app.database.session import engine
 
 #  Import all models so SQLAlchemy sees them ─
 import app.models  # noqa: F401  (triggers __init__.py)
 
-#  Routes 
+#  Routes
 from app.routes import auth, resume, job, match, recommend, dashboard, candidate, analytics, ai, predict
 from app.routes import ats_checker, experience, compare, bulk, notifications, advanced
 
 logging.basicConfig(
-    level   = logging.INFO if settings.DEBUG else logging.WARNING,
-    format  = "%(asctime)s  %(levelname)-8s  %(name)s — %(message)s",
-    datefmt = "%H:%M:%S",
+    level=logging.INFO if settings.DEBUG else logging.WARNING,
+    format="%(asctime)s  %(levelname)-8s  %(name)s — %(message)s",
+    datefmt="%H:%M:%S",
 )
 logger = logging.getLogger(__name__)
 
@@ -54,23 +54,24 @@ async def lifespan(app: FastAPI):
     if ok:
         logger.info(" ML models loaded (classifier service)")
     else:
-        logger.warning("⚠️  ML models could not be loaded — /match and /classify will return 503")
+        logger.warning(
+            "⚠️  ML models could not be loaded — /match and /classify will return 503")
 
     # ML Models are lazily loaded inside predict.py to save RAM
     logger.info(" ML models configured for lazy loading")
 
     yield
 
-    #  Shutdown 
+    #  Shutdown
     logger.info("👋 Shutting down")
 
 
 #  App factory ─
 
 app = FastAPI(
-    title       = settings.APP_NAME,
-    version     = settings.APP_VERSION,
-    description = """
+    title=settings.APP_NAME,
+    version=settings.APP_VERSION,
+    description="""
 ## Resume Screening & Job Matching API
 
 Production-ready backend with:
@@ -84,23 +85,19 @@ Production-ready backend with:
 
 **Docs:** `/docs` (Swagger) | `/redoc` (ReDoc)
     """,
-    lifespan    = lifespan,
-    docs_url    = "/docs",
-    redoc_url   = "/redoc",
+    lifespan=lifespan,
+    docs_url="/docs",
+    redoc_url="/redoc",
 )
 
-#  CORS 
+#  CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins     = settings.ALLOWED_ORIGINS,
-    allow_credentials = True,
-    allow_methods     = ["*"],
-    allow_headers     = ["*"],
+    allow_origins=settings.ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
-
-#  Serve uploaded files as static 
-os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
-app.mount("/files", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
 
 #  Register routers ─
 app.include_router(auth.router)
@@ -114,26 +111,30 @@ app.include_router(analytics.router)
 app.include_router(ai.router)
 app.include_router(predict.router)
 
-#  Phase-2 routers 
+#  Phase-2 routers
 app.include_router(ats_checker.router)
 app.include_router(experience.router)
 app.include_router(compare.router)
 app.include_router(bulk.router)
 app.include_router(notifications.router)
 
-#  Advanced routers 
+#  Advanced routers
 app.include_router(advanced.router)
 
 #  Global exception handler ─
+
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     logger.error(f"Unhandled error on {request.url}: {exc}", exc_info=True)
     return JSONResponse(
-        status_code = status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content     = {"detail": "An internal server error occurred."},
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"detail": "An internal server error occurred."},
     )
 
 #  Health & root ─
+
+
 @app.get("/health", tags=["System"])
 def health():
     """Liveness check — returns 200 when the server is running."""

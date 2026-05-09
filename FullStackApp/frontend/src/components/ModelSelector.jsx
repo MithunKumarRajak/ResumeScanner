@@ -3,10 +3,10 @@ import { Plus, ChevronDown, Zap, Mic, Check, AlertTriangle } from 'lucide-react'
 import useStore from '../store'
 
 const MODELS = [
-  { id: 'ResumeModel_v6', name: 'ResumeModel_v6', description: 'Latest model — Advanced semantic, multilingual, bias-aware, explainable pipeline', badge: 'Latest', type: 'latest' },
-  { id: 'ResumeModel_v5', name: 'ResumeModel_v5', description: 'Production model — hybrid adaptive pipeline with semantic support', badge: 'Stable', type: 'stable' },
+  { id: 'ResumeModel_v6', name: 'ResumeModel_v6', description: 'Latest model — Advanced semantic, multilingual, bias-aware, explainable pipeline', badge: 'Default', type: 'latest' },
+  { id: 'ResumeModel_v5', name: 'ResumeModel_v5', description: 'Historical intermediate model — hybrid adaptive pipeline with semantic support', badge: 'Legacy', type: 'stable' },
   { id: 'ResumeModel_v3', name: 'ResumeModel_v3', description: 'Enhanced — Linear SVM + balanced classes (10K features)', badge: 'New', type: 'enhanced' },
-  { id: 'ResumeModel_v2', name: 'ResumeModel_v2', description: 'Base model — KNN + OneVsRest (5K features)', badge: 'Active', type: 'base' },
+  { id: 'ResumeModel_v2', name: 'ResumeModel_v2', description: 'Base model — KNN + OneVsRest (5K features)', badge: 'Base', type: 'base' },
   { id: 'Gemini-3.1-Pro-High', name: 'Gemini 3.1 Pro (High)', description: 'Maximum reasoning capabilities', badge: 'Soon', warning: true },
   { id: 'Gemini-3-Flash', name: 'Gemini 3 Flash', description: 'Fast and efficient reasoning', badge: 'Soon', warning: true },
   { id: 'Claude-4.6-Sonnet', name: 'Claude Sonnet 4.6 (Thinking)', description: 'Superior analytical skills', badge: 'Soon', warning: true },

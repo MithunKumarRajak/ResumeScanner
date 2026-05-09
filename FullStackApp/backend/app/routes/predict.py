@@ -5,6 +5,10 @@ Endpoints:
   POST /predict   — classify resume, optionally match against JD
   GET  /models    — list available model versions
 """
+from pathlib import Path
+import os
+import spacy
+import joblib
 import re
 import hashlib
 import logging
@@ -13,24 +17,30 @@ from typing import Optional, List
 
 import numpy as np
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from sklearn.metrics.pairwise import cosine_similarity
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["ML Prediction"])
-MODEL_PRIORITY = ("ResumeModel_v6", "ResumeModel_v5", "ResumeModel_v3", "ResumeModel_v2")
+DEFAULT_MODEL_ID = "ResumeModel_v6"
+MODEL_PRIORITY = (DEFAULT_MODEL_ID, "ResumeModel_v5",
+                  "ResumeModel_v3", "ResumeModel_v2")
 
 
 #  Request / Response ─
 
 class ResumeInput(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+
     resume_text: str
     job_description: Optional[str] = None
     model_version: Optional[str] = None
 
 
 class PredictionOutput(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+
     predicted_category: str
     confidence: float
     model_version: Optional[str] = None
@@ -39,12 +49,8 @@ class PredictionOutput(BaseModel):
     jd_top_terms: Optional[List[str]] = None
 
 
-#  Multi-model support (same as original main.py) 
+#  Multi-model support (same as original main.py)
 
-import joblib
-import spacy
-import os
-from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
 
@@ -124,13 +130,15 @@ def _load_single_model(version_id: str, model_dir: str):
         artifacts["model"] = joblib.load(model_path)
         artifacts["tfidf"] = joblib.load(tfidf_path)
         artifacts["label_encoder"] = joblib.load(encoder_path)
-        artifacts["model_type"] = MODEL_REGISTRY[version_id].get("model_type", "classic_tfidf")
+        artifacts["model_type"] = MODEL_REGISTRY[version_id].get(
+            "model_type", "classic_tfidf")
         artifacts["model_dir"] = model_root
         artifacts["id"] = version_id
 
         embedder_file = model_root / "embedder.txt"
         if embedder_file.exists():
-            artifacts["embedder_name"] = embedder_file.read_text(encoding="utf-8").strip()
+            artifacts["embedder_name"] = embedder_file.read_text(
+                encoding="utf-8").strip()
 
         artifacts["input_features"] = int(
             getattr(artifacts["model"], "n_features_in_", 0) or 0
@@ -153,14 +161,16 @@ def get_nlp():
         logger.info("spaCy model loaded lazily")
     return nlp
 
+
 def load_predict_models():
     """Backward compatibility dummy function, unused with lazy loading."""
     pass
 
 
 def _resolve_model(version_id: Optional[str] = None):
-    target_id = version_id if (version_id and version_id in MODEL_REGISTRY) else MODEL_PRIORITY[0]
-    
+    target_id = version_id if (
+        version_id and version_id in MODEL_REGISTRY) else MODEL_PRIORITY[0]
+
     if target_id not in loaded_models:
         meta = MODEL_REGISTRY[target_id]
         arts = _load_single_model(target_id, meta["dir"])
@@ -216,7 +226,8 @@ def _preprocess_v6_text(text: str) -> tuple[str, str]:
         result = loaded_preprocessors["v6"].preprocess(text)
         return result["processed"], result["lang"]
     except Exception as exc:
-        logger.warning("V6 preprocessing unavailable; using legacy preprocessing: %s", exc)
+        logger.warning(
+            "V6 preprocessing unavailable; using legacy preprocessing: %s", exc)
         return _preprocess_text(text), "en"
 
 
@@ -234,16 +245,21 @@ def _extract_structured_features(text: str) -> np.ndarray:
     if years_match:
         years = min(float(years_match.group(1)) / 30.0, 1.0)
 
-    has_degree = 1.0 if any(kw in text_lower for kw in ["bachelor", "b.s", "b.sc", "b.a"]) else 0.0
-    has_masters = 1.0 if any(kw in text_lower for kw in ["master", "m.s", "m.a", "mba"]) else 0.0
+    has_degree = 1.0 if any(kw in text_lower for kw in [
+                            "bachelor", "b.s", "b.sc", "b.a"]) else 0.0
+    has_masters = 1.0 if any(kw in text_lower for kw in [
+                             "master", "m.s", "m.a", "mba"]) else 0.0
 
     technical_keywords = [
         "python", "java", "sql", "aws", "docker", "kubernetes",
         "api", "database", "developer", "engineer",
     ]
-    is_technical = 1.0 if sum(1 for kw in technical_keywords if kw in text_lower) >= 3 else 0.0
-    is_management = 1.0 if any(kw in text_lower for kw in ["manager", "lead", "director", "head of", "chief"]) else 0.0
-    is_sales = 1.0 if any(kw in text_lower for kw in ["sales", "business development", "account executive"]) else 0.0
+    is_technical = 1.0 if sum(
+        1 for kw in technical_keywords if kw in text_lower) >= 3 else 0.0
+    is_management = 1.0 if any(kw in text_lower for kw in [
+                               "manager", "lead", "director", "head of", "chief"]) else 0.0
+    is_sales = 1.0 if any(kw in text_lower for kw in [
+                          "sales", "business development", "account executive"]) else 0.0
 
     return np.array([[years, has_degree, has_masters, is_technical, is_management, is_sales]], dtype=np.float32)
 
@@ -256,7 +272,8 @@ def _extract_v6_structured_features(text: str, lang: str = "en") -> np.ndarray:
         features = extract_features_v6(text, lang)
         return np.array([[v for v in features.values()]], dtype=np.float32)
     except Exception as exc:
-        logger.warning("V6 feature extraction unavailable; using zero features: %s", exc)
+        logger.warning(
+            "V6 feature extraction unavailable; using zero features: %s", exc)
         return np.zeros((1, 15), dtype=np.float32)
 
 
@@ -266,7 +283,8 @@ def _get_embedder(embedder_name: str):
     try:
         from sentence_transformers import SentenceTransformer
     except ImportError:
-        logger.warning("⚠ sentence-transformers not installed; using fallback embedder")
+        logger.warning(
+            "⚠ sentence-transformers not installed; using fallback embedder")
         loaded_embedders[embedder_name] = _FallbackEmbedder()
         return loaded_embedders[embedder_name]
     loaded_embedders[embedder_name] = SentenceTransformer(embedder_name)
@@ -281,7 +299,8 @@ def _build_inference_vector(processed_text: str, raw_text: str, model_bundle: di
     tfidf_dim = int(tfidf_vector.shape[1])
     feature_vector = _extract_structured_features(raw_text)
     feature_dim = int(feature_vector.shape[1])
-    expected_dim = int(getattr(model, "n_features_in_", tfidf_dim) or tfidf_dim)
+    expected_dim = int(
+        getattr(model, "n_features_in_", tfidf_dim) or tfidf_dim)
 
     if model_bundle.get("model_type") == "advanced_v6":
         processed_v6, lang = _preprocess_v6_text(raw_text)
@@ -289,13 +308,16 @@ def _build_inference_vector(processed_text: str, raw_text: str, model_bundle: di
         tfidf_dim = int(tfidf_vector.shape[1])
         v6_features = _extract_v6_structured_features(raw_text, lang)
         v6_feature_dim = int(v6_features.shape[1])
-        embedder_name = model_bundle.get("embedder_name", "paraphrase-multilingual-MiniLM-L12-v2")
+        embedder_name = model_bundle.get(
+            "embedder_name", "paraphrase-multilingual-MiniLM-L12-v2")
         embedder = _get_embedder(embedder_name)
-        embedding = embedder.encode([processed_v6], convert_to_numpy=True, show_progress_bar=False)
+        embedding = embedder.encode(
+            [processed_v6], convert_to_numpy=True, show_progress_bar=False)
 
         embedding_dim = int(embedding.shape[1])
         if expected_dim == embedding_dim + tfidf_dim + v6_feature_dim:
-            hybrid = np.hstack([embedding, tfidf_vector.toarray(), v6_features])
+            hybrid = np.hstack(
+                [embedding, tfidf_vector.toarray(), v6_features])
             return hybrid, tfidf_vector
         if expected_dim == tfidf_dim + v6_feature_dim:
             hybrid = np.hstack([tfidf_vector.toarray(), v6_features])
@@ -316,7 +338,8 @@ def _build_inference_vector(processed_text: str, raw_text: str, model_bundle: di
     if expected_dim in (384, 390):
         embedder_name = model_bundle.get("embedder_name", "all-MiniLM-L6-v2")
         embedder = _get_embedder(embedder_name)
-        embedding = embedder.encode([processed_text], convert_to_numpy=True, show_progress_bar=False)
+        embedding = embedder.encode(
+            [processed_text], convert_to_numpy=True, show_progress_bar=False)
         if expected_dim == 384:
             return embedding, tfidf_vector
         hybrid = np.hstack([embedding, feature_vector])
@@ -341,7 +364,7 @@ def predict_resume(input_data: ResumeInput):
     """
     resolved = _resolve_model(input_data.model_version)
     if resolved is None:
-        get_nlp() # ensure loaded
+        get_nlp()  # ensure loaded
         raise HTTPException(
             status_code=500,
             detail="No model versions loaded. Please check backend logs.",
@@ -352,7 +375,8 @@ def predict_resume(input_data: ResumeInput):
     label_encoder = resolved["label_encoder"]
 
     if not input_data.resume_text or len(input_data.resume_text.strip()) == 0:
-        raise HTTPException(status_code=400, detail="Resume text cannot be empty")
+        raise HTTPException(
+            status_code=400, detail="Resume text cannot be empty")
 
     try:
         processed_text = _preprocess_text(input_data.resume_text)
@@ -372,15 +396,18 @@ def predict_resume(input_data: ResumeInput):
 
         if input_data.job_description and len(input_data.job_description.strip()) > 0:
             if resolved.get("model_type") == "advanced_v6":
-                processed_jd, _ = _preprocess_v6_text(input_data.job_description)
+                processed_jd, _ = _preprocess_v6_text(
+                    input_data.job_description)
             else:
                 processed_jd = _preprocess_text(input_data.job_description)
             jd_vectorized = tfidf.transform([processed_jd])
 
-            similarity = cosine_similarity(tfidf_vector_for_terms, jd_vectorized)[0][0]
+            similarity = cosine_similarity(
+                tfidf_vector_for_terms, jd_vectorized)[0][0]
             match_score = round(float(similarity) * 100, 2)
 
-            resume_top_terms = _get_top_tfidf_terms(tfidf_vector_for_terms, tfidf, n=10)
+            resume_top_terms = _get_top_tfidf_terms(
+                tfidf_vector_for_terms, tfidf, n=10)
             jd_top_terms = _get_top_tfidf_terms(jd_vectorized, tfidf, n=10)
 
         return PredictionOutput(
@@ -393,21 +420,25 @@ def predict_resume(input_data: ResumeInput):
         )
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Prediction error: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Prediction error: {str(e)}")
 
 
 @router.get("/models")
 def get_models():
     """Return metadata about all registered model versions."""
     result = []
-    ordered_ids = [model_id for model_id in MODEL_PRIORITY if model_id in MODEL_REGISTRY]
-    ordered_ids.extend(model_id for model_id in MODEL_REGISTRY if model_id not in ordered_ids)
+    ordered_ids = [
+        model_id for model_id in MODEL_PRIORITY if model_id in MODEL_REGISTRY]
+    ordered_ids.extend(
+        model_id for model_id in MODEL_REGISTRY if model_id not in ordered_ids)
     base = Path(__file__).resolve().parent.parent.parent
     for version_id in ordered_ids:
         meta = MODEL_REGISTRY[version_id]
         model_root = (base / meta["dir"]).resolve()
-        is_available = (model_root / "model.pkl").exists() and (model_root / "tfidf.pkl").exists()
-        
+        is_available = (
+            model_root / "model.pkl").exists() and (model_root / "tfidf.pkl").exists()
+
         entry = {
             "id": version_id,
             "description": meta["description"],
@@ -417,7 +448,9 @@ def get_models():
             "available": is_available,
         }
         if version_id in loaded_models:
-            entry["categories"] = len(loaded_models[version_id]["label_encoder"].classes_)
-            entry["input_features"] = loaded_models[version_id].get("input_features")
+            entry["categories"] = len(
+                loaded_models[version_id]["label_encoder"].classes_)
+            entry["input_features"] = loaded_models[version_id].get(
+                "input_features")
         result.append(entry)
-    return {"models": result}
+    return {"default_model": DEFAULT_MODEL_ID, "models": result}

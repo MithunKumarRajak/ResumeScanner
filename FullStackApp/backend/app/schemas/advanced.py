@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, List, Dict, Any
 
 class SemanticMatchRequest(BaseModel):
@@ -8,6 +8,8 @@ class SemanticMatchRequest(BaseModel):
     include_bias_check: bool = Field(default=True)
 
 class SemanticMatchResponse(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+
     semantic_score: float
     keyword_overlap_score: float
     combined_score: float
@@ -24,6 +26,8 @@ class ExplainRequest(BaseModel):
     job_description: Optional[str] = None
 
 class ExplainResponse(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+
     predicted_category: str
     confidence: float
     confidence_pct: float
@@ -53,6 +57,8 @@ class FineTuneRequest(BaseModel):
     epochs: int = Field(default=5, ge=1, le=20)
 
 class FineTuneResponse(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+
     status: str
     company_name: str
     model_path: str

@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-hot-toast'
 import ATSScoreCard from '../components/ATSScoreCard'
 import ExperienceTimeline from '../components/ExperienceTimeline'
-import { checkATS, extractExperience, sendNotification } from '../services/api'
+import { checkATS, extractExperience, sendNotification, uploadResume } from '../services/api'
 import MatchResultCard from '../components/MatchResultCard'
 import ParsedResumeEditor from '../components/ParsedResumeEditor'
 import { useMatch } from '../hooks/useMatch'
@@ -322,6 +322,7 @@ export default function CandidatePage() {
   const selectedModel = useStore(s => s.selectedModel)
   const setSelectedModel = useStore(s => s.setSelectedModel)
   const storeSetResumeFile = useStore(s => s.setResumeFile)
+  const storeSetCurrentResumeId = useStore(s => s.setCurrentResumeId)
   const storeSetResumeText = useStore(s => s.setResumeText)
   const storeSetJobDesc = useStore(s => s.setJobDescription)
   const setParsedResume = useStore(s => s.setParsedResume)
@@ -333,6 +334,7 @@ export default function CandidatePage() {
   const { mutate: runMatch, isError, error: matchError } = useMatch()
 
   const initialResumeFile = useStore(s => s.resumeFile)
+  const currentResumeId = useStore(s => s.currentResumeId)
   const initialResumeText = useStore(s => s.resumeText)
   const initialJobDesc = useStore(s => s.jobDescription)
 
@@ -344,8 +346,10 @@ export default function CandidatePage() {
   const [processing, setProcessing] = useState(false)
   const [missingFor, setMissingFor] = useState(null)
   const [extractError, setExtractError] = useState('')
+  const [checkerError, setCheckerError] = useState('')
   const [availableModels, setAvailableModels] = useState(FALLBACK_MODELS)
   const [modelLoadError, setModelLoadError] = useState('')
+  const [backendDefaultModel, setBackendDefaultModel] = useState(LATEST_MODEL_ID)
 
   const navigate = useNavigate()
   const [atsData, setAtsData] = useState(null)
@@ -361,7 +365,9 @@ export default function CandidatePage() {
 
     async function loadModelOptions() {
       try {
-        const models = await getModels()
+        const response = await getModels()
+        const backendDefault = response?.default_model || LATEST_MODEL_ID
+        const models = Array.isArray(response?.models) ? response.models : []
         const normalized = models
           .filter((m) => m.available)
           .map((m) => ({
@@ -374,9 +380,11 @@ export default function CandidatePage() {
 
         if (normalized.length > 0) {
           setAvailableModels(normalized)
+          setBackendDefaultModel(backendDefault)
           setModelLoadError('')
         } else {
           setAvailableModels(FALLBACK_MODELS)
+          setBackendDefaultModel(LATEST_MODEL_ID)
           setModelLoadError('No active backend model metadata found, using fallback list.')
         }
       } catch {
@@ -391,17 +399,21 @@ export default function CandidatePage() {
   }, [])
 
   useEffect(() => {
+    if (!availableModels.length) return
     if (!selectedModel || !availableModels.some((m) => m.id === selectedModel)) {
-      const bestModel = availableModels.find(m => m.id === LATEST_MODEL_ID) || availableModels[0]
-      setSelectedModel(bestModel?.id || LATEST_MODEL_ID)
+      const preferred = availableModels.find((m) => m.id === backendDefaultModel) || availableModels[0]
+      setSelectedModel(preferred?.id || backendDefaultModel)
     }
-  }, [availableModels, selectedModel, setSelectedModel])
+  }, [availableModels, backendDefaultModel, selectedModel, setSelectedModel])
 
   // Extract text when file is set
   const handleFileSet = useCallback(async (file) => {
     setLocalFile(file)
     setExtractError('')
+    setCheckerError('')
     try {
+      const uploaded = await uploadResume(file)
+      storeSetCurrentResumeId(uploaded?.resume_id || null)
       const text = await extractFileText(file)
       if (!text) { setExtractError('Could not extract text from this file.'); return null }
       setResumeText(text)
@@ -409,12 +421,17 @@ export default function CandidatePage() {
       storeSetResumeText(text)
       setParsedResume(extractResumeFields(text))
       return text
-    } catch { setExtractError('Failed to extract text.'); return null }
-  }, [storeSetResumeFile, storeSetResumeText, setParsedResume])
+    } catch {
+      storeSetCurrentResumeId(null)
+      setExtractError('Failed to upload or extract text.'); return null
+    }
+  }, [storeSetResumeFile, storeSetCurrentResumeId, storeSetResumeText, setParsedResume])
 
   const handleFileClear = () => {
     setLocalFile(null); setResumeText(''); setExtractError('')
+    setCheckerError('')
     storeSetResumeFile(null); storeSetResumeText(''); setParsedResume(null)
+    storeSetCurrentResumeId(null)
   }
 
   const handleProcess = async () => {
@@ -429,6 +446,16 @@ export default function CandidatePage() {
   const executeAction = (actionId, rtText, jdText) => {
     setActiveAction(actionId)
     if (actionId === 'checker' || actionId === 'match' || actionId === 'scores') {
+      if (actionId === 'checker' && !currentResumeId) {
+        const message = 'ATS Checker needs a saved backend resume record. Upload the resume again from the Resume Input panel so the app can create a resume_id.'
+        setCheckerError(message)
+        setExtractError(message)
+        toast.error(message)
+        setPhase('input')
+        setActiveAction(null)
+        return
+      }
+      setCheckerError('')
       runMatch({ resumeText: rtText, jobDescription: jdText, modelVersion: selectedModel })
     }
     setPhase('result')
@@ -462,15 +489,15 @@ export default function CandidatePage() {
     ? (missingFor.needs === 'both' && !hasResume) || missingFor.needs === 'resume' ? 'resume' : 'jd'
     : null
 
-  const resetAll = () => { clearAnalysis(); setPhase('input'); setLocalFile(null); setResumeText(''); setJobDesc(''); setActiveAction(null); setAtsData(null); setExpData(null); }
+  const resetAll = () => { clearAnalysis(); setPhase('input'); setLocalFile(null); setResumeText(''); setJobDesc(''); setActiveAction(null); setAtsData(null); setExpData(null); setCheckerError(''); setExtractError('') }
 
   // Fetch Phase 2 data when result phase starts for checker action
   useEffect(() => {
     if (phase === 'result' && activeAction === 'checker') {
       const fetchPhase2Data = async () => {
         try {
-          // Attempt to fetch from API using a dummy ID (or if we had a real one, we'd use it)
-          const atsRes = await checkATS('dummy-id')
+          if (!currentResumeId) throw new Error('Missing resume id')
+          const atsRes = await checkATS(currentResumeId)
           setAtsData(atsRes)
         } catch (e) {
           // Mock fallback if API requires valid DB record
@@ -486,7 +513,8 @@ export default function CandidatePage() {
         }
 
         try {
-          const expRes = await extractExperience('dummy-id')
+          if (!currentResumeId) throw new Error('Missing resume id')
+          const expRes = await extractExperience(currentResumeId)
           setExpData(expRes)
         } catch (e) {
           // Mock fallback
@@ -504,7 +532,7 @@ export default function CandidatePage() {
       }
       fetchPhase2Data()
     }
-  }, [phase, activeAction])
+  }, [phase, activeAction, currentResumeId])
 
   
   const handleExportPDF = async () => {
@@ -568,6 +596,7 @@ export default function CandidatePage() {
             <div className="flex items-center gap-2"><FileText className="h-5 w-5 text-indigo-400" /><h2 className="text-base font-bold text-white">Resume Input</h2></div>
             <MiniDropZone file={resumeFile} onFile={handleFileSet} onClear={handleFileClear} />
             {extractError && <p className="flex items-center gap-1.5 text-xs text-red-400"><AlertCircle className="h-3.5 w-3.5" />{extractError}</p>}
+            {checkerError && !extractError && <p className="flex items-center gap-1.5 text-xs text-amber-300"><AlertTriangle className="h-3.5 w-3.5" />{checkerError}</p>}
             <CardModelSelector value={selectedModel} onChange={setSelectedModel} models={availableModels} />
             {modelLoadError && <p className="text-xs text-amber-300">{modelLoadError}</p>}
           </div>

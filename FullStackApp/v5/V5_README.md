@@ -1,12 +1,12 @@
-# ResumeModel V5 — Final Production Release
+# ResumeModel V5 — Historical Intermediate Release
 
-**Status**:  Production-Ready  
+**Status**:  Superseded by V6  
 **Release Date**: April 28, 2026  
-**Expected Accuracy**: 78-82% (vs V4: 71.5%)
+**Observed Accuracy**: 69.20% (vs V4: 71.5%)
 
 ## Overview
 
-V5 is the final, production-grade version of the resume classification and matching system. It incorporates all improvements:
+V5 is an intermediate version of the resume classification and matching system. It introduced several improvements over V4, but was later superseded by V6:
 
 1. **Transformer Embeddings** — Semantic understanding via sentence-transformers
 2. **Class Merging** — Improved handling of small categories (<10 samples)
@@ -25,7 +25,7 @@ V5 is the final, production-grade version of the resume classification and match
 | V3 | 71.5% | Calibrated SVM | 48 | 2,824 |
 | V4 | 71.5% | + API stubs | 48 | 2,824 |
 | V5 | 69.20% | Transformer + features + ensemble | 42 | 2,824 |
-| **V6 (Latest)** | **76.28%** | **Advanced NLP + 15 Features + Bias Audit** | **46** | **2,824** |
+| **V6 (Latest / Recommended)** | **76.28%** | **Advanced NLP + 15 Features + Bias Audit** | **46** | **2,824** |
 
 **Key Differences in V5**:
 
@@ -304,7 +304,7 @@ Confidence < 0.6 → Route to human review
 
 | Metric | V4 | V5 | Gain |
 |--------|----|----|------|
-| Accuracy | 71.5% | ~80% | +8.5% |
+| Accuracy | 71.5% | 69.20% | -2.3% |
 | Macro F1 | 0.73 | 0.78 | +5% |
 | Weighted F1 | 0.70 | 0.77 | +7% |
 | Low-confidence % | — | 7% | Routed |

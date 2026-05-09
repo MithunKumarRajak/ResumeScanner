@@ -242,10 +242,29 @@ export default function ResumeBuildPage() {
 
   // Phase: 'entry' (modal) | 'editor' (main editor)
   const [phase, setPhase] = useState(() => {
-    // If navigated with state (from another page), skip the modal
-    if (location.state?.mode === 'edit' || location.state?.mode === 'new') return 'editor'
-    // If has data in store, go straight to editor
-    if (hasExistingData) return 'editor'
+    // Priority 1: If navigated with data in state
+    if (location.state?.data) {
+      console.log('Phase: editor (from location.state)')
+      return 'editor'
+    }
+    // Priority 1.5: Check sessionStorage for data
+    const sessionData = JSON.parse(sessionStorage.getItem('rs_resume_builder_data') || 'null')
+    if (sessionData && Object.keys(sessionData).length > 0) {
+      console.log('Phase: editor (from sessionStorage)')
+      return 'editor'
+    }
+    // Priority 2: If has data in store
+    if (hasExistingData) {
+      console.log('Phase: editor (from store)')
+      return 'editor'
+    }
+    // Priority 3: If has localStorage data
+    const stored = JSON.parse(localStorage.getItem('rs_resume_build') || 'null')
+    if (stored && Object.values(stored).some(v => v && (typeof v === 'string' ? v.trim() : Array.isArray(v) ? v.length > 0 : v > 0))) {
+      console.log('Phase: editor (from localStorage)')
+      return 'editor'
+    }
+    console.log('Phase: entry')
     return 'entry'
   })
 
@@ -262,8 +281,30 @@ export default function ResumeBuildPage() {
   const saveTimerRef = useRef(null)
 
   const [data, setData] = useState(() => {
-    if (location.state?.data) return { ...EMPTY_DATA, ...location.state.data }
-    if (stored) return { ...EMPTY_DATA, ...stored }
+    // Priority 1: Use location.state.data if available (from ParsedResumeEditor)
+    if (location.state?.data && Object.keys(location.state.data).length > 0) {
+      console.log('Initializing from location.state.data:', location.state.data)
+      return { ...EMPTY_DATA, ...location.state.data }
+    }
+    // Priority 1.5: Check sessionStorage (backup from navigate)
+    const sessionData = JSON.parse(sessionStorage.getItem('rs_resume_builder_data') || 'null')
+    if (sessionData && Object.keys(sessionData).length > 0) {
+      console.log('Initializing from sessionStorage:', sessionData)
+      sessionStorage.removeItem('rs_resume_builder_data') // Clean up after use
+      return { ...EMPTY_DATA, ...sessionData }
+    }
+    // Priority 2: Use store resumeBuildData
+    if (resumeBuildData && Object.keys(resumeBuildData).length > 0) {
+      console.log('Initializing from resumeBuildData:', resumeBuildData)
+      return { ...EMPTY_DATA, ...resumeBuildData }
+    }
+    // Priority 3: Use localStorage
+    const stored = JSON.parse(localStorage.getItem('rs_resume_build') || 'null')
+    if (stored && Object.keys(stored).length > 0) {
+      console.log('Initializing from localStorage:', stored)
+      return { ...EMPTY_DATA, ...stored }
+    }
+    console.log('Initializing with EMPTY_DATA')
     return { ...EMPTY_DATA }
   })
 
@@ -274,6 +315,15 @@ export default function ResumeBuildPage() {
       setPhase('entry')
     }
   }, [user])
+
+  // If location.state has data and we're in entry phase, load it and switch to editor
+  useEffect(() => {
+    if (location.state?.data && phase === 'entry') {
+      console.log('Transitioning from entry to editor with data:', location.state.data)
+      setData(prev => ({ ...EMPTY_DATA, ...location.state.data }))
+      setPhase('editor')
+    }
+  }, [location.key]) // Use location.key to detect navigation
 
   // Auto-save with 1s debounce
   const scheduleSave = useCallback((newData) => {

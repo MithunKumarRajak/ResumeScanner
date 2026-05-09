@@ -30,8 +30,12 @@ export default function ParsedResumeEditor() {
   } = parsedResume
 
   const handleSendToBuilder = () => {
+    console.log('Send to Resume Builder clicked', parsedResume)
     setResumeBuildData(parsedResume)
-    navigate('/resume-build', { state: { mode: 'edit' } })
+    // Also store in sessionStorage as a backup for navigation state
+    sessionStorage.setItem('rs_resume_builder_data', JSON.stringify(parsedResume))
+    console.log('Navigating to /resume-build with data:', parsedResume)
+    navigate('/resume-build', { state: { mode: 'edit', data: parsedResume } })
   }
 
   return (

@@ -45,6 +45,10 @@ function IssueItem({ issue }) {
 }
 
 export default function ATSScoreCard({ atsScore, issues = [], passed }) {
+  const issueSummary = passed
+    ? 'No major ATS formatting blockers were detected.'
+    : `We found ${issues.length} potential formatting issues that may affect ATS parsing.`
+
   return (
     <div className="space-y-4 animate-slide-up">
       <div className="glass-card p-6">
@@ -71,17 +75,22 @@ export default function ATSScoreCard({ atsScore, issues = [], passed }) {
           
           <div className="flex-1 space-y-2 text-center sm:text-left">
             <h3 className="text-xl font-bold text-white">
-              {passed ? "Looks Good!" : "Optimization Recommended"}
+              {passed ? 'ATS Friendly' : 'ATS Needs Attention'}
             </h3>
-            <p className="text-sm text-slate-400 leading-relaxed">
-              {passed 
-                ? "Your resume meets standard ATS criteria. It's well-structured and easily readable by automated parsing systems." 
-                : `We found ${issues.length} potential formatting issues that might prevent Applicant Tracking Systems from parsing your resume correctly.`}
-            </p>
+            <p className="text-sm text-slate-400 leading-relaxed">{issueSummary}</p>
+
+            <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start pt-2">
+              <span className="rounded-full border border-slate-700/60 bg-slate-900/40 px-3 py-1 text-xs text-slate-300">
+                Score {Math.round(atsScore || 0)}%
+              </span>
+              <span className="rounded-full border border-slate-700/60 bg-slate-900/40 px-3 py-1 text-xs text-slate-300">
+                {passed ? 'Ready for applicant tracking systems' : `${issues.length} review items`}
+              </span>
+            </div>
             
             {!passed && (
               <button className="mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg transition-colors shadow-lg shadow-indigo-500/20">
-                Fix These Issues
+                Review Details
               </button>
             )}
           </div>
@@ -89,14 +98,19 @@ export default function ATSScoreCard({ atsScore, issues = [], passed }) {
       </div>
 
       {issues.length > 0 && (
-        <div className="space-y-3 mt-6">
-          <h4 className="text-sm font-semibold text-slate-300 ml-1">Identified Issues ({issues.length})</h4>
-          <div className="grid grid-cols-1 gap-3">
+        <details className="space-y-3 mt-2 rounded-2xl border border-slate-700/40 bg-slate-900/20 p-4">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-slate-200">
+            <span>Show ATS details ({issues.length})</span>
+            <span className="rounded-full border border-slate-700/60 bg-slate-900/40 px-2.5 py-1 text-[11px] font-medium text-slate-400">
+              optional
+            </span>
+          </summary>
+          <div className="mt-4 grid grid-cols-1 gap-3">
             {issues.map((issue, idx) => (
               <IssueItem key={idx} issue={issue} />
             ))}
           </div>
-        </div>
+        </details>
       )}
     </div>
   )

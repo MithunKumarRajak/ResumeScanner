@@ -415,20 +415,32 @@ export default function CandidatePage() {
     setLocalFile(file)
     setExtractError('')
     setCheckerError('')
+    let text = null;
+    try {
+      text = await extractFileText(file)
+      if (!text) { 
+        setExtractError('Could not extract text from this file.');
+      } else {
+        setResumeText(text)
+        storeSetResumeFile(file)
+        storeSetResumeText(text)
+        setParsedResume(extractResumeFields(text))
+      }
+    } catch (e) {
+      setExtractError('Failed to extract text from file.');
+      text = null; // Ensure text is null on error
+    }
+
     try {
       const uploaded = await uploadResume(file)
       storeSetCurrentResumeId(uploaded?.resume_id || null)
-      const text = await extractFileText(file)
-      if (!text) { setExtractError('Could not extract text from this file.'); return null }
-      setResumeText(text)
-      storeSetResumeFile(file)
-      storeSetResumeText(text)
-      setParsedResume(extractResumeFields(text))
-      return text
     } catch {
       storeSetCurrentResumeId(null)
-      setExtractError('Failed to upload or extract text.'); return null
+      // This is not a fatal error for client-side only operations
+      console.warn('Failed to upload resume to backend. Some features might be unavailable.');
     }
+
+    return text;
   }, [storeSetResumeFile, storeSetCurrentResumeId, storeSetResumeText, setParsedResume])
 
   const handleFileClear = () => {

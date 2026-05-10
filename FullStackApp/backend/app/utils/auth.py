@@ -102,3 +102,31 @@ def get_current_active_user(
     current_user: User = Depends(get_current_user),
 ) -> User:
     return current_user
+
+
+def get_optional_current_user(
+    request: Request,
+    token: Optional[str] = Depends(oauth2_scheme),
+    db: Session = Depends(get_db),
+) -> Optional[User]:
+    """
+    Returns the user if a valid token is provided, otherwise returns None.
+    Does not raise an exception for missing or invalid tokens.
+    """
+    raw_token = _extract_token(request, token)
+    if not raw_token:
+        return None
+
+    try:
+        token_data = verify_token(raw_token)
+        user = db.query(User).filter(User.id == token_data.user_id).first()
+        if user and user.is_active:
+            return user
+    except HTTPException:
+        # This can happen if the token is invalid/expired
+        return None
+    except Exception:
+        # Broad exception to catch any other potential errors during token validation
+        return None
+
+    return None

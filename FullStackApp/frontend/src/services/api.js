@@ -10,7 +10,19 @@ const api = axios.create({
 //  Request interceptor ─
 api.interceptors.request.use(
   (config) => {
-    return config
+    const userStr = localStorage.getItem('rs_user');
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        const token = user?.token || user?.access_token;
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+      } catch (e) {
+        console.error('Failed to parse user from localStorage', e);
+      }
+    }
+    return config;
   },
   (error) => Promise.reject(error)
 )
@@ -21,8 +33,14 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('rs_user')
-      useStore.getState().openAuthModal()
+      const requestUrl = error.config?.url || '';
+      const guestEndpoints = ['/predict', '/models', '/upload-resume', '/extract-resume'];
+      const isGuestAllowed = guestEndpoints.some((ep) => requestUrl.includes(ep));
+
+      if (!isGuestAllowed) {
+        localStorage.removeItem('rs_user');
+        useStore.getState().openAuthModal();
+      }
     }
     
     // Normalize error message
@@ -217,7 +235,7 @@ export async function extractResume(file) {
 export async function uploadResume(file) {
   const formData = new FormData()
   formData.append('file', file)
-  const { data } = await api.post('/api/resume/upload-resume', formData, {
+  const { data } = await api.post('/upload-resume', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
     timeout: 60000,
   })

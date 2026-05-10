@@ -1,4 +1,4 @@
-import { CheckCircle, XCircle, Zap, MessageSquare, TrendingUp } from 'lucide-react'
+import { CheckCircle, XCircle, Zap, MessageSquare, TrendingUp, ChevronDown } from 'lucide-react'
 
 import ScoreCircle from './ScoreCircle'
 
@@ -51,9 +51,10 @@ export default function MatchResultCard({ result }) {
   } = result
 
   const displayConfidencePct = confidencePct ?? Math.round((confidence || 0) * 100)
+  const hasJobDescription = matchScore !== null && matchScore !== undefined
   const sortedTopCategories = [...topCategories]
     .sort((a, b) => (b.score || 0) - (a.score || 0))
-    .slice(0, 5)
+    .slice(0, 3)
 
   return (
     <div className="space-y-4 animate-slide-up">
@@ -65,13 +66,13 @@ export default function MatchResultCard({ result }) {
           <p className="font-semibold text-white">Match Analysis</p>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center gap-6">
+        <div className="flex flex-col sm:flex-row items-start gap-6">
           {matchScore !== null ? (
             <ScoreCircle score={matchScore} />
           ) : (
-            <div className="text-center">
-              <p className="text-4xl font-bold gradient-text">N/A</p>
-              <p className="text-xs text-slate-400 mt-1">No JD provided</p>
+            <div className="flex h-28 w-28 flex-col items-center justify-center rounded-full border border-slate-700/60 bg-slate-900/40 text-center">
+              <p className="text-3xl font-bold gradient-text">N/A</p>
+              <p className="mt-1 text-[11px] uppercase tracking-[0.2em] text-slate-500">No JD</p>
             </div>
           )}
 
@@ -79,13 +80,29 @@ export default function MatchResultCard({ result }) {
             {/* Category */}
             <div>
               <p className="text-xs uppercase tracking-wider text-slate-500 mb-1">Predicted Category</p>
-              <p className="text-xl font-bold text-white">{category}</p>
-              <div className="mt-1 space-y-1">
-                {modelVersion && <p className="text-xs text-slate-400">Model: {modelVersion}</p>}
-                {modelType && <p className="text-xs text-slate-400">Type: {modelType}</p>}
-                {typeof categoryCount === 'number' && <p className="text-xs text-slate-400">Categories: {categoryCount}</p>}
-                {typeof featureCount === 'number' && <p className="text-xs text-slate-400">Features: {featureCount}</p>}
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-xl font-bold text-white">{category}</p>
+                {modelVersion && (
+                  <span className="rounded-full border border-slate-700/60 bg-slate-900/60 px-2.5 py-1 text-[11px] text-slate-400">
+                    {modelVersion}
+                  </span>
+                )}
+                {modelType && (
+                  <span className="rounded-full border border-slate-700/60 bg-slate-900/60 px-2.5 py-1 text-[11px] text-slate-400">
+                    {modelType}
+                  </span>
+                )}
               </div>
+              {needsHumanReview && reviewReason && (
+                <p className="mt-2 rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+                  {reviewReason}
+                </p>
+              )}
+              {!needsHumanReview && (
+                <p className="mt-2 text-xs text-slate-400">
+                  This is the most likely category based on the resume content.
+                </p>
+              )}
             </div>
 
             {/* Confidence bar */}
@@ -103,139 +120,123 @@ export default function MatchResultCard({ result }) {
             </div>
 
             {typeof predictionMargin === 'number' && (
-              <div className="rounded-lg border border-slate-700/60 bg-slate-900/40 px-3 py-2 text-xs text-slate-300">
-                Prediction margin: <span className="font-semibold text-white">{(predictionMargin * 100).toFixed(1)}%</span>
-                {needsHumanReview && <span className="ml-2 text-amber-400">Human review recommended</span>}
-                {reviewReason && <div className="mt-1 text-slate-400">{reviewReason}</div>}
-              </div>
+              <p className="text-xs text-slate-500">
+                Prediction margin { (predictionMargin * 100).toFixed(1) }%
+                {needsHumanReview ? ' · manual review suggested' : ''}
+              </p>
             )}
 
             {/* Match bar (if available) */}
-            {matchScore !== null && <ScoreBar value={matchScore} />}
+            {hasJobDescription && <ScoreBar value={matchScore} />}
           </div>
         </div>
       </div>
 
-      {/* Top category alternatives */}
-      {sortedTopCategories.length > 0 && (
-        <div className="glass-card p-5 space-y-3">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="h-4 w-4 text-indigo-400" />
-            <p className="text-sm font-semibold text-white">Top Category Candidates</p>
-          </div>
-          <div className="space-y-2">
-            {sortedTopCategories.map((item, index) => (
-              <div key={item.category} className="space-y-1">
-                <div className="flex items-center justify-between text-xs text-slate-400">
-                  <span>{index + 1}. {item.category}</span>
-                  <span className="font-semibold text-white">{item.score.toFixed(1)}%</span>
-                </div>
-                <div className="score-bar-track">
-                  <div
-                    className={`score-bar-fill ${index === 0 ? 'bg-gradient-to-r from-indigo-500 to-violet-400' : 'bg-gradient-to-r from-slate-500 to-slate-400'}`}
-                    style={{ width: `${item.score}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {Object.keys(allProbabilities).length > 0 && (
-            <details className="text-xs text-slate-400">
-              <summary className="cursor-pointer text-slate-300">View all probabilities</summary>
-              <div className="mt-2 grid gap-1 sm:grid-cols-2">
-                {Object.entries(allProbabilities)
-                  .sort((a, b) => b[1] - a[1])
-                  .slice(0, 12)
-                  .map(([label, score]) => (
-                    <div key={label} className="flex items-center justify-between rounded-md bg-slate-900/40 px-2 py-1">
-                      <span className="truncate pr-2">{label}</span>
-                      <span className="font-semibold text-white">{(score * 100).toFixed(1)}%</span>
-                    </div>
-                  ))}
-              </div>
-            </details>
-          )}
-        </div>
-      )}
-
-      {/* Candidate Guidance */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {roleSuggestions.length > 0 && (
-          <div className="glass-card p-5 space-y-3">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-emerald-400" />
-              <p className="text-sm font-semibold text-white">Role Suggestions</p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {roleSuggestions.map((role) => (
-                <span key={role} className="skill-match">{role}</span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {applyNowReadiness && (
-          <div className="glass-card p-5 space-y-3">
-            <div className="flex items-center gap-2">
-              <Zap className="h-4 w-4 text-amber-400" />
-              <p className="text-sm font-semibold text-white">Apply-Now Readiness</p>
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs text-slate-400">
-                <span>{applyNowReadiness.label}</span>
-                <span className="font-semibold text-white">{applyNowReadiness.score.toFixed(1)}%</span>
-              </div>
-              <div className="score-bar-track">
-                <div
-                  className="score-bar-fill bg-gradient-to-r from-amber-500 to-rose-400"
-                  style={{ width: `${Math.max(0, Math.min(100, applyNowReadiness.score))}%` }}
-                />
-              </div>
-              <p className="text-xs text-slate-400">{applyNowReadiness.detail}</p>
-              <div className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${applyNowReadiness.should_apply ? 'bg-emerald-500/10 text-emerald-300' : 'bg-amber-500/10 text-amber-300'}`}>
-                {applyNowReadiness.should_apply ? 'Ready to apply now' : 'Tailor first'}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {(resumeGaps.length > 0 || improvementTips.length > 0) && (
+      {hasJobDescription ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {resumeGaps.length > 0 && (
+          {sortedTopCategories.length > 0 && (
             <div className="glass-card p-5 space-y-3">
               <div className="flex items-center gap-2">
-                <XCircle className="h-4 w-4 text-red-400" />
-                <p className="text-sm font-semibold text-white">Resume Gaps</p>
+                <TrendingUp className="h-4 w-4 text-indigo-400" />
+                <p className="text-sm font-semibold text-white">Alternate Fits</p>
               </div>
               <div className="space-y-2">
-                {resumeGaps.slice(0, 8).map((gap, index) => (
-                  <div key={`${gap.item}-${index}`} className="rounded-lg border border-slate-700/60 bg-slate-900/30 px-3 py-2">
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="text-sm font-medium text-white capitalize">{gap.item}</span>
-                      <span className={`text-[10px] uppercase tracking-wider ${gap.priority === 'high' ? 'text-red-300' : 'text-amber-300'}`}>{gap.priority}</span>
+                {sortedTopCategories.map((item, index) => (
+                  <div key={item.category} className="space-y-1">
+                    <div className="flex items-center justify-between text-xs text-slate-400">
+                      <span>{index + 1}. {item.category}</span>
+                      <span className="font-semibold text-white">{item.score.toFixed(1)}%</span>
                     </div>
-                    <p className="mt-1 text-xs text-slate-400">{gap.suggestion}</p>
+                    <div className="score-bar-track">
+                      <div
+                        className={`score-bar-fill ${index === 0 ? 'bg-gradient-to-r from-indigo-500 to-violet-400' : 'bg-gradient-to-r from-slate-500 to-slate-400'}`}
+                        style={{ width: `${item.score}%` }}
+                      />
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {improvementTips.length > 0 && (
+          {applyNowReadiness && (
             <div className="glass-card p-5 space-y-3">
               <div className="flex items-center gap-2">
-                <MessageSquare className="h-4 w-4 text-indigo-400" />
-                <p className="text-sm font-semibold text-white">Personalized Improvement Tips</p>
+                <Zap className="h-4 w-4 text-amber-400" />
+                <p className="text-sm font-semibold text-white">Application Readiness</p>
               </div>
-              <ul className="space-y-2">
-                {improvementTips.slice(0, 5).map((tip) => (
-                  <li key={tip} className="rounded-lg border border-slate-700/60 bg-slate-900/30 px-3 py-2 text-sm text-slate-300 leading-relaxed">
-                    {tip}
-                  </li>
-                ))}
-              </ul>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs text-slate-400">
+                  <span>{applyNowReadiness.label}</span>
+                  <span className="font-semibold text-white">{applyNowReadiness.score.toFixed(1)}%</span>
+                </div>
+                <div className="score-bar-track">
+                  <div
+                    className="score-bar-fill bg-gradient-to-r from-amber-500 to-rose-400"
+                    style={{ width: `${Math.max(0, Math.min(100, applyNowReadiness.score))}%` }}
+                  />
+                </div>
+                <p className="text-xs text-slate-400">{applyNowReadiness.detail}</p>
+              </div>
+            </div>
+          )}
+
+          {(resumeGaps.length > 0 || improvementTips.length > 0) && (
+            <div className="glass-card p-5 space-y-3 lg:col-span-2">
+              <details>
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-lg border border-slate-700/60 bg-slate-900/30 px-3 py-2 text-sm font-semibold text-white">
+                  <span>Why this result?</span>
+                  <ChevronDown className="h-4 w-4 text-slate-400" />
+                </summary>
+                <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  {resumeGaps.length > 0 && (
+                    <div className="space-y-3">
+                      <p className="text-sm font-semibold text-white">Top Improvements</p>
+                      <div className="space-y-2">
+                        {resumeGaps.slice(0, 4).map((gap, index) => (
+                          <div key={`${gap.item}-${index}`} className="rounded-lg border border-slate-700/60 bg-slate-900/30 px-3 py-2">
+                            <div className="flex items-center justify-between gap-3">
+                              <span className="text-sm font-medium text-white capitalize">{gap.item}</span>
+                              <span className={`text-[10px] uppercase tracking-wider ${gap.priority === 'high' ? 'text-red-300' : 'text-amber-300'}`}>{gap.priority}</span>
+                            </div>
+                            <p className="mt-1 text-xs text-slate-400">{gap.suggestion}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {improvementTips.length > 0 && (
+                    <div className="space-y-3">
+                      <p className="text-sm font-semibold text-white">Suggested Edits</p>
+                      <ul className="space-y-2">
+                        {improvementTips.slice(0, 3).map((tip) => (
+                          <li key={tip} className="rounded-lg border border-slate-700/60 bg-slate-900/30 px-3 py-2 text-sm text-slate-300 leading-relaxed">
+                            {tip}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </details>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="glass-card p-5 space-y-3">
+          <p className="text-sm font-semibold text-white">Category Summary</p>
+          <p className="text-sm text-slate-300 leading-relaxed">
+            The resume is most likely classified as <span className="font-semibold text-white">{category}</span>.
+            Add a job description to unlock match score, readiness, and tailoring suggestions.
+          </p>
+          {sortedTopCategories.length > 0 && (
+            <div className="flex flex-wrap gap-2 pt-1">
+              {sortedTopCategories.map((item) => (
+                <span key={item.category} className="skill-match">
+                  {item.category}
+                </span>
+              ))}
             </div>
           )}
         </div>

@@ -5,6 +5,9 @@ Endpoints:
   POST /predict   — classify resume, optionally match against JD
   GET  /models    — list available model versions
 """
+from app.services.common import get_top_tfidf_terms as _get_top_tfidf_terms
+from app.services.common import preprocess_text as _common_preprocess
+from app.services.common import clean_text as _clean_text
 from pathlib import Path
 import os
 import spacy
@@ -78,6 +81,13 @@ loaded_models = {}     # { "ResumeModel_v2": {...}, ... }
 loaded_embedders = {}
 loaded_preprocessors = {}
 nlp = None
+_v6_preprocessor = None
+
+
+def _ensure_repo_root_on_path() -> None:
+    repo_root_str = str(REPO_ROOT)
+    if repo_root_str not in sys.path:
+        sys.path.insert(0, repo_root_str)
 
 
 class _FallbackEmbedder:
@@ -214,13 +224,21 @@ def _resolve_model(version_id: Optional[str] = None):
 
 #  Text helpers — delegates to app.services.common ─
 
-from app.services.common import clean_text as _clean_text
-from app.services.common import preprocess_text as _common_preprocess
-from app.services.common import get_top_tfidf_terms as _get_top_tfidf_terms
-
 
 def _preprocess_text(text: str) -> str:
     return _common_preprocess(text, get_nlp())
+
+
+def _preprocess_v6_text(text: str):
+    """Return the v6-cleaned text plus detected language."""
+    global _v6_preprocessor
+    _ensure_repo_root_on_path()
+    if _v6_preprocessor is None:
+        from ResumeModel_v6 import MultilingualPreprocessor
+        _v6_preprocessor = MultilingualPreprocessor()
+
+    processed = _v6_preprocessor.preprocess(text)
+    return processed["processed"], processed["lang"]
 
 
 def _build_candidate_guidance(classification: Dict[str, object], resume_terms: list[str], jd_terms: list[str], match_score: Optional[float]) -> Dict[str, object]:
@@ -374,13 +392,24 @@ def _extract_v6_structured_features(text: str, lang: str = "en") -> np.ndarray:
 def _get_embedder(embedder_name: str):
     if embedder_name in loaded_embedders:
         return loaded_embedders[embedder_name]
+    use_hf_embedder = os.getenv(
+        "RESUME_SCANNER_USE_HF_EMBEDDER", "false").lower() == "true"
+    if not use_hf_embedder:
+        logger.warning(
+            "Using local fallback embedder for %s to avoid runtime HF downloads",
+            embedder_name,
+        )
+        loaded_embedders[embedder_name] = _FallbackEmbedder()
+        return loaded_embedders[embedder_name]
+
     try:
         from sentence_transformers import SentenceTransformer
     except ImportError:
         logger.warning(
-            "⚠ sentence-transformers not installed; using fallback embedder")
+            "sentence-transformers not installed; using fallback embedder")
         loaded_embedders[embedder_name] = _FallbackEmbedder()
         return loaded_embedders[embedder_name]
+
     loaded_embedders[embedder_name] = SentenceTransformer(embedder_name)
     return loaded_embedders[embedder_name]
 

@@ -5,8 +5,10 @@ GET  /resume/{id}            — get single resume with skills
 PUT  /resume/{id}            — update editable fields
 DELETE /resume/{id}          — delete resume + file
 """
+from app.services.common import resume_skill_names as _resume_skill_names
 import logging
-from typing import List
+import secrets
+from typing import List, Optional
 
 from fastapi import (
     APIRouter, BackgroundTasks, Depends,
@@ -14,15 +16,15 @@ from fastapi import (
 )
 from sqlalchemy.orm import Session
 
-from app.database.session   import get_db
-from app.models.resume       import Resume
-from app.models.skill        import Skill, ResumeSkill, SkillSource
-from app.models.user         import User
-from app.schemas.resume      import ParsedResumeOut, ResumeOut, ResumeUpdate, ResumeSummary
-from app.services            import parser as parser_svc
-from app.services            import classifier as classifier_svc
-from app.utils.auth          import get_current_active_user
-from app.utils.file_handler  import validate_file, save_upload_file, delete_file
+from app.database.session import get_db
+from app.models.resume import Resume
+from app.models.skill import Skill, ResumeSkill, SkillSource
+from app.models.user import User
+from app.schemas.resume import ParsedResumeOut, ResumeOut, ResumeUpdate, ResumeSummary
+from app.services import parser as parser_svc
+from app.services import classifier as classifier_svc
+from app.utils.auth import get_current_active_user, get_optional_current_user, get_password_hash
+from app.utils.file_handler import validate_file, save_upload_file, delete_file
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Resumes"])
@@ -39,6 +41,24 @@ def _get_or_create_skill(db: Session, name: str) -> Skill:
     return skill
 
 
+def _get_or_create_guest_user(db: Session) -> User:
+    """Get or create a guest user for anonymous uploads."""
+    guest_email = "guest@resumescanner.local"
+    guest = db.query(User).filter(User.email == guest_email).first()
+    if not guest:
+        guest = User(
+            email=guest_email,
+            full_name="Guest User",
+            hashed_password=get_password_hash(secrets.token_hex(16)),
+            role="candidate",
+            is_active=True,
+        )
+        db.add(guest)
+        db.commit()
+        db.refresh(guest)
+    return guest
+
+
 def _sync_resume_skills(db: Session, resume: Resume, skill_names: List[str],
                         source: SkillSource = SkillSource.parsed):
     """Replace all skills on a resume with the provided list."""
@@ -46,9 +66,6 @@ def _sync_resume_skills(db: Session, resume: Resume, skill_names: List[str],
     for name in skill_names:
         skill = _get_or_create_skill(db, name)
         db.add(ResumeSkill(resume_id=resume.id, skill_id=skill.id, source=source))
-
-
-from app.services.common import resume_skill_names as _resume_skill_names
 
 
 #  Background task: parse + classify ─
@@ -64,11 +81,11 @@ def _parse_and_classify(resume_id: str, file_url: str, db_factory):
         # 1. Extract text
         raw_text = parser_svc.extract_text(file_url)
         resume.raw_text = raw_text
-        resume.status   = "parsed"
+        resume.status = "parsed"
 
         # 2. NLP parse
         parsed = parser_svc.parse_resume(raw_text)
-        resume.parsed_name      = parsed["name"]
+        resume.parsed_name = parsed["name"]
         resume.parsed_education = parsed["education"]
         resume.experience_years = parsed["experience_years"]
 
@@ -78,17 +95,18 @@ def _parse_and_classify(resume_id: str, file_url: str, db_factory):
         # 4. Classify
         clf = classifier_svc.classify_resume(raw_text)
         resume.predicted_category = clf["predicted_category"]
-        resume.confidence_score   = clf["confidence"]
-        resume.status             = "classified"
+        resume.confidence_score = clf["confidence"]
+        resume.status = "classified"
 
         db.commit()
-        logger.info(f" Resume {resume_id} parsed & classified as '{clf['predicted_category']}'")
+        logger.info(
+            f" Resume {resume_id} parsed & classified as '{clf['predicted_category']}'")
 
     except Exception as e:
         db.rollback()
         resume = db.query(Resume).filter(Resume.id == resume_id).first()
         if resume:
-            resume.status        = "error"
+            resume.status = "error"
             resume.error_message = str(e)
             db.commit()
         logger.error(f" Parse/classify error for {resume_id}: {e}")
@@ -96,14 +114,14 @@ def _parse_and_classify(resume_id: str, file_url: str, db_factory):
         db.close()
 
 
-#  Routes 
+#  Routes
 
 @router.post("/upload-resume", response_model=ParsedResumeOut, status_code=status.HTTP_202_ACCEPTED)
 async def upload_resume(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
-    db:   Session    = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    db:   Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_optional_current_user),
 ):
     """
     Upload a PDF or DOCX resume.
@@ -111,17 +129,22 @@ async def upload_resume(
     - Saves to local storage
     - Triggers async parse + classify via BackgroundTasks
     - Returns resume ID immediately (status: pending)
+    - Works for authenticated users and guests
     """
     validate_file(file)
 
-    file_url, file_name, file_size = await save_upload_file(file, current_user.id)
+    # Use authenticated user if available, otherwise use guest user
+    user_for_resume = current_user if current_user else _get_or_create_guest_user(
+        db)
+
+    file_url, file_name, file_size = await save_upload_file(file, user_for_resume.id)
 
     resume = Resume(
-        user_id   = current_user.id,
-        file_name = file_name,
-        file_url  = file_url,
-        file_size = file_size,
-        status    = "pending",
+        user_id=user_for_resume.id,
+        file_name=file_name,
+        file_url=file_url,
+        file_size=file_size,
+        status="pending",
     )
     db.add(resume)
     db.commit()
@@ -129,19 +152,20 @@ async def upload_resume(
 
     # Kick off parsing in background (non-blocking)
     from app.database.session import SessionLocal
-    background_tasks.add_task(_parse_and_classify, resume.id, file_url, SessionLocal)
+    background_tasks.add_task(
+        _parse_and_classify, resume.id, file_url, SessionLocal)
 
     return ParsedResumeOut(
-        resume_id          = resume.id,
-        status             = "pending",
-        parsed_name        = None,
-        parsed_education   = None,
-        experience_years   = 0,
-        preferred_role     = None,
-        skills             = [],
-        predicted_category = None,
-        confidence_score   = None,
-        message            = "Resume uploaded. Parsing in progress — poll GET /resume/{id} for results.",
+        resume_id=resume.id,
+        status="pending",
+        parsed_name=None,
+        parsed_education=None,
+        experience_years=0,
+        preferred_role=None,
+        skills=[],
+        predicted_category=None,
+        confidence_score=None,
+        message="Resume uploaded. Parsing in progress — poll GET /resume/{id} for results.",
     )
 
 
@@ -186,10 +210,14 @@ def update_resume(
     if resume.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Access denied.")
 
-    if payload.parsed_name      is not None: resume.parsed_name      = payload.parsed_name
-    if payload.parsed_education is not None: resume.parsed_education = payload.parsed_education
-    if payload.experience_years is not None: resume.experience_years = payload.experience_years
-    if payload.preferred_role   is not None: resume.preferred_role   = payload.preferred_role
+    if payload.parsed_name is not None:
+        resume.parsed_name = payload.parsed_name
+    if payload.parsed_education is not None:
+        resume.parsed_education = payload.parsed_education
+    if payload.experience_years is not None:
+        resume.experience_years = payload.experience_years
+    if payload.preferred_role is not None:
+        resume.preferred_role = payload.preferred_role
 
     if payload.skills is not None:
         _sync_resume_skills(db, resume, payload.skills, SkillSource.manual)

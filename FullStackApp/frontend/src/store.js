@@ -3,8 +3,10 @@ import { saveUserData, getAllUserData, apiLogout } from './services/api'
 
 function sanitizeUser(userData) {
   if (!userData) return null
-  const { token, access_token, ...safeUser } = userData
-  return safeUser
+  return {
+    ...userData,
+    token: userData.token || userData.access_token || null,
+  }
 }
 
 const useStore = create((set, get) => ({
@@ -16,7 +18,7 @@ const useStore = create((set, get) => ({
     if (safe && safe !== saved) {
       localStorage.setItem('rs_user', JSON.stringify(safe))
     }
-    return safe
+    return safe?.token ? safe : null
   })(),
   isAuthModalOpen: false,
   selectedModel: 'ResumeModel_v6',
@@ -65,6 +67,7 @@ const useStore = create((set, get) => ({
 
   //  Server Sync 
   loadUserDataFromServer: async () => {
+    if (!get().user) return
     try {
       const allData = await getAllUserData()
       const updates = {}
@@ -83,6 +86,7 @@ const useStore = create((set, get) => ({
   },
 
   saveUserDataToServer: async (dataType, data) => {
+    if (!get().user) return
     try { await saveUserData(dataType, data) } catch { /* silent */ }
   },
 
@@ -219,7 +223,7 @@ if (localStorage.getItem('rs_dark') === 'true') {
 
 // Auth-gated initialization: only load resume data if logged in
 const savedUser = JSON.parse(localStorage.getItem('rs_user') || 'null')
-if (savedUser) {
+if (savedUser?.token || savedUser?.access_token) {
   useStore.getState().loadUserDataFromServer()
 } else {
   // Not authenticated → clear any stale resume data from localStorage

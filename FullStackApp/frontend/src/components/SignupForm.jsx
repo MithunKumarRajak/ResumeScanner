@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import useStore from '../store'
 import { apiSignup } from '../services/api'
 
-export default function SignupForm() {
+export default function SignupForm({ onSignIn = () => {} }) {
   const signup = useStore((s) => s.signup)
   const navigate = useNavigate()
   const [role, setRole] = useState('candidate')
@@ -31,7 +31,7 @@ export default function SignupForm() {
     try {
       const userData = await apiSignup(name.trim(), email, password, role)
       signup(userData)
-      navigate(role === 'recruiter' ? '/recruiter' : '/candidate')
+      navigate(userData.role === 'recruiter' ? '/recruiter' : '/candidate')
     } catch (err) {
       const detail = err.response?.data?.detail || 'Signup failed. Please try again.'
       setError(detail)
@@ -132,6 +132,17 @@ export default function SignupForm() {
           </>
         )}
       </button>
+
+      <div className="text-center text-sm text-slate-400">
+        Already have an account?{' '}
+        <button
+          type="button"
+          onClick={onSignIn}
+          className="font-semibold text-indigo-300 hover:text-indigo-200 transition-colors"
+        >
+          Sign in
+        </button>
+      </div>
     </form>
   )
 }

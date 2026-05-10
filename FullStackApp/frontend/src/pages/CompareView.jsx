@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
-import { ArrowLeft, CheckSquare, Square, Download, Trophy, Loader2, Search, Users } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { ArrowLeft, CheckSquare, Square, Download, Trophy, Loader2, Search, Users, GitCompare, X } from 'lucide-react'
+import { Link, useLocation } from 'react-router-dom'
 import { compareCandidates, getUserData } from '../services/api'
 
 export default function CompareView() {
+  const location = useLocation()
   const [candidates, setCandidates] = useState([])
   const [selectedIds, setSelectedIds] = useState([])
   const [jobDescId, setJobDescId] = useState('')
@@ -13,10 +14,25 @@ export default function CompareView() {
 
   // Simulated fetch of available resumes
   useEffect(() => {
-    // In a real app, this would fetch from /api/resumes
-    // For now, we'll try to fetch from user data or use mock if none
+    // Check if coming from bulk upload
+    const bulkUploadedResumes = location.state?.bulkUploadedResumes
+    const sourceJobDescId = location.state?.sourceJobDescId
+    
     const fetchResumes = async () => {
       try {
+        // If bulk upload data is provided, use it
+        if (bulkUploadedResumes && bulkUploadedResumes.length > 0) {
+          setCandidates(bulkUploadedResumes)
+          // Auto-select all bulk uploaded resumes (up to 4)
+          const idsToSelect = bulkUploadedResumes.slice(0, 4).map(r => r.id)
+          setSelectedIds(idsToSelect)
+          if (sourceJobDescId) {
+            setJobDescId(sourceJobDescId)
+          }
+          return
+        }
+        
+        // Otherwise, fetch from user data
         const data = await getUserData('resumes')
         if (data && data.resumes && data.resumes.length > 0) {
           setCandidates(data.resumes)
@@ -40,7 +56,7 @@ export default function CompareView() {
       }
     }
     fetchResumes()
-  }, [])
+  }, [location.state])
 
   const toggleSelect = (id) => {
     if (selectedIds.includes(id)) {
@@ -104,12 +120,29 @@ export default function CompareView() {
         )}
       </div>
 
+      {location.state?.bulkUploadedResumes && (
+        <div className="glass-card p-4 border border-emerald-500/30 bg-emerald-500/10">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-emerald-500/20 rounded-lg">
+              <GitCompare className="h-5 w-5 text-emerald-400" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-emerald-300">Bulk Upload Ready for Comparison</p>
+              <p className="text-xs text-emerald-200/80">Found {location.state.bulkUploadedResumes.length} resumes from your bulk upload. Deselect any to customize or select more from your library below.</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {!compareData ? (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 glass-card p-6">
             <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-700/50">
-              <h2 className="text-lg font-bold text-white">Select Candidates</h2>
-              <span className="text-sm font-medium px-2.5 py-1 rounded-md bg-slate-800 text-slate-300">
+              <div>
+                <h2 className="text-lg font-bold text-white">Select Candidates</h2>
+                <p className="text-xs text-slate-400 mt-1">Click to toggle selection • {candidates.length} total available</p>
+              </div>
+              <span className="text-sm font-medium px-3 py-1.5 rounded-md bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
                 {selectedIds.length} / 4 Selected
               </span>
             </div>
@@ -119,32 +152,54 @@ export default function CompareView() {
               <input type="text" placeholder="Search candidates..." className="form-input pl-10" />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 max-h-[500px] overflow-y-auto custom-scrollbar">
               {candidates.map(candidate => {
                 const isSelected = selectedIds.includes(candidate.id)
                 const isDisabled = !isSelected && selectedIds.length >= 4
+                const isBulkUploaded = location.state?.bulkUploadedResumes?.some(r => r.id === candidate.id)
                 
                 return (
                   <div 
                     key={candidate.id}
                     onClick={() => !isDisabled && toggleSelect(candidate.id)}
-                    className={`flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all ${
+                    className={`flex items-center justify-between p-4 rounded-xl border transition-all ${
                       isSelected 
-                        ? 'bg-indigo-500/10 border-indigo-500/30' 
+                        ? 'bg-indigo-500/20 border-indigo-500/50 ring-1 ring-indigo-500/30' 
                         : isDisabled 
                           ? 'bg-slate-900/50 border-slate-800 opacity-50 cursor-not-allowed'
-                          : 'bg-slate-800/30 border-slate-700/50 hover:bg-slate-800/60'
+                          : isBulkUploaded
+                            ? 'bg-emerald-900/20 border-emerald-700/50 hover:bg-emerald-900/30 cursor-pointer'
+                            : 'bg-slate-800/30 border-slate-700/50 hover:bg-slate-800/60 cursor-pointer'
                     }`}
                   >
-                    <div>
-                      <p className="font-semibold text-slate-200">{candidate.name}</p>
-                      <p className="text-xs text-slate-400">{candidate.role || 'Uploaded resume'}</p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-semibold text-slate-200 truncate">{candidate.name}</p>
+                        {isBulkUploaded && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-medium shrink-0 border border-emerald-500/30">
+                            <GitCompare className="h-3 w-3" />
+                            Bulk
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <p className="text-xs text-slate-400">
+                          {candidate.category || candidate.role || 'Uploaded resume'}
+                        </p>
+                        {candidate.uploadedAt && (
+                          <span className="text-xs text-slate-500">• {new Date(candidate.uploadedAt).toLocaleDateString()}</span>
+                        )}
+                      </div>
                     </div>
-                    {isSelected ? (
-                      <CheckSquare className="h-5 w-5 text-indigo-400" />
-                    ) : (
-                      <Square className={`h-5 w-5 ${isDisabled ? 'text-slate-600' : 'text-slate-500'}`} />
-                    )}
+                    <div className="ml-3 shrink-0">
+                      {isSelected ? (
+                        <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-indigo-500">
+                          <CheckSquare className="h-4 w-4 text-white" />
+                        </div>
+                      ) : (
+                        <Square className={`h-5 w-5 ${isDisabled ? 'text-slate-600' : 'text-slate-400'}`} />
+                      )}
+                    </div>
                   </div>
                 )
               })}
@@ -153,8 +208,34 @@ export default function CompareView() {
           
           <div className="space-y-4">
             <div className="glass-card p-6">
-              <h2 className="text-lg font-bold text-white mb-4">Configuration</h2>
+              <h2 className="text-lg font-bold text-white mb-4">Comparison Setup</h2>
               <div className="space-y-4">
+                {/* Selected Candidates Preview */}
+                <div className="p-3 bg-slate-900/50 border border-slate-700/50 rounded-lg">
+                  <p className="text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wide">Currently Selected</p>
+                  {selectedIds.length === 0 ? (
+                    <p className="text-xs text-slate-500 italic">No candidates selected. Choose at least 2.</p>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {selectedIds.map(id => {
+                        const candidate = candidates.find(c => c.id === id)
+                        return (
+                          <div key={id} className="flex items-center justify-between p-2 bg-slate-800/50 rounded border border-slate-700/50">
+                            <p className="text-sm text-slate-300 truncate">{candidate?.name}</p>
+                            <button
+                              onClick={() => toggleSelect(id)}
+                              className="text-slate-500 hover:text-red-400 transition-colors"
+                              title="Remove from selection"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+                
                 <div>
                   <label className="block text-xs font-medium text-slate-400 mb-1.5">Job Description ID (Optional)</label>
                   <input 
@@ -162,8 +243,9 @@ export default function CompareView() {
                     value={jobDescId}
                     onChange={(e) => setJobDescId(e.target.value)}
                     placeholder="Enter Job ID" 
-                    className="form-input" 
+                    className="form-input text-sm" 
                   />
+                  <p className="text-xs text-slate-500 mt-1">Match selected candidates against a specific job description</p>
                 </div>
                 
                 {error && (
@@ -175,11 +257,27 @@ export default function CompareView() {
                 <button 
                   onClick={handleCompare} 
                   disabled={selectedIds.length < 2 || loading}
-                  className="btn-primary w-full flex items-center justify-center gap-2 mt-4"
+                  className={`btn-primary w-full flex items-center justify-center gap-2 mt-4 ${
+                    selectedIds.length < 2 ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                  title={selectedIds.length < 2 ? 'Select at least 2 candidates' : 'Compare selected candidates'}
                 >
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <GitCompare className="h-4 w-4" />}
-                  Compare Selected
+                  {loading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <GitCompare className="h-4 w-4" />
+                      Compare ({selectedIds.length})
+                    </>
+                  )}
                 </button>
+                
+                <p className="text-xs text-slate-500 text-center">
+                  Compare 2-4 candidates side-by-side for detailed analysis
+                </p>
               </div>
             </div>
           </div>

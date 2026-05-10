@@ -41,7 +41,8 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
         expires_delta or timedelta(
             minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     )
-    to_encode.update({"exp": expire})
+    to_encode.update(
+        {"exp": expire, "iat": int(datetime.utcnow().timestamp())})
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
@@ -56,9 +57,10 @@ def verify_token(token: str) -> TokenData:
                              algorithms=[settings.ALGORITHM])
         user_id: str = payload.get("sub")
         email:   str = payload.get("email")
+        issued_at: int = payload.get("iat")
         if user_id is None:
             raise credentials_exc
-        return TokenData(user_id=user_id, email=email)
+        return TokenData(user_id=user_id, email=email, issued_at=issued_at)
     except JWTError:
         raise credentials_exc
 
@@ -95,6 +97,13 @@ def get_current_user(
         raise HTTPException(status_code=404, detail="User not found")
     if not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
+    if token_data.issued_at and user.password_changed_at:
+        if token_data.issued_at < int(user.password_changed_at.timestamp()):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Session expired. Please sign in again.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
     return user
 
 

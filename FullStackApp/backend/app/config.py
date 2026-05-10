@@ -46,6 +46,8 @@ class Settings(BaseSettings):
     SMTP_PORT: int = 587
     SMTP_USER: str = ""
     SMTP_PASS: str = ""
+    FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:5173")
+    PASSWORD_RESET_TOKEN_EXPIRE_MINUTES: int = 30
 
     #  CORS
     ALLOWED_ORIGINS: List[str] = [

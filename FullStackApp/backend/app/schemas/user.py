@@ -24,7 +24,7 @@ class UserLogin(BaseModel):
     password: str
 
 
-#  Response 
+#  Response
 class UserOut(BaseModel):
     id:         str
     email:      str
@@ -46,3 +46,20 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     user_id: Optional[str] = None
     email:   Optional[str] = None
+    issued_at: Optional[int] = None
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
+    @field_validator("new_password")
+    @classmethod
+    def password_strength(cls, v: str) -> str:
+        if len(v) < 6:
+            raise ValueError("Password must be at least 6 characters")
+        return v

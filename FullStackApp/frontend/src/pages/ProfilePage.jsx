@@ -65,7 +65,6 @@ export default function ProfilePage() {
   const [confirmPw, setConfirmPw] = useState('')
   const [pwLoading, setPwLoading] = useState(false)
   const [pwMsg, setPwMsg] = useState({ type: '', text: '' })
-  const [showCurrentPw, setShowCurrentPw] = useState(false)
   const [showNewPw, setShowNewPw] = useState(false)
 
   // Delete account
@@ -196,14 +195,12 @@ export default function ProfilePage() {
             <div className="relative">
               <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
               <input
-                type={showCurrentPw ? 'text' : 'password'} value={currentPw}
+                type="password"
+                autoComplete="current-password"
+                value={currentPw}
                 onChange={e => setCurrentPw(e.target.value)}
-                className="form-input pl-11 pr-10" placeholder="Enter current password" id="current-password"
+                className="form-input pl-11" placeholder="Enter current password" id="current-password"
               />
-              <button onClick={() => setShowCurrentPw(!showCurrentPw)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 cursor-pointer">
-                {showCurrentPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

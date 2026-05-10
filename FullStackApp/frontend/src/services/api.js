@@ -118,6 +118,19 @@ export async function apiChangePassword(currentPassword, newPassword) {
   return data
 }
 
+export async function apiForgotPassword(email) {
+  const { data } = await api.post('/auth/forgot-password', { email })
+  return data
+}
+
+export async function apiResetPassword(token, newPassword) {
+  const { data } = await api.post('/auth/reset-password', {
+    token,
+    new_password: newPassword,
+  })
+  return data
+}
+
 export async function apiDeleteAccount(password) {
   const { data } = await api.delete('/auth/delete-account', { data: { password } })
   return data

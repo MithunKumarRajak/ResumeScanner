@@ -5,6 +5,7 @@ Unified backend — all routes (auth, AI, resume, jobs, etc.) in one app.
 Start: uvicorn app.main:app --reload --port 8000
 Docs:  http://localhost:8000/docs
 """
+from fastapi import HTTPException
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -124,14 +125,12 @@ app.include_router(advanced.router)
 #  Global exception handler ─
 
 
-from fastapi import HTTPException
-
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     if isinstance(exc, HTTPException):
         # Let FastAPI's default handler process it
         raise exc
-    
+
     logger.error(f"Unhandled error on {request.url}: {exc}", exc_info=True)
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -161,7 +160,7 @@ def root():
         "endpoints": {
             "auth":        ["POST /auth/signup", "POST /auth/login", "GET /auth/me",
                             "PUT /auth/profile", "PUT /auth/change-password",
-                            "DELETE /auth/delete-account"],
+                            "DELETE /auth/delete-account", "POST /auth/forgot-password", "POST /auth/reset-password"],
             "predict":     ["POST /predict", "GET /models"],
             "resumes":     ["POST /upload-resume", "GET /resumes", "GET /resume/{id}", "PUT /resume/{id}"],
             "jobs":        ["POST /jobs", "GET /jobs", "GET /jobs/{id}", "PUT /jobs/{id}"],

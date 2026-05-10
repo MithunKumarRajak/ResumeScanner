@@ -21,6 +21,7 @@ const useStore = create((set, get) => ({
     return safe?.token ? safe : null
   })(),
   isAuthModalOpen: false,
+  authModalTab: 'login',
   selectedModel: 'ResumeModel_v6',
 
   login: (userData) => {
@@ -61,8 +62,9 @@ const useStore = create((set, get) => ({
       step: 1,
     })
   },
-  openAuthModal: () => set({ isAuthModalOpen: true }),
-  closeAuthModal: () => set({ isAuthModalOpen: false }),
+  openAuthModal: (tab = 'login') => set({ isAuthModalOpen: true, authModalTab: tab }),
+  closeAuthModal: () => set({ isAuthModalOpen: false, authModalTab: 'login' }),
+  setAuthModalTab: (tab = 'login') => set({ authModalTab: tab }),
   setSelectedModel: (model) => set({ selectedModel: model }),
 
   //  Server Sync 

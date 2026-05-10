@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
-import { Upload, FileText, X, AlertCircle, Loader2, CheckCircle2, CheckCircle, BarChart, Server } from 'lucide-react'
+import { Upload, FileText, X, AlertCircle, Loader2, CheckCircle2, CheckCircle, BarChart, Server, GitCompare } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { bulkUpload, getBulkStatus } from '../services/api'
 
 const ALLOWED = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
@@ -11,6 +12,7 @@ export default function BulkUpload() {
   const [files, setFiles] = useState([])
   const [jobDescId, setJobDescId] = useState('')
   const [error, setError] = useState('')
+  const navigate = useNavigate()
   
   // Job status state
   const [bulkJobId, setBulkJobId] = useState(null)
@@ -106,6 +108,33 @@ export default function BulkUpload() {
     setError('')
   }
 
+  const handleCompareSelected = () => {
+    // Filter successful uploads
+    const successfulResults = results.filter(r => r.status === 'success')
+    if (successfulResults.length < 2) {
+      setError('Please ensure at least 2 resumes uploaded successfully to compare.')
+      return
+    }
+    
+    // Pass successful resume data to CompareView
+      const resumeData = successfulResults.map((r, index) => ({
+        id: r.resume_id || `bulk_resume_${Date.now()}_${index}`,
+        name: r.candidate_name || r.file_name.replace(/\.[^/.]+$/, ''),
+        file_name: r.file_name,
+        category: r.category || 'Uncategorized',
+        role: r.role || r.category,
+        uploadedAt: new Date().toISOString(),
+        resumeId: r.resume_id
+      }))
+    
+    navigate('/compare', { 
+      state: { 
+        bulkUploadedResumes: resumeData,
+        sourceJobDescId: jobDescId 
+      } 
+    })
+  }
+
   const isUploading = jobStatus === 'pending' || jobStatus === 'processing'
   const isDone = jobStatus === 'completed'
 
@@ -122,7 +151,18 @@ export default function BulkUpload() {
             </h1>
             <p className="text-slate-400 mt-2">Processed {successCount} of {files.length} resumes successfully.</p>
           </div>
-          <button onClick={reset} className="btn-secondary">Process New Batch</button>
+          <div className="flex gap-2">
+            {successCount >= 2 && (
+              <button 
+                onClick={handleCompareSelected}
+                className="btn-primary flex items-center gap-2"
+              >
+                <GitCompare className="h-4 w-4" />
+                Compare Candidates
+              </button>
+            )}
+            <button onClick={reset} className="btn-secondary">Process New Batch</button>
+          </div>
         </div>
 
         <div className="glass-card overflow-hidden">

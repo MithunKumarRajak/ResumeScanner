@@ -1,0 +1,11 @@
+{
+  "pre_training": {
+    "language_bias": {
+      "error": "If pos_label is not specified, values must be from {0, 1} or {-1, 1}",
+      "bias_assessment": "UNKNOWN"
+    }
+  },
+  "post_training": {
+    "demographic_parity_difference": 0.0
+  }
+}

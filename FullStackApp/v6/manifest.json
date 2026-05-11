@@ -1,13 +1,14 @@
 {
   "version": "v6",
-  "trained_at": "Fri May  8 00:42:28 2026",
+  "trained_at": "Mon May 11 09:47:00 2026",
   "accuracy": 0.7628318584070797,
+  "top3_accuracy": 0.8884955752212389,
   "num_samples": 2824,
   "num_classes": 46,
   "languages_detected": {
     "en": 2824
   },
-  "training_time_seconds": 31.296185970306396,
+  "training_time_seconds": 43.55082392692566,
   "features": {
     "tfidf_dims": 15000,
     "transformer_dims": 384,
@@ -24,5 +25,12 @@
   ],
   "bias_audit": {
     "demographic_parity_difference": 0.0
+  },
+  "inference_policy": {
+    "confidence_threshold": 0.5,
+    "margin_threshold": 0.25,
+    "target_precision": 0.85,
+    "estimated_precision": 0.9399,
+    "estimated_coverage": 0.5894
   }
 }

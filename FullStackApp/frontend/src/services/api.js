@@ -82,12 +82,7 @@ api.interceptors.response.use(
 
 //  Typed helpers 
 
-/**
- * Predict resume category and optionally compute match score.
- * @param {string} resumeText
- * @param {string} [jobDescription]
- */
-export async function predictResume(resumeText, jobDescription = '', modelVersion = '') {
+export async function analyzeResume(resumeText, jobDescription = '', modelVersion = '', resumeId = null, jobId = null) {
   const payload = { resume_text: resumeText }
   if (jobDescription && jobDescription.trim()) {
     payload.job_description = jobDescription
@@ -95,7 +90,15 @@ export async function predictResume(resumeText, jobDescription = '', modelVersio
   if (modelVersion && String(modelVersion).trim()) {
     payload.model_version = modelVersion
   }
-  const { data } = await api.post('/predict', payload)
+  if (resumeId) payload.resume_id = resumeId
+  if (jobId) payload.job_id = jobId
+  
+  const { data } = await api.post('/analyze', payload)
+  return data
+}
+
+export async function summarizeResume(resumeText) {
+  const { data } = await api.post('/summarize', { resume_text: resumeText })
   return data
 }
 

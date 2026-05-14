@@ -24,7 +24,7 @@ from app.database.session import engine
 import app.models  # noqa: F401  (triggers __init__.py)
 
 #  Routes
-from app.routes import auth, resume, job, match, recommend, dashboard, candidate, analytics, ai, predict
+from app.routes import auth, resume, job, match, recommend, dashboard, candidate, analytics, ai, predict, analyze
 from app.routes import analyses, status as status_routes
 from app.routes import ats_checker, experience, compare, bulk, notifications, advanced
 
@@ -124,6 +124,7 @@ app.include_router(candidate.router)
 app.include_router(analytics.router)
 app.include_router(ai.router)
 app.include_router(predict.router)
+app.include_router(analyze.router)
 app.include_router(status_routes.router)
 app.include_router(analyses.router)
 

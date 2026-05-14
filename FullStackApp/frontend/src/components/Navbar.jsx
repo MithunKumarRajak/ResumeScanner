@@ -42,7 +42,7 @@ export default function Navbar({ onSearch }) {
         id={id}
         key={to}
         onClick={() => { navigate(to); setMobileOpen(false) }}
-        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer border-none whitespace-nowrap
+        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer border-none whitespace-nowrap
           ${active
             ? 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/25'
             : 'text-slate-400 hover:text-slate-200 hover:bg-white/5 border border-transparent'
@@ -56,12 +56,12 @@ export default function Navbar({ onSearch }) {
 
   return (
     <nav className="sticky top-0 z-50 border-b border-slate-800/70 bg-[rgba(15,23,42,0.92)] backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-16 max-w-[1400px] items-center justify-between px-4 sm:px-6 lg:px-8 gap-4">
 
         {/* Logo */}
         <button
           onClick={handleLogoClick}
-          className="flex items-center gap-2.5 bg-transparent border-none cursor-pointer group"
+          className="flex shrink-0 items-center gap-2.5 bg-transparent border-none cursor-pointer group"
           id="nav-logo"
         >
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-black shadow-glow-brand group-hover:scale-105 transition-transform">
@@ -73,14 +73,14 @@ export default function Navbar({ onSearch }) {
         </button>
 
         {/* Center nav links – Desktop */}
-        <div className="hidden xl:flex items-center gap-1 rounded-2xl bg-slate-800/30 border border-slate-700/40 px-2 py-1 backdrop-blur-sm">
+        <div className="hidden xl:flex items-center justify-center gap-0.5 rounded-2xl bg-slate-800/30 border border-slate-700/40 px-1.5 py-1 backdrop-blur-sm">
           {NAV_LINKS.map((l) =>
             navLink(l.to, l.label, l.icon, `nav-${l.label.toLowerCase().replace(' ', '-')}`)
           )}
         </div>
 
         {/* Right side */}
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <div
             className={`hidden md:flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold ${
               apiOffline
@@ -92,7 +92,7 @@ export default function Navbar({ onSearch }) {
             title={apiOffline ? 'Backend API offline' : `Backend ${apiStatus?.status || 'online'}, DB ${apiStatus?.database || 'unknown'}`}
           >
             <span className={`h-2 w-2 rounded-full ${apiOffline ? 'bg-red-400' : apiStatus?.database === 'degraded' ? 'bg-amber-400' : 'bg-emerald-400'}`} />
-            {apiOffline ? 'API Offline' : apiStatus?.database === 'degraded' ? 'API Degraded' : 'API Online'}
+            {apiOffline ? 'System Offline' : apiStatus?.database === 'degraded' ? 'System Degraded' : 'System Online'}
           </div>
 
           {/* Search trigger */}

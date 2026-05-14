@@ -3,7 +3,8 @@ import { useLocation } from 'react-router-dom'
 import { FileText, User, Mail, Phone, Linkedin, Github, Briefcase, GraduationCap, Tag, Award, FolderKanban, Download, Eye, Pencil, Plus, X, ChevronDown, Save, CheckCircle2, Upload, Loader2, FilePlus2, RefreshCw } from 'lucide-react'
 import html2pdf from 'html2pdf.js'
 import useStore from '../store'
-import { extractResume, rescoreResume } from '../services/api'
+import { extractResume, rescoreResume, summarizeResume } from '../services/api'
+import { Sparkles } from 'lucide-react'
 
 const TEMPLATES = [
   { id: 'modern', name: 'Modern', color: '#6366f1' },
@@ -291,6 +292,7 @@ export default function ResumeBuildPage() {
 
   const [isExtracting, setIsExtracting] = useState(false)
   const [extractError, setExtractError] = useState('')
+  const [isSummarizing, setIsSummarizing] = useState(false)
 
   // Load stored data from store or localStorage
   const stored = resumeBuildData || JSON.parse(localStorage.getItem('rs_resume_build') || 'null')
@@ -313,7 +315,6 @@ export default function ResumeBuildPage() {
     const sessionData = JSON.parse(sessionStorage.getItem('rs_resume_builder_data') || 'null')
     if (sessionData && Object.keys(sessionData).length > 0) {
       console.log('Initializing from sessionStorage:', sessionData)
-      sessionStorage.removeItem('rs_resume_builder_data') // Clean up after use
       return { ...EMPTY_DATA, ...sessionData }
     }
     // Priority 2: Use store resumeBuildData
@@ -462,6 +463,22 @@ export default function ResumeBuildPage() {
     setPhase('editor')
   }
 
+  const handleGenerateSummary = async () => {
+    const resumeText = serializeResumeData(data)
+    if (!resumeText.trim()) return
+    setIsSummarizing(true)
+    try {
+      const res = await summarizeResume(resumeText)
+      if (res.summary) {
+        update('summary', res.summary)
+      }
+    } catch (err) {
+      console.error('Failed to generate summary', err)
+    } finally {
+      setIsSummarizing(false)
+    }
+  }
+
   //  ENTRY MODAL PHASE 
   if (phase === 'entry') {
     return (
@@ -576,7 +593,18 @@ export default function ResumeBuildPage() {
 
           {/* Summary */}
           <div className="glass-card p-4 space-y-3">
-            <SectionHeader icon={FileText} title="Summary" color="violet" />
+            <div className="flex items-center justify-between">
+              <SectionHeader icon={FileText} title="Summary" color="violet" />
+              <button 
+                onClick={handleGenerateSummary} 
+                disabled={isSummarizing}
+                className="btn-ghost flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-indigo-400 hover:text-indigo-300 border border-indigo-500/30 rounded px-2 py-1"
+                title="Auto-generate summary with AI"
+              >
+                {isSummarizing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                {isSummarizing ? 'Generating...' : 'Auto-Generate'}
+              </button>
+            </div>
             <EditableField value={data.summary} onChange={v => update('summary', v)} placeholder="Professional summary..." multiline />
           </div>
 

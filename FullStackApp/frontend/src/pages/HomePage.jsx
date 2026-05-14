@@ -175,13 +175,7 @@ export default function HomePage() {
           ))}
         </div>
 
-        <div className="mt-6 flex flex-wrap items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
-          <ShieldCheck className="h-5 w-5 text-emerald-300" />
-          <p className="text-sm text-slate-300">
-            Local development uses your FastAPI backend through a proxy, with status checks and clearer errors when services are degraded.
-          </p>
-          <BarChart3 className="ml-auto hidden h-5 w-5 text-slate-500 sm:block" />
-        </div>
+
       </section>
     </div>
   )

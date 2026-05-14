@@ -3,13 +3,13 @@ import { ResultPageSkeleton } from '../components/Skeleton'
 import {
   Upload, FileText, X, AlertCircle, ChevronDown, Sparkles,
   ClipboardCheck, GitCompare, FileEdit, BarChart3, ArrowLeft,
-  Loader2, CheckCircle2, AlertTriangle, Send, Users, ChevronDown as ChevronDownIcon, Download, Save, ShieldCheck
+  Loader2, CheckCircle2, AlertTriangle, Send, Users, ChevronDown as ChevronDownIcon, Download, Save, ShieldCheck, Wand2
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-hot-toast'
 import ATSScoreCard from '../components/ATSScoreCard'
 import ExperienceTimeline from '../components/ExperienceTimeline'
-import { predictResume, checkATS, extractExperience, sendNotification, uploadResume, generateCoverLetter, saveAnalysisReport } from '../services/api'
+import { checkATS, extractExperience, sendNotification, uploadResume, generateCoverLetter, saveAnalysisReport } from '../services/api'
 import MatchResultCard from '../components/MatchResultCard'
 import ParsedResumeEditor from '../components/ParsedResumeEditor'
 import { useMatch } from '../hooks/useMatch'
@@ -46,9 +46,9 @@ const ROLE_KEYWORDS = [
 ]
 const ACTIONS = [
   { id: 'checker', icon: ClipboardCheck, title: 'Resume Checker', sub: 'with AI Feedback', color: 'indigo', needs: 'resume' },
-  { id: 'match', icon: GitCompare, title: 'Resume Match', sub: 'with Job Description', color: 'violet', needs: 'both' },
+  { id: 'match', icon: GitCompare, title: 'Full Match Analysis', sub: 'Deep score breakdown', color: 'violet', needs: 'both' },
   { id: 'edit', icon: FileEdit, title: 'Resume Edit', sub: 'with parsed data', color: 'sky', needs: 'resume' },
-  { id: 'scores', icon: BarChart3, title: 'Job Match Scores', sub: 'Detailed scoring breakdown', color: 'emerald', needs: 'both' },
+  { id: 'coverletter', icon: Wand2, title: 'AI Cover Letter', sub: 'Generate customized letter', color: 'amber', needs: 'both' },
 ]
 
 function MiniDropZone({ file, onFile, onClear }) {
@@ -190,6 +190,7 @@ function ActionCard({ action, onClick }) {
     violet: { bg: 'bg-violet-500/12', text: 'text-violet-400', ring: 'hover:ring-violet-500/30', glow: 'group-hover:shadow-[0_0_30px_rgba(139,92,246,0.15)]' },
     sky: { bg: 'bg-sky-500/12', text: 'text-sky-400', ring: 'hover:ring-sky-500/30', glow: 'group-hover:shadow-[0_0_30px_rgba(14,165,233,0.15)]' },
     emerald: { bg: 'bg-emerald-500/12', text: 'text-emerald-400', ring: 'hover:ring-emerald-500/30', glow: 'group-hover:shadow-[0_0_30px_rgba(16,185,129,0.15)]' },
+    amber: { bg: 'bg-amber-500/12', text: 'text-amber-400', ring: 'hover:ring-amber-500/30', glow: 'group-hover:shadow-[0_0_30px_rgba(245,158,11,0.15)]' },
   }
   const c = colors[action.color]
   return (
@@ -529,9 +530,11 @@ export default function CandidatePage() {
   const executeAction = (actionId, rtText, jdText) => {
     setActiveAction(actionId)
     setSavedReportId(null)
-    if (actionId === 'checker' || actionId === 'match' || actionId === 'scores') {
+    if (actionId === 'checker' || actionId === 'match') {
       setCheckerError('')
       runMatch({ resumeText: rtText, jobDescription: jdText, modelVersion: selectedModel })
+    } else if (actionId === 'coverletter') {
+      handleGenerateCoverLetter(rtText, jdText)
     }
     setPhase('result')
   }
@@ -653,15 +656,15 @@ export default function CandidatePage() {
     }
   }
 
-  const handleGenerateCoverLetter = async () => {
-    if (!resumeText || !jobDesc) {
+  const handleGenerateCoverLetter = async (rtText = resumeText, jdText = jobDesc) => {
+    if (!rtText || !jdText) {
       toast.error('Both Resume and Job Description are required for a cover letter.')
       return
     }
     setIsGeneratingCL(true)
     const toastId = toast.loading('Generating cover letter with AI...')
     try {
-      const data = await generateCoverLetter(resumeText, jobDesc)
+      const data = await generateCoverLetter(rtText, jdText)
       setCoverLetter(data.cover_letter)
       toast.success('Cover letter generated!', { id: toastId })
     } catch (err) {
@@ -784,7 +787,7 @@ export default function CandidatePage() {
       <WorkflowStepper phase={phase} activeAction={activeAction} hasResume={hasResume} hasJD={hasJD} isAnalyzing={isAnalyzing} />
       <button onClick={() => setPhase('dashboard')} className="btn-ghost flex items-center gap-2" id="result-back-btn"><ArrowLeft className="h-4 w-4" /> Back to Actions</button>
 
-      {(activeAction === 'match' || activeAction === 'scores' || activeAction === 'checker') && (
+      {(activeAction === 'match' || activeAction === 'checker') && (
         isAnalyzing ? (
           <ResultPageSkeleton />
         ) : isError ? (
@@ -812,15 +815,6 @@ export default function CandidatePage() {
 
             <div className="flex flex-wrap items-center justify-between gap-4 pt-6 border-t border-slate-700/50 mt-8">
               <button
-                onClick={handleGenerateCoverLetter}
-                disabled={isGeneratingCL}
-                className="btn-primary flex items-center gap-2"
-              >
-                {isGeneratingCL ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 text-amber-200" />}
-                Generate Cover Letter
-              </button>
-
-              <button
                 onClick={() => navigate('/compare')}
                 className="btn-secondary flex items-center gap-2"
               >
@@ -831,8 +825,9 @@ export default function CandidatePage() {
                 onClick={() => {
                   if (parsedResume) {
                     sessionStorage.setItem('rs_resume_builder_data', JSON.stringify(parsedResume))
+                    useStore.getState().setResumeBuildData(parsedResume)
                   }
-                  navigate('/editor')
+                  navigate('/editor', { state: { mode: 'edit', data: parsedResume } })
                 }}
                 className="btn-secondary flex items-center gap-2"
               >
@@ -874,43 +869,58 @@ export default function CandidatePage() {
                 )}
               </div>
             </div>
-
-            {/* Cover Letter Modal/Panel */}
-            {coverLetter && (
-              <div className="mt-8 animate-fade-in">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                    <Sparkles className="h-5 w-5 text-indigo-400" />
-                    AI-Generated Cover Letter
-                  </h3>
-                  <button onClick={() => setCoverLetter(null)} className="text-slate-500 hover:text-white">
-                    <X className="h-5 w-5" />
-                  </button>
-                </div>
-                <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700/50">
-                  <textarea 
-                    value={coverLetter}
-                    onChange={(e) => setCoverLetter(e.target.value)}
-                    className="w-full min-h-[300px] bg-transparent text-slate-300 text-sm leading-relaxed outline-none resize-y"
-                  />
-                  <div className="flex justify-end mt-4">
-                    <button 
-                      onClick={() => {
-                        navigator.clipboard.writeText(coverLetter)
-                        toast.success('Copied to clipboard!')
-                      }}
-                      className="btn-secondary text-xs py-1.5 px-3"
-                    >
-                      Copy to Clipboard
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         ) : (
           <div className="glass-card p-12 flex flex-col items-center gap-4"><Loader2 className="h-10 w-10 animate-spin text-indigo-400" /><p className="text-slate-300 font-medium">Preparing analysis…</p></div>
         )
+      )}
+
+      {activeAction === 'coverletter' && (
+        <div className="glass-card p-6 md:p-10 max-w-4xl mx-auto">
+          <div className="flex items-center gap-3 mb-6 border-b border-slate-700/50 pb-6">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/20 text-amber-400">
+              <Wand2 className="h-6 w-6" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-white">AI Cover Letter Generator</h2>
+              <p className="text-sm text-slate-400">Tailored to your resume and the target job description.</p>
+            </div>
+          </div>
+          
+          {isGeneratingCL ? (
+            <div className="flex flex-col items-center justify-center py-16">
+              <Loader2 className="h-10 w-10 animate-spin text-amber-400 mb-4" />
+              <p className="text-slate-300 font-medium">Writing your personalized cover letter...</p>
+              <p className="text-xs text-slate-500 mt-2">This may take a few moments</p>
+            </div>
+          ) : coverLetter ? (
+            <div className="animate-fade-in">
+              <div className="bg-slate-900/60 rounded-xl p-6 md:p-8 border border-slate-700/60 shadow-inner">
+                <textarea 
+                  value={coverLetter}
+                  onChange={(e) => setCoverLetter(e.target.value)}
+                  className="w-full min-h-[450px] bg-transparent text-slate-200 text-[15px] leading-loose outline-none resize-y"
+                />
+              </div>
+              <div className="flex justify-end mt-6">
+                <button 
+                  onClick={() => {
+                    navigator.clipboard.writeText(coverLetter)
+                    toast.success('Copied to clipboard!')
+                  }}
+                  className="btn-primary flex items-center gap-2 px-6 py-2.5"
+                >
+                  <ClipboardCheck className="h-4 w-4" /> Copy to Clipboard
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-10 text-slate-400">
+              <AlertCircle className="h-8 w-8 mx-auto mb-3 text-slate-500" />
+              <p>Could not generate cover letter.</p>
+            </div>
+          )}
+        </div>
       )}
 
       {activeAction === 'edit' && (

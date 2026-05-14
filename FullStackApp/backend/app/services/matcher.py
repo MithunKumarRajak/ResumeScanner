@@ -7,7 +7,8 @@ from typing import Dict, Any, List, Set
 
 from sklearn.metrics.pairwise import cosine_similarity as sklearn_cosine
 
-from app.services.classifier import get_tfidf_vectorizer, preprocess_text
+from app.services.classifier import get_tfidf_vectorizer
+from app.services.common import preprocess_text
 
 
 def _get_top_terms(vector, vectorizer, n: int = 10) -> List[str]:

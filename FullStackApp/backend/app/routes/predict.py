@@ -167,50 +167,94 @@ MODEL_REGISTRY = {
 }
 
 
+REPO_ROOT = Path(__file__).resolve().parents[4]
+
+loaded_models = {}     # { "ResumeModel_v2": {...}, ... }
+loaded_embedders = {}
+loaded_preprocessors = {}
+nlp = None
+_v6_preprocessor = None
+
+
+def _ensure_repo_root_on_path() -> None:
+    repo_root_str = str(REPO_ROOT)
+    if repo_root_str not in sys.path:
+        sys.path.insert(0, repo_root_str)
+
+
+class _FallbackEmbedder:
+    """Lightweight local embedding fallback when sentence-transformers is unavailable."""
+
+    def __init__(self, dimension: int = 384):
+        self.dimension = dimension
+
+    def encode(self, texts, convert_to_numpy=True, show_progress_bar=False):
+        vectors = []
+        for text in texts:
+            vector = np.zeros(self.dimension, dtype=np.float32)
+            tokens = re.findall(r"[a-z0-9]+", str(text).lower())
+            for token in tokens:
+                digest = hashlib.sha256(token.encode("utf-8")).digest()
+                index = int.from_bytes(digest[:4], "little") % self.dimension
+                weight = 1.0 + (digest[4] / 255.0)
+                vector[index] += weight
+
+            norm = float(np.linalg.norm(vector))
+            if norm > 0:
+                vector /= norm
+            vectors.append(vector)
+
+        return np.vstack(vectors) if convert_to_numpy else vectors
+
+
+MODEL_REGISTRY = {
+    "ResumeModel_v6": {
+        "dir": os.path.join("..", "v6"),
+        "description": "Final Advanced model with multilingual semantic matching, bias checks, and SHAP support",
+        "algorithm": "Calibrated SGD/SVM with transformer embeddings + TF-IDF + 15 structured features",
+        "badge": "Latest Model",
+        "model_type": "advanced_v6",
+    },
+    "ResumeModel_v2": {
+        "dir": "..",
+        "description": "KNN + OneVsRest (TF-IDF 5K features)",
+        "algorithm": "OneVsRestClassifier(KNeighborsClassifier)",
+        "badge": "Base Model",
+        "model_type": "classic_tfidf",
+    },
+    "ResumeModel_v3": {
+        "dir": os.path.join("..", "v3"),
+        "description": "Linear SVM + balanced classes (TF-IDF 10K features)",
+        "algorithm": "OneVsRestClassifier(CalibratedClassifierCV(SGDClassifier))",
+        "badge": "Updated Model",
+        "model_type": "classic_tfidf",
+    },
+    "ResumeModel_v5": {
+        "dir": os.path.join("..", "v5"),
+        "description": "Adaptive hybrid model with semantic and feature support",
+        "algorithm": "OneVsRestClassifier(CalibratedClassifierCV(SGDClassifier))",
+        "badge": "Production Model",
+        "model_type": "hybrid_adaptive",
+    },
+}
+
+
 def _load_single_model(version_id: str, model_dir: str):
     """Load a single model's artifacts from the given directory."""
     base = Path(__file__).resolve().parent.parent.parent   # backend/
     artifacts = {}
     try:
         model_root = (base / model_dir).resolve()
-        pipeline_path = model_root / "pipeline.pkl"
         model_path = model_root / "model.pkl"
         tfidf_path = model_root / "tfidf.pkl"
         encoder_path = model_root / "encoder.pkl"
 
-        if pipeline_path.exists():
-            import cloudpickle
-            with open(pipeline_path, "rb") as f:
-                pipeline = cloudpickle.load(f)
-            artifacts["pipeline"] = pipeline
-            artifacts["model"] = pipeline["model"]
-            artifacts["tfidf"] = pipeline["tfidf"]
-            artifacts["label_encoder"] = pipeline["encoder"]
-            artifacts["preprocess_fn"] = pipeline.get("preprocess_fn")
-            artifacts["feature_fn"] = pipeline.get("feature_fn")
-            artifacts["feature_names"] = pipeline.get("feature_names")
-            artifacts["uses_transformer"] = bool(pipeline.get("uses_transformer"))
-            artifacts["inference_policy"] = pipeline.get("inference_policy") or {}
-            if pipeline.get("embedder_name"):
-                artifacts["embedder_name"] = pipeline["embedder_name"]
-        else:
-            artifacts["model"] = joblib.load(model_path)
-            artifacts["tfidf"] = joblib.load(tfidf_path)
-            artifacts["label_encoder"] = joblib.load(encoder_path)
+        artifacts["model"] = joblib.load(model_path)
+        artifacts["tfidf"] = joblib.load(tfidf_path)
+        artifacts["label_encoder"] = joblib.load(encoder_path)
+
         artifacts["model_type"] = MODEL_REGISTRY[version_id].get(
             "model_type", "classic_tfidf")
-        artifacts["model_dir"] = model_root
-        artifacts["id"] = version_id
-
-        embedder_file = model_root / "embedder.txt"
-        if embedder_file.exists():
-            artifacts["embedder_name"] = embedder_file.read_text(
-                encoding="utf-8").strip()
-
-        artifacts["input_features"] = int(
-            getattr(artifacts["model"], "n_features_in_", 0) or 0
-        )
-
         logger.info(f"  [OK] {version_id} loaded from {model_dir}")
         return artifacts
     except FileNotFoundError as e:
@@ -766,5 +810,19 @@ def get_models():
                 loaded_models[version_id]["label_encoder"].classes_)
             entry["input_features"] = loaded_models[version_id].get(
                 "input_features")
+
+        # Load metrics.json if exists
+        metrics_file = model_root / "metrics.json"
+        if metrics_file.exists():
+            try:
+                import json
+                with open(metrics_file, "r") as f:
+                    entry["metrics"] = json.load(f)
+            except Exception as e:
+                logger.warning(f"Failed to load metrics for {version_id}: {e}")
+                entry["metrics"] = None
+        else:
+            entry["metrics"] = None
+
         result.append(entry)
     return {"default_model": DEFAULT_MODEL_ID, "models": result}

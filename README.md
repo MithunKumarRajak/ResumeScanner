@@ -11,7 +11,7 @@ A full-stack platform designed to analyze, score, and optimize resumes using Mac
 ### Core ML & NLP
 
 - **Resume Parsing:** Automated text extraction from PDF and DOCX files.
-- **Matching Engine:** TF-IDF and Cosine Similarity for keyword-based relevance scoring.
+- **Matching Engine:** Combines Semantic Cosine Similarity and precise Skill Gap Analysis to generate an application readiness score.
 - **Skill Extraction:** NLP-based entity recognition to identify technical and soft skills.
 - **Predictive Scoring:** Multi-version model pipeline (up to v6) for candidate classification.
 
@@ -93,19 +93,21 @@ npm run dev
 - `FullStackApp/backend`: FastAPI application, models, and ML service layers.
 - `FullStackApp/frontend`: React application with Tailwind styling, including the embedded resume editor at `/editor`.
 - `FullStackApp/model.pkl`: Serialized scikit-learn model artifacts.
-- `FullStackApp/v5/pipeline.pkl`: Preferred unified v5 artifact when retrained; bundles model, vectorizer, encoder, preprocessing, and feature extraction.
+- `FullStackApp/v5/`: Contains the V5 model artifacts (`model.pkl`, `tfidf.pkl`, `encoder.pkl`) and inference manifest.
 - `Resume_Editor`: Legacy standalone editor source kept for reference only; the maintained product path is the embedded FullStackApp editor.
 - `notebooks/experiments`: Archived exploratory notebooks such as v2/v4.
 
 ## ML Artifact Contract
 
-Training and inference must use the same preprocessing. For v5, retrain with:
+Training and inference must use the same preprocessing. Models are packaged as a triad of artifacts: `model.pkl`, `tfidf.pkl`, and `encoder.pkl`.
+
+For v6 (Latest), retrain with:
 
 ```bash
-python ResumeModel_v5.py --data-dir Dataset --out-dir FullStackApp/v5
+python ResumeModel_v6.py
 ```
 
-The script writes both legacy artifacts and `pipeline.pkl`. Backend loading prefers `pipeline.pkl` when present, preventing TF-IDF preprocessing mismatch between training and live inference.
+The unified API endpoint (`POST /api/analyze`) automatically parses the model directories, applies the correct preprocessing routines, and merges semantic embeddings (from `sentence-transformers`), TF-IDF matching, and Large Language Model (LLM) fallback guidance into a single unified JSON payload.
 
 ## Model Performance
 

@@ -1,21 +1,6 @@
 import { useMutation } from '@tanstack/react-query'
-import { predictResume } from '../services/api'
+import { analyzeResume } from '../services/api'
 import useStore from '../store'
-
-/**
- * Derives matching & missing skills by comparing
- * resume_top_terms vs jd_top_terms returned from /predict.
- */
-function deriveSkillSets(resumeTerms = [], jdTerms = []) {
-  const safeResumeTerms = resumeTerms || [];
-  const safeJdTerms = jdTerms || [];
-  const resumeSet = new Set(safeResumeTerms.map((t) => t.toLowerCase()))
-  const jdSet     = new Set(safeJdTerms.map((t) => t.toLowerCase()))
-
-  const matching = [...resumeSet].filter((t) => jdSet.has(t))
-  const missing  = [...jdSet].filter((t) => !resumeSet.has(t))
-  return { matching, missing }
-}
 
 /**
  * Generates a human-readable recommendation based on match score.
@@ -34,7 +19,7 @@ function buildRecommendation(score, category, matching, missing) {
 }
 
 /**
- * Hook that wraps /predict call, extracts structured match data,
+ * Hook that wraps /analyze call, extracts structured match data,
  * and saves it to the Zustand store.
  */
 export function useMatch() {
@@ -44,57 +29,39 @@ export function useMatch() {
   const parsedResume    = useStore((s) => s.parsedResume)
 
   return useMutation({
-    mutationFn: ({ resumeText, jobDescription, modelVersion }) =>
-      predictResume(resumeText, jobDescription, modelVersion),
+    mutationFn: ({ resumeText, jobDescription, modelVersion, resumeId, jobId }) =>
+      analyzeResume(resumeText, jobDescription, modelVersion, resumeId, jobId),
 
     onMutate: () => {
       setIsAnalyzing(true)
     },
 
     onSuccess: (data) => {
-      const { matching, missing } = deriveSkillSets(
-        data.resume_top_terms,
-        data.jd_top_terms
-      )
+      const matching = data.matched_skills || []
+      const missing = data.missing_skills || []
 
       const score = data.match_score !== null && data.match_score !== undefined
         ? Math.round(data.match_score)
         : null
 
-      const topCategories = Array.isArray(data.top_categories)
-        ? data.top_categories.map((item) => ({
-            category: item.category,
-            score: Math.round((item.score || 0) * 1000) / 10,
-          }))
-        : []
-
-      const reviewReason = data.review_reason || ''
-
       const result = {
+        ...data,
         matchScore:      score,
-        category:        data.predicted_category,
+        category:        data.display_prediction || data.category,
         confidence:      data.confidence,
-        confidencePct:   data.confidence_pct,
-        modelVersion:    data.model_version || null,
-        modelType:       data.model_type || null,
-        categoryCount:   data.category_count ?? null,
-        featureCount:    data.feature_count ?? null,
-        predictionMargin: data.prediction_margin ?? null,
-        needsHumanReview: Boolean(data.needs_human_review),
-        reviewReason,
-        topCategories,
-        allProbabilities: data.all_probabilities || {},
-        roleSuggestions: data.role_suggestions || [],
-        resumeGaps:      data.resume_gaps || [],
+        confidencePct:   data.confidence_pct || (data.confidence || 0) * 100,
+        needsHumanReview: data.needs_human_review || false,
+        reviewReason:    data.review_reason || '',
+        topCategories:   data.top_recommendations || data.top_categories || [],
         applyNowReadiness: data.apply_now_readiness || null,
+        resumeGaps:      data.resume_gaps || [],
         improvementTips: data.improvement_tips || [],
+        roleSuggestions: data.role_suggestions || [],
         matchingSkills:  matching,
         missingSkills:   missing,
-        resumeTopTerms:  data.resume_top_terms || [],
-        jdTopTerms:      data.jd_top_terms || [],
-        recommendation:  reviewReason
-          ? `${reviewReason}. ${buildRecommendation(score, data.predicted_category, matching, missing)}`
-          : buildRecommendation(score, data.predicted_category, matching, missing),
+        atsScore:        data.ats_score || 0,
+        suggestions:     data.suggestions || [],
+        recommendation:  buildRecommendation(score, data.category, matching, missing),
       }
 
       setMatchResult(result)
@@ -103,10 +70,9 @@ export function useMatch() {
       const candidate = {
         id: Date.now(),
         name: parsedResume?.name || 'Unknown Candidate',
-        category:    data.predicted_category,
-        modelVersion: data.model_version || null,
+        category:    data.category,
         matchScore:  score ?? 0,
-        skills:      data.resume_top_terms || [],
+        skills:      matching,
         experience:  parsedResume?.experience || 0,
         timestamp:   new Date().toISOString(),
       }

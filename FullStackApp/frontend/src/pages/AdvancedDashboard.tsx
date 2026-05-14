@@ -34,40 +34,39 @@ export default function AdvancedDashboard() {
   ] as const
 
   return (
-    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '1.5rem' }}>
-      <h2 style={{ fontWeight: 500, marginBottom: '0.25rem' }}>Advanced — Advanced AI Features</h2>
-      <p style={{ color: '#666', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
-        Semantic matching · Bias detection · Explainable AI · Multilingual · Custom training
-      </p>
+    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8 animate-fade-in">
+      <div className="mb-8">
+        <h2 className="text-2xl font-bold tracking-tight text-white mb-2">Advanced AI Features</h2>
+        <p className="text-sm text-slate-400">
+          Semantic matching · Bias detection · Explainable AI · Multilingual · Custom training
+        </p>
+      </div>
 
       {/* Resume input (shared across tabs) */}
-      <div style={{ marginBottom: '1rem' }}>
-        <label style={{ fontSize: '0.85rem', fontWeight: 500, display: 'block', marginBottom: '0.4rem' }}>
-          Resume Text
+      <div className="glass-card p-5 mb-8">
+        <label className="mb-2 block text-sm font-semibold text-slate-300">
+          Live Resume Context
         </label>
         <textarea
-          rows={5}
-          style={{ width: '100%', padding: '0.75rem', borderRadius: '8px',
-                   border: '0.5px solid #ccc', fontSize: '0.85rem', fontFamily: 'inherit',
-                   resize: 'vertical', boxSizing: 'border-box' }}
-          placeholder="Paste resume text here (English or Hindi)..."
+          rows={4}
+          className="w-full rounded-xl border border-slate-700/60 bg-slate-900/50 p-4 text-sm text-slate-300 placeholder-slate-500 focus:border-indigo-500/50 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 transition-colors"
+          placeholder="Paste resume text here to run live semantic or bias checks..."
           value={resumeText}
           onChange={(e) => setResumeText(e.target.value)}
         />
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', borderBottom: '0.5px solid #ddd', paddingBottom: '0.5rem' }}>
+      <div className="mb-8 flex flex-wrap gap-2 border-b border-slate-800/60 pb-4">
         {tabs.map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            style={{
-              padding: '0.4rem 0.9rem', border: 'none', borderRadius: '6px',
-              cursor: 'pointer', fontSize: '0.85rem', fontWeight: activeTab === tab.id ? 500 : 400,
-              background: activeTab === tab.id ? '#185FA5' : 'transparent',
-              color: activeTab === tab.id ? 'white' : '#555'
-            }}
+            className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+              activeTab === tab.id
+                ? 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 shadow-inner'
+                : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200 border border-transparent'
+            }`}
           >
             {tab.label}
           </button>
@@ -75,56 +74,65 @@ export default function AdvancedDashboard() {
       </div>
 
       {/* Tab content */}
-      {activeTab === 'analytics' && <AnalyticsTab />}
-      
-      {activeTab === 'match' && <SemanticMatchPanel resumeText={resumeText} />}
-      
-      {activeTab === 'bias' && (
-        <div>
-          <BiasCheckWidget resumeText={resumeText} />
-        </div>
-      )}
-      
-      {activeTab === 'finetune' && (
-        <div style={{ padding: '1rem', background: '#f9f9f7', borderRadius: '10px' }}>
-          <h3 style={{ fontWeight: 500, margin: '0 0 1rem' }}>🔧 Fine-tune Model on Company Data</h3>
-          <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: '1rem' }}>
-            Upload a CSV with columns <code>Resume</code> and <code>Category</code> to fine-tune the model on your company's hiring patterns.
-          </p>
-          <div style={{ display: 'grid', gap: '0.75rem' }}>
-            <input
-              type="text"
-              placeholder="Company name"
-              value={ftCompany}
-              onChange={(e) => setFtCompany(e.target.value)}
-              style={{ padding: '0.6rem', borderRadius: '6px', border: '0.5px solid #ccc', fontSize: '0.85rem' }}
-            />
-            <input
-              type="file"
-              accept=".csv"
-              onChange={(e) => setFtFile(e.target.files?.[0] || null)}
-              style={{ fontSize: '0.85rem' }}
-            />
-            <button
-              onClick={handleFineTune}
-              disabled={!ftFile || !ftCompany}
-              style={{
-                padding: '0.6rem 1.2rem', background: '#185FA5', color: 'white',
-                border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.9rem',
-                fontWeight: 500, opacity: !ftFile || !ftCompany ? 0.5 : 1
-              }}
-            >
-              Start Fine-tuning
-            </button>
+      <div className="animate-slide-up">
+        {activeTab === 'analytics' && <AnalyticsTab />}
+        
+        {activeTab === 'match' && <SemanticMatchPanel resumeText={resumeText} />}
+        
+        {activeTab === 'bias' && (
+          <div>
+            <BiasCheckWidget resumeText={resumeText} />
           </div>
-          {ftStatus && (
-            <div style={{ marginTop: '1rem', padding: '0.75rem', background: '#EAF3DE',
-                          color: '#3B6D11', borderRadius: '8px', fontSize: '0.85rem' }}>
-               {ftStatus}
+        )}
+        
+        {activeTab === 'finetune' && (
+          <div className="glass-card p-6">
+            <h3 className="mb-2 text-lg font-bold text-white">🔧 Fine-tune Model on Company Data</h3>
+            <p className="mb-6 text-sm text-slate-400">
+              Upload a CSV with columns <code className="rounded bg-slate-800 px-1.5 py-0.5 text-indigo-300">Resume</code> and <code className="rounded bg-slate-800 px-1.5 py-0.5 text-indigo-300">Category</code> to fine-tune the model on your company's historical hiring patterns.
+            </p>
+            
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-4">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-slate-400">Company Name</label>
+                  <input
+                    type="text"
+                    placeholder="e.g., Acme Corp"
+                    value={ftCompany}
+                    onChange={(e) => setFtCompany(e.target.value)}
+                    className="w-full rounded-lg border border-slate-700/60 bg-slate-900/50 p-2.5 text-sm text-slate-300 placeholder-slate-500 focus:border-indigo-500/50 focus:outline-none"
+                  />
+                </div>
+                
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-slate-400">Training Dataset (CSV)</label>
+                  <input
+                    type="file"
+                    accept=".csv"
+                    onChange={(e) => setFtFile(e.target.files?.[0] || null)}
+                    className="w-full text-sm text-slate-400 file:mr-4 file:rounded-full file:border-0 file:bg-indigo-500/10 file:px-4 file:py-2 file:text-xs file:font-semibold file:text-indigo-400 hover:file:bg-indigo-500/20"
+                  />
+                </div>
+
+                <button
+                  onClick={handleFineTune}
+                  disabled={!ftFile || !ftCompany}
+                  className="mt-2 w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Start Fine-tuning
+                </button>
+              </div>
+
+              {ftStatus && (
+                <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 flex items-center h-fit">
+                  <p className="text-sm font-medium text-emerald-400">{ftStatus}</p>
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      )}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

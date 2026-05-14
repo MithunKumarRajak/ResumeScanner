@@ -52,15 +52,18 @@ export default function AnalyticsTab() {
           <h3 className="text-sm font-bold text-white mb-4">Resume Categories</h3>
           <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
+              <PieChart margin={{ top: 20, right: 30, bottom: 20, left: 30 }}>
                 <Pie
                   data={categoryData}
                   cx="50%" cy="50%"
-                  innerRadius={60} outerRadius={100}
+                  innerRadius={50} outerRadius={70}
                   paddingAngle={5}
                   dataKey="count"
                   nameKey="category"
-                  label={({name, percent}) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  label={({name, percent}) => `${name.length > 15 ? name.slice(0, 15) + '...' : name} ${(percent * 100).toFixed(0)}%`}
+                  labelLine={{ stroke: '#475569', strokeWidth: 1 }}
+                  fontSize={11}
+                  fill="#94a3b8"
                 >
                   {categoryData?.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -82,7 +85,7 @@ export default function AnalyticsTab() {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={expData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                <XAxis dataKey="range_label" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+                <XAxis dataKey="range" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
                 <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
                 <RechartsTooltip 
                   cursor={{ fill: '#334155', opacity: 0.4 }}
@@ -107,7 +110,7 @@ export default function AnalyticsTab() {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                <XAxis dataKey="bucket" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+                <XAxis dataKey="range" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
                 <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
                 <RechartsTooltip 
                   contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f8fafc' }}
@@ -175,7 +178,7 @@ export default function AnalyticsTab() {
             <tbody>
               {topCandidates?.map((candidate, idx) => (
                 <tr key={candidate.resume_id} className="border-b border-slate-700/50 hover:bg-slate-800/30">
-                  <td className="px-4 py-3 font-medium text-white">{candidate.name}</td>
+                  <td className="px-4 py-3 font-medium text-white">{candidate.candidate_name}</td>
                   <td className="px-4 py-3">{candidate.predicted_category || 'N/A'}</td>
                   <td className="px-4 py-3">{candidate.match_count}</td>
                   <td className="px-4 py-3">
@@ -187,7 +190,7 @@ export default function AnalyticsTab() {
                       {candidate.avg_score.toFixed(1)}%
                     </span>
                   </td>
-                  <td className="px-4 py-3">{candidate.best_score.toFixed(1)}%</td>
+                  <td className="px-4 py-3">{candidate.best_match_score.toFixed(1)}%</td>
                 </tr>
               ))}
               {topCandidates?.length === 0 && (

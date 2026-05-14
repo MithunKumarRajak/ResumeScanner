@@ -43,9 +43,13 @@ dateparser==1.4.0
 # - numpy: vector math in classifier/matcher/predict/advanced
 # - scikit-learn: TF-IDF, cosine similarity, model operations
 # - joblib: loading serialized model artifacts
+# - scipy: sparse matrix stacking for TF-IDF + structured features
+# - cloudpickle: unified ML pipeline artifact serialization
 numpy==2.2.3
+scipy==1.16.3
 scikit-learn==1.7.2
 joblib==1.5.3
+cloudpickle==3.1.2
 
 # Advanced semantic and bias modules (used via ResumeModel_v6.py)
 # - pandas: custom CSV/model processing in app/routes/advanced.py

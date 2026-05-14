@@ -32,7 +32,8 @@ A full-stack platform designed to analyze, score, and optimize resumes using Mac
 
 ### Real-time Editor
 
-- Built-in editor to refine resumes based on system suggestions.
+- Embedded `/editor` page inside `FullStackApp/frontend` to refine resumes based on system suggestions.
+- Live re-scoring through `POST /api/rescore` after edits are saved.
 - Native PDF export functionality for optimized documents.
 
 ---
@@ -72,7 +73,8 @@ cd FullStackApp/backend
 python -m venv venv
 source venv/bin/activate # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-# Configure your .env file with DATABASE_URL and API keys
+# Configure your .env file with DATABASE_URL and API keys.
+# A root .env.example and FullStackApp/backend/.env.example are provided.
 python -m uvicorn app.main:app --reload
 ```
 
@@ -89,9 +91,21 @@ npm run dev
 ## Project Structure
 
 - `FullStackApp/backend`: FastAPI application, models, and ML service layers.
-- `FullStackApp/frontend`: React application with Tailwind styling.
+- `FullStackApp/frontend`: React application with Tailwind styling, including the embedded resume editor at `/editor`.
 - `FullStackApp/model.pkl`: Serialized scikit-learn model artifacts.
-- `Resume_Editor`: Specialized real-time editing component.
+- `FullStackApp/v5/pipeline.pkl`: Preferred unified v5 artifact when retrained; bundles model, vectorizer, encoder, preprocessing, and feature extraction.
+- `Resume_Editor`: Legacy standalone editor source kept for reference only; the maintained product path is the embedded FullStackApp editor.
+- `notebooks/experiments`: Archived exploratory notebooks such as v2/v4.
+
+## ML Artifact Contract
+
+Training and inference must use the same preprocessing. For v5, retrain with:
+
+```bash
+python ResumeModel_v5.py --data-dir Dataset --out-dir FullStackApp/v5
+```
+
+The script writes both legacy artifacts and `pipeline.pkl`. Backend loading prefers `pipeline.pkl` when present, preventing TF-IDF preprocessing mismatch between training and live inference.
 
 ## Model Performance
 

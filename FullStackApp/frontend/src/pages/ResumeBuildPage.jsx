@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom'
 import { FileText, User, Mail, Phone, Linkedin, Github, Briefcase, GraduationCap, Tag, Award, FolderKanban, Download, Eye, Pencil, Plus, X, ChevronDown, Save, CheckCircle2, Upload, Loader2, FilePlus2, RefreshCw } from 'lucide-react'
 import html2pdf from 'html2pdf.js'
 import useStore from '../store'
-import { extractResume } from '../services/api'
+import { extractResume, rescoreResume } from '../services/api'
 
 const TEMPLATES = [
   { id: 'modern', name: 'Modern', color: '#6366f1' },
@@ -15,6 +15,24 @@ const EMPTY_DATA = {
   name: '', email: '', phone: '', linkedin: '', github: '',
   role: '', summary: '', skills: [], education: '', experience: 0,
   projects: '', certifications: '',
+}
+
+function serializeResumeData(data) {
+  const skills = Array.isArray(data.skills) ? data.skills.join(', ') : data.skills || ''
+  return [
+    data.name,
+    data.role,
+    data.email,
+    data.phone,
+    data.linkedin,
+    data.github,
+    data.summary,
+    skills && `Skills: ${skills}`,
+    data.education && `Education: ${data.education}`,
+    data.experience ? `${data.experience} years of experience` : '',
+    data.projects && `Projects: ${data.projects}`,
+    data.certifications && `Certifications: ${data.certifications}`,
+  ].filter(Boolean).join('\n')
 }
 
 function SectionHeader({ icon: Icon, title, color = 'indigo' }) {
@@ -233,6 +251,9 @@ export default function ResumeBuildPage() {
   const resumeBuildData = useStore(s => s.resumeBuildData)
   const setResumeBuildData = useStore(s => s.setResumeBuildData)
   const user = useStore(s => s.user)
+  const jobDescription = useStore(s => s.jobDescription)
+  const selectedModel = useStore(s => s.selectedModel)
+  const setAnalysisResult = useStore(s => s.setAnalysisResult)
   const location = useLocation()
 
   // Determine if user has existing data (even if not logged in, we check local store)
@@ -278,6 +299,8 @@ export default function ResumeBuildPage() {
   const [showPreview, setShowPreview] = useState(false)
   const [addSkill, setAddSkill] = useState('')
   const [saveStatus, setSaveStatus] = useState('') // '' | 'saving' | 'saved'
+  const [rescoreStatus, setRescoreStatus] = useState('')
+  const [liveScore, setLiveScore] = useState(null)
   const saveTimerRef = useRef(null)
 
   const [data, setData] = useState(() => {
@@ -332,9 +355,27 @@ export default function ResumeBuildPage() {
     saveTimerRef.current = setTimeout(() => {
       setResumeBuildData(newData)
       setSaveStatus('saved')
+      runRescore(newData, { silent: true })
       setTimeout(() => setSaveStatus(''), 2000)
     }, 1000)
-  }, [setResumeBuildData])
+  }, [setResumeBuildData, jobDescription, selectedModel])
+
+  const runRescore = async (nextData = data, options = {}) => {
+    const resumeText = serializeResumeData(nextData)
+    if (!resumeText.trim()) return
+    if (!options.silent) setRescoreStatus('scoring')
+    try {
+      const result = await rescoreResume(resumeText, jobDescription, selectedModel)
+      setLiveScore(result)
+      setAnalysisResult(result)
+      setRescoreStatus('scored')
+      setTimeout(() => setRescoreStatus(''), 2500)
+    } catch (err) {
+      if (!options.silent) {
+        setRescoreStatus(err.response?.data?.detail || err.message || 'Re-score failed')
+      }
+    }
+  }
 
   const update = (field, value) => {
     setData(prev => {
@@ -466,6 +507,9 @@ export default function ResumeBuildPage() {
               <button onClick={() => setPhase('entry')} className="btn-ghost flex items-center gap-1.5 text-xs" id="resume-back-entry-btn">
                 <RefreshCw className="h-3.5 w-3.5" />New
               </button>
+              <button onClick={() => runRescore(data)} className="btn-ghost flex items-center gap-1.5 text-xs" id="rescore-resume-btn">
+                <RefreshCw className={`h-3.5 w-3.5 ${rescoreStatus === 'scoring' ? 'animate-spin' : ''}`} />Score
+              </button>
               <button onClick={() => setShowPreview(!showPreview)} className="btn-ghost flex items-center gap-1.5 text-xs lg:hidden" id="toggle-preview-btn">
                 {showPreview ? <><Pencil className="h-3.5 w-3.5" />Edit</> : <><Eye className="h-3.5 w-3.5" />Preview</>}
               </button>
@@ -474,6 +518,34 @@ export default function ResumeBuildPage() {
               </button>
             </div>
           </div>
+
+          {(liveScore || rescoreStatus) && (
+            <div className="glass-card p-4 space-y-2 border-indigo-500/20">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Live ML Feedback</p>
+                  <p className="text-sm font-bold text-white mt-1">
+                    {liveScore?.display_prediction || liveScore?.predicted_category || 'Waiting for score'}
+                  </p>
+                </div>
+                {liveScore?.confidence_pct != null && (
+                  <div className="text-right">
+                    <p className="text-2xl font-extrabold text-indigo-300">{Math.round(liveScore.confidence_pct)}%</p>
+                    <p className="text-[11px] text-slate-500">confidence</p>
+                  </div>
+                )}
+              </div>
+              {liveScore?.match_score != null && (
+                <p className="text-xs text-slate-400">Job match: <span className="text-emerald-300 font-semibold">{Math.round(liveScore.match_score)}%</span></p>
+              )}
+              {liveScore?.improvement_tips?.length > 0 && (
+                <p className="text-xs text-slate-400">{liveScore.improvement_tips[0]}</p>
+              )}
+              {rescoreStatus && rescoreStatus !== 'scored' && rescoreStatus !== 'scoring' && (
+                <p className="text-xs text-red-400">{rescoreStatus}</p>
+              )}
+            </div>
+          )}
 
           {/* Template selector */}
           <div>

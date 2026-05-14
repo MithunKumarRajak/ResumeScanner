@@ -198,7 +198,7 @@ def classify_resume(text: str) -> Dict[str, Any]:
     """
     latest_bundle, predict_routes = _get_latest_predict_bundle()
     if latest_bundle is not None and predict_routes is not None:
-        processed = predict_routes._preprocess_text(text)
+        processed = predict_routes._preprocess_for_model(text, latest_bundle)
         model_vectorized, _ = predict_routes._build_inference_vector(
             processed, text, latest_bundle
         )
@@ -275,7 +275,7 @@ def preprocess_text(text: str) -> str:
         if latest_bundle.get("model_type") == "advanced_v6":
             processed, _ = predict_routes._preprocess_v6_text(text)
             return processed
-        return predict_routes._preprocess_text(text)
+        return predict_routes._preprocess_for_model(text, latest_bundle)
     if not _models_loaded:
         load_models()
     return _preprocess(text)

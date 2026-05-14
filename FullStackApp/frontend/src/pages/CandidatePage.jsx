@@ -3,13 +3,13 @@ import { ResultPageSkeleton } from '../components/Skeleton'
 import {
   Upload, FileText, X, AlertCircle, ChevronDown, Sparkles,
   ClipboardCheck, GitCompare, FileEdit, BarChart3, ArrowLeft,
-  Loader2, CheckCircle2, AlertTriangle, Send, Users, ChevronDown as ChevronDownIcon, Download
+  Loader2, CheckCircle2, AlertTriangle, Send, Users, ChevronDown as ChevronDownIcon, Download, Save, ShieldCheck
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-hot-toast'
 import ATSScoreCard from '../components/ATSScoreCard'
 import ExperienceTimeline from '../components/ExperienceTimeline'
-import { predictResume, checkATS, extractExperience, sendNotification, uploadResume, generateCoverLetter } from '../services/api'
+import { predictResume, checkATS, extractExperience, sendNotification, uploadResume, generateCoverLetter, saveAnalysisReport } from '../services/api'
 import MatchResultCard from '../components/MatchResultCard'
 import ParsedResumeEditor from '../components/ParsedResumeEditor'
 import { useMatch } from '../hooks/useMatch'
@@ -201,6 +201,71 @@ function ActionCard({ action, onClick }) {
   )
 }
 
+function WorkflowStepper({ phase, activeAction, hasResume, hasJD, isAnalyzing }) {
+  const current = phase === 'input' ? 1 : phase === 'dashboard' ? 2 : isAnalyzing ? 3 : 4
+  const steps = [
+    { id: 1, label: 'Inputs', done: hasResume || hasJD },
+    { id: 2, label: 'Action', done: Boolean(activeAction) },
+    { id: 3, label: 'Analysis', done: phase === 'result' && !isAnalyzing },
+    { id: 4, label: 'Report', done: phase === 'result' && !isAnalyzing },
+  ]
+
+  return (
+    <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {steps.map((step) => {
+          const active = current === step.id
+          const done = step.done || current > step.id
+          return (
+            <div key={step.id} className={`flex items-center gap-3 rounded-xl border px-3 py-2 ${active ? 'border-emerald-500/30 bg-emerald-500/10' : done ? 'border-slate-700 bg-slate-900/70' : 'border-slate-800 bg-slate-900/40'}`}>
+              <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${done ? 'bg-emerald-400 text-black' : active ? 'bg-white text-black' : 'bg-slate-800 text-slate-400'}`}>
+                {done ? <CheckCircle2 className="h-4 w-4" /> : step.id}
+              </span>
+              <span className={`text-sm font-semibold ${active || done ? 'text-white' : 'text-slate-500'}`}>{step.label}</span>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function ReportSummary({ result, atsData, parsedResume }) {
+  if (!result) return null
+  const readiness = result.applyNowReadiness?.label || (result.matchScore >= 70 ? 'Strong match' : result.matchScore >= 40 ? 'Needs tailoring' : 'Needs review')
+  const score = result.matchScore ?? result.confidencePct ?? 0
+
+  return (
+    <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-300">Analysis Report</p>
+          <h2 className="mt-2 text-2xl font-bold text-white">{parsedResume?.name || 'Candidate'} vs target role</h2>
+          <p className="mt-1 text-sm text-slate-400">{result.category || 'Predicted role'} · {result.modelVersion || 'Selected model'}</p>
+        </div>
+        <div className="rounded-xl border border-slate-700 bg-slate-900/70 px-5 py-3 text-right">
+          <p className="text-xs text-slate-500">Overall signal</p>
+          <p className="text-3xl font-bold text-white">{Math.round(score)}%</p>
+        </div>
+      </div>
+      <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="rounded-xl bg-slate-900/70 p-4">
+          <p className="text-xs text-slate-500">Readiness</p>
+          <p className="mt-1 text-sm font-semibold text-white">{readiness}</p>
+        </div>
+        <div className="rounded-xl bg-slate-900/70 p-4">
+          <p className="text-xs text-slate-500">ATS status</p>
+          <p className="mt-1 text-sm font-semibold text-white">{atsData ? `${Math.round(atsData.ats_score)} / 100` : 'Run checker for ATS'}</p>
+        </div>
+        <div className="rounded-xl bg-slate-900/70 p-4">
+          <p className="text-xs text-slate-500">Review flag</p>
+          <p className="mt-1 text-sm font-semibold text-white">{result.needsHumanReview ? 'Manual review suggested' : 'Model result stable'}</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 //  Extract text from uploaded file 
 async function extractFileText(file) {
   if (file.type === 'application/pdf') {
@@ -359,13 +424,15 @@ export default function CandidatePage() {
   
   const [coverLetter, setCoverLetter] = useState(null)
   const [isGeneratingCL, setIsGeneratingCL] = useState(false)
+  const [isSavingReport, setIsSavingReport] = useState(false)
+  const [savedReportId, setSavedReportId] = useState(null)
 
   const navigate = useNavigate()
   const [atsData, setAtsData] = useState(null)
   const [expData, setExpData] = useState(null)
   const [notifMenuOpen, setNotifMenuOpen] = useState(false)
 
-  const hasResume = !!resumeFile
+  const hasResume = !!resumeFile || !!resumeText.trim()
   const hasJD = !!jobDesc.trim()
   const canProcess = hasResume || hasJD
 
@@ -461,16 +528,8 @@ export default function CandidatePage() {
 
   const executeAction = (actionId, rtText, jdText) => {
     setActiveAction(actionId)
+    setSavedReportId(null)
     if (actionId === 'checker' || actionId === 'match' || actionId === 'scores') {
-      if (actionId === 'checker' && !currentResumeId) {
-        const message = 'ATS Checker needs a saved backend resume record. Upload the resume again from the Resume Input panel so the app can create a resume_id.'
-        setCheckerError(message)
-        setExtractError(message)
-        toast.error(message)
-        setPhase('input')
-        setActiveAction(null)
-        return
-      }
       setCheckerError('')
       runMatch({ resumeText: rtText, jobDescription: jdText, modelVersion: selectedModel })
     }
@@ -505,18 +564,30 @@ export default function CandidatePage() {
     ? (missingFor.needs === 'both' && !hasResume) || missingFor.needs === 'resume' ? 'resume' : 'jd'
     : null
 
-  const resetAll = () => { clearAnalysis(); setPhase('input'); setLocalFile(null); setResumeText(''); setJobDesc(''); setActiveAction(null); setAtsData(null); setExpData(null); setCheckerError(''); setExtractError('') }
+  const resetAll = () => {
+    clearAnalysis()
+    setPhase('input')
+    setLocalFile(null)
+    setResumeText('')
+    setJobDesc('')
+    setActiveAction(null)
+    setAtsData(null)
+    setExpData(null)
+    setCheckerError('')
+    setExtractError('')
+    setSavedReportId(null)
+    storeSetCurrentResumeId(null)
+  }
 
   // Fetch Phase 2 data when result phase starts for checker action
   useEffect(() => {
     if (phase === 'result' && activeAction === 'checker') {
       const fetchPhase2Data = async () => {
         try {
-          if (!currentResumeId) throw new Error('Missing resume id')
-          const atsRes = await checkATS(currentResumeId)
+          const atsRes = await checkATS(currentResumeId, resumeText)
           setAtsData(atsRes)
         } catch (e) {
-          // Mock fallback if API requires valid DB record
+          // Mock fallback if the API is unavailable.
           setAtsData({
             ats_score: 65,
             passed: false,
@@ -533,22 +604,12 @@ export default function CandidatePage() {
           const expRes = await extractExperience(currentResumeId)
           setExpData(expRes)
         } catch (e) {
-          // Mock fallback
-          setExpData({
-            total_years: 4.5,
-            work_history: [
-              { title: "Software Engineer", company: "Tech Corp", start_date: "2020-01-01", end_date: new Date().toISOString(), is_current: true },
-              { title: "Junior Developer", company: "Startup Inc", start_date: "2018-06-01", end_date: "2019-12-01", is_current: false }
-            ],
-            career_gaps: [
-              { gap_start: "2019-12-01", gap_end: "2020-01-01", gap_days: 31 }
-            ]
-          })
+          setExpData(null)
         }
       }
       fetchPhase2Data()
     }
-  }, [phase, activeAction, currentResumeId])
+  }, [phase, activeAction, currentResumeId, resumeText])
 
 
   const handleExportPDF = async () => {
@@ -579,13 +640,14 @@ export default function CandidatePage() {
     setNotifMenuOpen(false)
     const toastId = toast.loading('Sending email...')
     try {
-      await sendNotification({
-        candidate_email: 'candidate@example.com',
-        notification_type: type,
-        candidate_name: parsedResume?.name || 'Candidate',
-        job_title: parsedResume?.role || 'Applicant'
-      })
-      toast.success(`Email sent to candidate@example.com (${type})`, { id: toastId })
+      await sendNotification(
+        parsedResume?.email || 'candidate@example.com',
+        type,
+        parsedResume?.name || 'Candidate',
+        parsedResume?.role || matchResult?.category || 'Applicant',
+        null,
+      )
+      toast.success(`Email sent to ${parsedResume?.email || 'candidate@example.com'} (${type})`, { id: toastId })
     } catch (e) {
       toast.error('Failed to send email.', { id: toastId })
     }
@@ -609,22 +671,58 @@ export default function CandidatePage() {
     }
   }
 
+  const handleSaveReport = async () => {
+    if (!matchResult) return
+    setIsSavingReport(true)
+    const toastId = toast.loading('Saving analysis report...')
+    try {
+      const report = await saveAnalysisReport({
+        resume_id: currentResumeId || null,
+        title: `${parsedResume?.name || 'Candidate'} analysis`,
+        candidate_name: parsedResume?.name || '',
+        job_title: parsedResume?.role || matchResult.category || '',
+        predicted_category: matchResult.category || '',
+        model_version: matchResult.modelVersion || selectedModel,
+        match_score: matchResult.matchScore,
+        ats_score: atsData?.ats_score ?? null,
+        status: matchResult.needsHumanReview ? 'needs_review' : 'saved',
+        summary: matchResult.recommendation || '',
+        payload: {
+          result: matchResult,
+          ats: atsData,
+          experience: expData,
+          parsed_resume: parsedResume,
+          job_description: jobDesc,
+        },
+      })
+      setSavedReportId(report.id)
+      toast.success('Analysis report saved.', { id: toastId })
+    } catch (err) {
+      toast.error(err?.message || 'Could not save report.', { id: toastId })
+    } finally {
+      setIsSavingReport(false)
+    }
+  }
+
   //  INPUT PHASE 
   if (phase === 'input') return (
-    <div className="min-h-[calc(100vh-64px)] flex flex-col items-center justify-start px-4 sm:px-6 lg:px-8 py-12 overflow-y-auto">
-      <div className="text-center mb-10 animate-slide-up">
-        <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-indigo-500/25 bg-indigo-500/10 px-4 py-1.5">
-          <Sparkles className="h-3.5 w-3.5 text-indigo-400" />
-          <span className="text-xs font-semibold text-indigo-300 tracking-wide">ML-Powered Resume Analysis</span>
+    <div className="min-h-[calc(100vh-64px)] flex flex-col items-center justify-start px-4 sm:px-6 lg:px-8 py-8 overflow-y-auto">
+      <div className="w-full max-w-5xl mb-8">
+        <WorkflowStepper phase={phase} activeAction={activeAction} hasResume={hasResume} hasJD={hasJD} isAnalyzing={isAnalyzing} />
+      </div>
+      <div className="text-center mb-8 animate-slide-up">
+        <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-4 py-1.5">
+          <ShieldCheck className="h-3.5 w-3.5 text-emerald-300" />
+          <span className="text-xs font-semibold text-emerald-300 tracking-wide">Candidate Analysis Workflow</span>
         </div>
         <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white mb-3">
-          Scan, Match & <span className="gradient-text">Optimize</span>
+          Analyze, Match & Improve
         </h1>
         <p className="max-w-lg mx-auto text-sm sm:text-base text-slate-400 leading-relaxed">
           Upload your resume, paste a job description, or both — then let our AI do the heavy lifting.
         </p>
       </div>
-      <div className="w-full max-w-4xl animate-slide-up" style={{ animationDelay: '0.1s' }}>
+      <div className="w-full max-w-5xl animate-slide-up" style={{ animationDelay: '0.1s' }}>
         <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-0 items-stretch">
           <div className="glass-card p-6 space-y-4 rounded-b-none md:rounded-b-[20px] md:rounded-r-none">
             <div className="flex items-center gap-2"><FileText className="h-5 w-5 text-indigo-400" /><h2 className="text-base font-bold text-white">Resume Input</h2></div>
@@ -656,6 +754,9 @@ export default function CandidatePage() {
   //  DASHBOARD PHASE 
   if (phase === 'dashboard') return (
     <div className="min-h-[calc(100vh-64px)] flex flex-col items-center px-4 sm:px-6 lg:px-8 py-12">
+      <div className="w-full max-w-5xl mb-8">
+        <WorkflowStepper phase={phase} activeAction={activeAction} hasResume={hasResume} hasJD={hasJD} isAnalyzing={isAnalyzing} />
+      </div>
       <div className="w-full max-w-3xl mb-8 animate-fade-in">
         <button onClick={() => setPhase('input')} className="btn-ghost flex items-center gap-2" id="dashboard-back-btn"><ArrowLeft className="h-4 w-4" /> Back to Input</button>
       </div>
@@ -679,16 +780,18 @@ export default function CandidatePage() {
 
   //  RESULT PHASE 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-8 max-w-3xl mx-auto space-y-6">
+    <div className="px-4 sm:px-6 lg:px-8 py-8 max-w-5xl mx-auto space-y-6">
+      <WorkflowStepper phase={phase} activeAction={activeAction} hasResume={hasResume} hasJD={hasJD} isAnalyzing={isAnalyzing} />
       <button onClick={() => setPhase('dashboard')} className="btn-ghost flex items-center gap-2" id="result-back-btn"><ArrowLeft className="h-4 w-4" /> Back to Actions</button>
 
       {(activeAction === 'match' || activeAction === 'scores' || activeAction === 'checker') && (
         isAnalyzing ? (
           <ResultPageSkeleton />
         ) : isError ? (
-          <div className="flex items-start gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /><p>{matchError?.response?.data?.detail || 'Backend API unavailable.'}</p></div>
+          <div className="flex items-start gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /><p>{matchError?.response?.data?.detail || matchError?.message || 'Backend API unavailable.'}</p></div>
         ) : matchResult ? (
           <div id="report-container" className="space-y-6 bg-slate-900 p-6 -mx-6 sm:mx-0 sm:p-4 rounded-2xl">
+            <ReportSummary result={matchResult} atsData={atsData} parsedResume={parsedResume} />
             <MatchResultCard result={matchResult} />
 
             {activeAction === 'checker' && atsData && (
@@ -729,11 +832,20 @@ export default function CandidatePage() {
                   if (parsedResume) {
                     sessionStorage.setItem('rs_resume_builder_data', JSON.stringify(parsedResume))
                   }
-                  navigate('/resume-build')
+                  navigate('/editor')
                 }}
                 className="btn-secondary flex items-center gap-2"
               >
-                <FileText className="h-4 w-4" /> Edit in Builder
+                <FileText className="h-4 w-4" /> Edit Resume
+              </button>
+
+              <button
+                onClick={handleSaveReport}
+                disabled={isSavingReport || Boolean(savedReportId)}
+                className="btn-secondary flex items-center gap-2"
+              >
+                {isSavingReport ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                {savedReportId ? 'Report Saved' : 'Save Report'}
               </button>
 
               <button

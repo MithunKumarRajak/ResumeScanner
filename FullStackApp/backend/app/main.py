@@ -14,6 +14,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.config import settings
 from app.database.base import Base
@@ -24,6 +25,7 @@ import app.models  # noqa: F401  (triggers __init__.py)
 
 #  Routes
 from app.routes import auth, resume, job, match, recommend, dashboard, candidate, analytics, ai, predict
+from app.routes import analyses, status as status_routes
 from app.routes import ats_checker, experience, compare, bulk, notifications, advanced
 
 logging.basicConfig(
@@ -42,8 +44,18 @@ async def lifespan(app: FastAPI):
     logger.info("🚀 Starting Resume Screener API v2")
 
     # Create all DB tables (idempotent — does nothing if they exist)
-    Base.metadata.create_all(bind=engine)
-    logger.info(" Database tables ready")
+    app.state.db_available = False
+    app.state.db_error = None
+    try:
+        Base.metadata.create_all(bind=engine)
+        app.state.db_available = True
+        logger.info(" Database tables ready")
+    except SQLAlchemyError as exc:
+        app.state.db_error = str(exc)
+        logger.warning(
+            "Database unavailable at startup; API will continue with DB-backed routes degraded: %s",
+            exc,
+        )
 
     # Ensure upload directory exists
     os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
@@ -95,6 +107,7 @@ Production-ready backend with:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.ALLOWED_ORIGINS,
+    allow_origin_regex=settings.LOCAL_CORS_ORIGIN_REGEX,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -111,6 +124,8 @@ app.include_router(candidate.router)
 app.include_router(analytics.router)
 app.include_router(ai.router)
 app.include_router(predict.router)
+app.include_router(status_routes.router)
+app.include_router(analyses.router)
 
 #  Phase-2 routers
 app.include_router(ats_checker.router)
@@ -141,12 +156,12 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 
 @app.get("/health", tags=["System"])
-def health():
+def health(request: Request):
     """Liveness check — returns 200 when the server is running."""
     return {
         "status":  "ok",
         "version": settings.APP_VERSION,
-        "db":      "postgresql",
+        "db":      "ok" if getattr(request.app.state, "db_available", False) else "degraded",
     }
 
 

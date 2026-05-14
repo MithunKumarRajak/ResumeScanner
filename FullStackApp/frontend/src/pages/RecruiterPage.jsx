@@ -1,6 +1,8 @@
 import { Users, TrendingUp, Cpu, RefreshCw } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 import CandidateTable from '../components/CandidateTable'
 import useStore from '../store'
+import { getAnalysisReports } from '../services/api'
 
 function StatCard({ icon: Icon, label, value, accent }) {
   return (
@@ -18,6 +20,11 @@ function StatCard({ icon: Icon, label, value, accent }) {
 
 export default function RecruiterPage() {
   const candidates = useStore((s) => s.candidates)
+  const { data: reports = [], isLoading: reportsLoading } = useQuery({
+    queryKey: ['analysis-reports'],
+    queryFn: getAnalysisReports,
+    staleTime: 60 * 1000,
+  })
 
   const avg = candidates.length
     ? Math.round(candidates.reduce((a, c) => a + c.matchScore, 0) / candidates.length)
@@ -46,12 +53,12 @@ export default function RecruiterPage() {
       </div>
 
       {/* Stats Row */}
-      {candidates.length > 0 && (
+      {(candidates.length > 0 || reports.length > 0) && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 animate-fade-in">
           <StatCard
             icon={Users}
             label="Total Candidates"
-            value={candidates.length}
+            value={Math.max(candidates.length, reports.length)}
             accent="bg-indigo-500/15 text-indigo-400"
           />
           <StatCard
@@ -92,8 +99,57 @@ export default function RecruiterPage() {
         <CandidateTable />
       </div>
 
+      <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-5 animate-slide-up" style={{ animationDelay: '0.2s' }}>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-bold text-white">Saved Analysis Reports</h2>
+            <p className="text-sm text-slate-400">Reports saved from the candidate workflow for signed-in users.</p>
+          </div>
+          <span className="rounded-full border border-slate-700 bg-slate-900 px-3 py-1 text-xs text-slate-400">
+            {reportsLoading ? 'Loading...' : `${reports.length} saved`}
+          </span>
+        </div>
+
+        {reports.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Candidate</th>
+                  <th>Role</th>
+                  <th>Match</th>
+                  <th>ATS</th>
+                  <th>Status</th>
+                  <th>Saved</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reports.slice(0, 8).map((report) => (
+                  <tr key={report.id}>
+                    <td>{report.candidate_name || 'Candidate'}</td>
+                    <td>{report.predicted_category || report.job_title || 'Unknown'}</td>
+                    <td>{typeof report.match_score === 'number' ? `${Math.round(report.match_score)}%` : 'N/A'}</td>
+                    <td>{typeof report.ats_score === 'number' ? Math.round(report.ats_score) : 'N/A'}</td>
+                    <td>
+                      <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${report.status === 'needs_review' ? 'bg-amber-500/10 text-amber-300' : 'bg-emerald-500/10 text-emerald-300'}`}>
+                        {report.status === 'needs_review' ? 'Needs Review' : 'Saved'}
+                      </span>
+                    </td>
+                    <td>{new Date(report.created_at).toLocaleDateString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-dashed border-slate-700 p-6 text-center text-sm text-slate-400">
+            Save a report from the Candidate workflow to build persistent recruiter history.
+          </div>
+        )}
+      </div>
+
       {/* Help tip when empty */}
-      {candidates.length === 0 && (
+      {candidates.length === 0 && reports.length === 0 && (
         <div className="glass-card p-8 text-center space-y-3 animate-fade-in">
           <div className="flex items-center justify-center gap-2 text-indigo-400 mb-2">
             <RefreshCw className="h-5 w-5" />

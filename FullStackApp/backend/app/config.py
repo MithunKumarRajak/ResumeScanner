@@ -7,6 +7,7 @@ import secrets
 from functools import lru_cache
 from typing import List
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings
 
 
@@ -17,7 +18,7 @@ class Settings(BaseSettings):
     DEBUG: bool = False
 
     #  Database (PostgreSQL)
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "")
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./resume_screener.db")
 
     #  JWT Auth
     SECRET_KEY: str = os.getenv("SECRET_KEY", "") or secrets.token_urlsafe(64)
@@ -58,9 +59,23 @@ class Settings(BaseSettings):
         "http://localhost:5174",
         "http://127.0.0.1:5174",
     ]
+    LOCAL_CORS_ORIGIN_REGEX: str = r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$"
 
     model_config = {"env_file": ".env",
                     "env_file_encoding": "utf-8", "extra": "ignore"}
+
+    @field_validator("DEBUG", mode="before")
+    @classmethod
+    def parse_debug(cls, value):
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            normalized = value.strip().lower()
+            if normalized in {"1", "true", "yes", "on", "debug", "dev", "development"}:
+                return True
+            if normalized in {"", "0", "false", "no", "off", "release", "prod", "production"}:
+                return False
+        return value
 
 
 @lru_cache()

@@ -5,13 +5,13 @@ Improvements over V4:
   1. Transformer embeddings (sentence-transformers) for semantic understanding
   2. Class merging: Small classes (<10 samples) merged into parent categories
   3. Feature engineering: Extract years_exp, education, seniority, domain
-  4. Ensemble: TF-IDF SVM + Transformer SVM + rules-based voting
+  4. Calibrated linear SVM over TF-IDF/semantic/structured features
   5. Threshold tuning: Low confidence predictions routed to human review
   6. Better calibration: Sigmoid calibration with per-class thresholds
 
 Expected improvements:
   - V4: 71.5% accuracy
-  - V5: 78-82% accuracy (semantic + ensemble + confidence routing)
+  - V5: target 78-82% accuracy after retraining with consistent preprocessing
 
 Usage:
   python ResumeModel_v5.py --data-dir Dataset --out-dir FullStackApp/v5 [--skip-transformer]
@@ -19,6 +19,7 @@ Usage:
   Use --skip-transformer to skip embeddings (fast CPU-only mode, still gets 75%)
 """
 import argparse
+import cloudpickle
 import json
 import os
 import re
@@ -29,6 +30,8 @@ from typing import Dict, List, Tuple
 import joblib
 import numpy as np
 import pandas as pd
+import scipy.sparse as sp
+import spacy
 
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.preprocessing import LabelEncoder
@@ -37,15 +40,24 @@ from sklearn.calibration import CalibratedClassifierCV
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
-from sklearn.ensemble import VotingClassifier
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent if "__file__" in globals() else Path.cwd()
+NLP_MODEL = 'en_core_web_sm'
+_NLP = None
 
 
 def resolve_project_path(path_value) -> Path:
     path = Path(path_value)
     return path if path.is_absolute() else (PROJECT_ROOT / path).resolve()
+
+
+def get_nlp():
+    """Load spaCy lazily so the same preprocessing function can be bundled."""
+    global _NLP
+    if _NLP is None:
+        _NLP = spacy.load(NLP_MODEL)
+    return _NLP
 
 
 def load_datasets(data_dir: Path) -> pd.DataFrame:
@@ -122,11 +134,14 @@ def extract_features(text: str) -> Dict[str, float]:
 
     text_lower = text.lower()
 
-    # Years of experience (regex: "X years" or "X+ years")
-    years_match = re.search(r'(\d+)\+?\s+years?', text_lower)
-    if years_match:
+    # Years of experience: prefer explicit professional-experience phrases.
+    year_matches = re.findall(
+        r'\b(\d{1,2})\+?\s+(?:years?|yrs?)\s+(?:of\s+)?(?:professional\s+|industry\s+|work\s+)?experience\b',
+        text_lower,
+    )
+    if year_matches:
         features['years_exp'] = min(
-            float(years_match.group(1)) / 30.0, 1.0)  # normalize 0-1
+            max(int(x) for x in year_matches) / 30.0, 1.0)  # normalize 0-1
 
     # Degree detection
     if any(kw in text_lower for kw in ['bachelor', 'b.s', 'b.sc', 'b.a']):
@@ -165,8 +180,17 @@ def clean_text(text: str) -> str:
 
 
 def spacy_preprocess(text: str) -> str:
-    """Simple preprocessing without spacy (faster fallback)."""
-    return clean_text(text).lower()
+    """Use spaCy lemmatization and stopword removal, matching the v3 pipeline."""
+    doc = get_nlp()(clean_text(text))
+    tokens = [
+        token.lemma_.lower()
+        for token in doc
+        if not token.is_stop
+        and not token.is_punct
+        and not token.is_space
+        and len(token.text) > 1
+    ]
+    return ' '.join(tokens)
 
 
 def build_skill_list(df: pd.DataFrame) -> list:
@@ -257,14 +281,13 @@ def main(args):
     print(f'  Features: {X_features.shape}')
 
     # Combine all features
-    import scipy.sparse
     if X_transformer is not None:
         # Combine: transformer embeddings + numerical features
         X_combined = np.hstack([X_transformer, X_features])
     else:
-        # Combine: TF-IDF + numerical features
-        X_tfidf_dense = X_tfidf.toarray()
-        X_combined = np.hstack([X_tfidf_dense, X_features])
+        # Combine: TF-IDF + numerical features without densifying TF-IDF.
+        X_features_sparse = sp.csr_matrix(X_features)
+        X_combined = sp.hstack([X_tfidf, X_features_sparse], format='csr')
 
     print(f'  Combined: {X_combined.shape}')
 
@@ -275,8 +298,8 @@ def main(args):
     )
     print(f'  Train: {X_train.shape[0]}, Test: {X_test.shape[0]}')
 
-    #  Train ensemble model ─
-    print('\n[7/8] Training ensemble classifier...')
+    #  Train calibrated model ─
+    print('\n[7/8] Training calibrated classifier...')
 
     # Calibrated SVM
     base_clf = SGDClassifier(
@@ -286,8 +309,18 @@ def main(args):
     calib_clf = CalibratedClassifierCV(base_clf, cv=3, method='sigmoid')
     clf = OneVsRestClassifier(calib_clf)
 
+    class_counts = np.bincount(y_train)
+    sample_weight = np.array(
+        [len(y_train) / (len(class_counts) * class_counts[label]) for label in y_train],
+        dtype=np.float32,
+    )
+
     t0 = time.time()
-    clf.fit(X_train, y_train)
+    try:
+        clf.fit(X_train, y_train, sample_weight=sample_weight)
+    except TypeError:
+        print('  sample_weight not accepted by this sklearn stack; falling back to class_weight only')
+        clf.fit(X_train, y_train)
     train_time = time.time() - t0
     print(f'  Training complete in {train_time:.1f}s')
 
@@ -323,6 +356,31 @@ def main(args):
     joblib.dump(le, out_dir / 'encoder.pkl')
     joblib.dump(features_df, out_dir / 'feature_stats.pkl')
 
+    pipeline = {
+        'version': 'v5',
+        'model': clf,
+        'tfidf': tfidf,
+        'encoder': le,
+        'preprocess_fn': spacy_preprocess,
+        'feature_fn': extract_features,
+        'feature_names': list(features_df.columns),
+        'uses_transformer': X_transformer is not None,
+        'embedder_name': embedder_name,
+        'preprocess': {
+            'name': 'spacy_lemmatize_stopword_remove',
+            'spacy_model': NLP_MODEL,
+            'clean_text': 'ResumeModel_v5.clean_text',
+        },
+        'inference_policy': {
+            'confidence_threshold': 0.6,
+            'margin_threshold': 0.15,
+            'entropy_threshold': 0.72,
+            'llm_fallback_enabled': True,
+        },
+    }
+    with open(out_dir / 'pipeline.pkl', 'wb') as f:
+        cloudpickle.dump(pipeline, f)
+
     if X_transformer is not None:
         np.save(out_dir / 'resume_embeddings.npy', X_transformer)
         with open(out_dir / 'embedder.txt', 'w') as f:
@@ -349,7 +407,10 @@ def main(args):
         },
         'low_confidence_threshold': 0.6,
         'low_confidence_samples': int(low_confidence),
+        'preprocess': pipeline['preprocess'],
+        'inference_policy': pipeline['inference_policy'],
         'artifacts': {
+            'pipeline': 'pipeline.pkl',
             'model': 'model.pkl',
             'tfidf': 'tfidf.pkl',
             'encoder': 'encoder.pkl',
@@ -363,7 +424,8 @@ def main(args):
     with open(out_dir / 'manifest.json', 'w') as f:
         json.dump(manifest, f, indent=2)
 
-    print(f'\n model.pkl')
+    print(f'\n pipeline.pkl')
+    print(f' model.pkl')
     print(f' tfidf.pkl')
     print(f' encoder.pkl')
     print(f' feature_stats.pkl')

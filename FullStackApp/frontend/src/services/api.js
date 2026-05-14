@@ -1,7 +1,14 @@
 import axios from 'axios'
 
+const configuredApiUrl = (import.meta.env.VITE_API_URL || '').trim()
+const API_BASE_URL = (
+  configuredApiUrl && !configuredApiUrl.includes('your-railway-domain')
+    ? configuredApiUrl
+    : (import.meta.env.DEV ? '/backend-api' : 'http://127.0.0.1:8000')
+)
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
+  baseURL: API_BASE_URL,
   timeout: 60000,
   withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
@@ -34,7 +41,7 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       const requestUrl = error.config?.url || '';
-      const guestEndpoints = ['/predict', '/models', '/upload-resume', '/extract-resume'];
+      const guestEndpoints = ['/predict', '/models', '/upload-resume', '/extract-resume', '/api/ats/check'];
       const isGuestAllowed = guestEndpoints.some((ep) => requestUrl.includes(ep));
 
       if (!isGuestAllowed) {
@@ -44,9 +51,10 @@ api.interceptors.response.use(
     }
     
     // Normalize error message
+    const isNetworkError = !error.response
     const message = error.response?.data?.detail 
-                 || error.response?.data?.message 
-                 || error.message 
+                 || error.response?.data?.message
+                 || (isNetworkError ? `Cannot reach backend API at ${API_BASE_URL}. Make sure the FastAPI server is running on port 8000.` : error.message)
                  || 'An unexpected API error occurred'
     
     error.message = typeof message === 'string' ? message : JSON.stringify(message)
@@ -73,12 +81,29 @@ export async function predictResume(resumeText, jobDescription = '', modelVersio
   return data
 }
 
+export async function rescoreResume(editedResumeText, jobDescription = '', modelVersion = '') {
+  const payload = { edited_resume_text: editedResumeText }
+  if (jobDescription && jobDescription.trim()) {
+    payload.job_description = jobDescription
+  }
+  if (modelVersion && String(modelVersion).trim()) {
+    payload.model_version = modelVersion
+  }
+  const { data } = await api.post('/api/rescore', payload)
+  return data
+}
+
 /**
  * Fetch available model versions and metadata from backend.
  */
 export async function getModels() {
   const { data } = await api.get('/models')
   return data || { default_model: '', models: [] }
+}
+
+export async function getApiStatus() {
+  const { data } = await api.get('/api/status', { timeout: 10000 })
+  return data
 }
 
 /**
@@ -257,8 +282,11 @@ export async function uploadResume(file) {
 
 //  Phase 2 APIs 
 
-export async function checkATS(resumeId) {
-  const { data } = await api.post('/api/ats/check', { resume_id: resumeId })
+export async function checkATS(resumeId, resumeText = '') {
+  const payload = {}
+  if (resumeId) payload.resume_id = resumeId
+  if (resumeText && resumeText.trim()) payload.resume_text = resumeText
+  const { data } = await api.post('/api/ats/check', payload)
   return data
 }
 
@@ -297,6 +325,26 @@ export async function generateCoverLetter(resumeText, jobDescription, tone = "Pr
     job_description: jobDescription,
     tone: tone
   })
+  return data
+}
+
+export async function saveAnalysisReport(report) {
+  const { data } = await api.post('/api/analyses', report)
+  return data
+}
+
+export async function getAnalysisReports() {
+  const { data } = await api.get('/api/analyses')
+  return data
+}
+
+export async function getAnalysisReport(reportId) {
+  const { data } = await api.get(`/api/analyses/${reportId}`)
+  return data
+}
+
+export async function deleteAnalysisReport(reportId) {
+  const { data } = await api.delete(`/api/analyses/${reportId}`)
   return data
 }
 

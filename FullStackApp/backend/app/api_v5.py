@@ -5,6 +5,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import joblib
 import numpy as np
+import scipy.sparse as sp
 from pathlib import Path
 import re
 
@@ -21,6 +22,10 @@ FEATURE_STATS = None
 EMBEDDINGS = None
 EMBEDDER_NAME = None
 SKILLS = None
+PIPELINE = None
+PREPROCESS_FN = None
+FEATURE_FN = None
+FEATURE_NAMES = None
 
 
 class TextPayload(BaseModel):
@@ -46,9 +51,12 @@ def extract_features(text: str) -> dict:
     text_lower = text.lower()
 
     # Years of experience
-    years_match = re.search(r'(\d+)\+?\s+years?', text_lower)
-    if years_match:
-        features['years_exp'] = min(float(years_match.group(1)) / 30.0, 1.0)
+    year_matches = re.findall(
+        r'\b(\d{1,2})\+?\s+(?:years?|yrs?)\s+(?:of\s+)?(?:professional\s+|industry\s+|work\s+)?experience\b',
+        text_lower,
+    )
+    if year_matches:
+        features['years_exp'] = min(max(int(x) for x in year_matches) / 30.0, 1.0)
 
     # Education
     if any(kw in text_lower for kw in ['bachelor', 'b.s', 'b.sc', 'b.a']):
@@ -74,14 +82,27 @@ def extract_features(text: str) -> dict:
 @app.on_event('startup')
 def load_artifacts():
     global MODEL, TFIDF, ENCODER, FEATURE_STATS, EMBEDDINGS, EMBEDDER_NAME, SKILLS
+    global PIPELINE, PREPROCESS_FN, FEATURE_FN, FEATURE_NAMES
     base = ARTIFACT_DIR
     if not base.exists():
         base = Path.cwd() / 'FullStackApp' / 'v5'
 
     try:
-        MODEL = joblib.load(base / 'model.pkl')
-        TFIDF = joblib.load(base / 'tfidf.pkl')
-        ENCODER = joblib.load(base / 'encoder.pkl')
+        pipeline_path = base / 'pipeline.pkl'
+        if pipeline_path.exists():
+            import cloudpickle
+            with open(pipeline_path, 'rb') as f:
+                PIPELINE = cloudpickle.load(f)
+            MODEL = PIPELINE['model']
+            TFIDF = PIPELINE['tfidf']
+            ENCODER = PIPELINE['encoder']
+            PREPROCESS_FN = PIPELINE.get('preprocess_fn')
+            FEATURE_FN = PIPELINE.get('feature_fn')
+            FEATURE_NAMES = PIPELINE.get('feature_names')
+        else:
+            MODEL = joblib.load(base / 'model.pkl')
+            TFIDF = joblib.load(base / 'tfidf.pkl')
+            ENCODER = joblib.load(base / 'encoder.pkl')
         FEATURE_STATS = joblib.load(base / 'feature_stats.pkl')
     except Exception as e:
         raise RuntimeError(f'Failed loading V5 artifacts from {base}: {e}')
@@ -97,6 +118,23 @@ def load_artifacts():
             base / 'skills.txt').read_text().splitlines() if s.strip()]
 
 
+def preprocess_for_v5(text: str) -> str:
+    if callable(PREPROCESS_FN):
+        return PREPROCESS_FN(text)
+    return spacy_preprocess(clean_text(text))
+
+
+def features_for_v5(text: str) -> dict:
+    if callable(FEATURE_FN):
+        return FEATURE_FN(text)
+    return extract_features(text)
+
+
+def feature_vector_for_v5(features: dict) -> np.ndarray:
+    names = FEATURE_NAMES or list(features.keys())
+    return np.array([[features[name] for name in names]], dtype=np.float32)
+
+
 @app.post('/v5/predict-category')
 def predict(payload: TextPayload):
     """Predict resume category with confidence and low-confidence routing."""
@@ -104,15 +142,19 @@ def predict(payload: TextPayload):
         raise HTTPException(status_code=500, detail='V5 model not loaded')
 
     # Preprocess
-    text = spacy_preprocess(clean_text(payload.resume_text))
+    text = preprocess_for_v5(payload.resume_text)
 
     # Extract features
-    feats = extract_features(payload.resume_text)
-    feats_vec = np.array([list(feats.values())])
+    feats = features_for_v5(payload.resume_text)
+    feats_vec = feature_vector_for_v5(feats)
 
     # Build combined feature vector
-    X_tfidf = TFIDF.transform([text]).toarray()
-    X_combined = np.hstack([X_tfidf, feats_vec])
+    X_tfidf = TFIDF.transform([text])
+    expected_dim = int(getattr(MODEL, 'n_features_in_', X_tfidf.shape[1] + feats_vec.shape[1]))
+    if expected_dim == X_tfidf.shape[1]:
+        X_combined = X_tfidf
+    else:
+        X_combined = sp.hstack([X_tfidf, sp.csr_matrix(feats_vec)], format='csr')
 
     # Predict
     pred = MODEL.predict(X_combined)[0]
@@ -163,8 +205,8 @@ def match(payload: MatchPayload):
     """Resume-to-job matching with overlap analysis."""
     from sklearn.metrics.pairwise import cosine_similarity
 
-    r = spacy_preprocess(clean_text(payload.resume_text))
-    j = spacy_preprocess(clean_text(payload.job_description))
+    r = preprocess_for_v5(payload.resume_text)
+    j = preprocess_for_v5(payload.job_description)
 
     Xr = TFIDF.transform([r])
     Xj = TFIDF.transform([j])
@@ -190,7 +232,7 @@ def match(payload: MatchPayload):
 def extract(payload: TextPayload):
     """Extract and normalize skills with context."""
     text = payload.resume_text
-    tokens = spacy_preprocess(clean_text(text)).split()
+    tokens = preprocess_for_v5(text).split()
 
     # Find skills in tokens
     found_skills = []

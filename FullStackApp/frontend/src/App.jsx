@@ -8,6 +8,7 @@ import HomePage from './pages/HomePage'
 import CandidatePage from './pages/CandidatePage'
 import RecruiterPage from './pages/RecruiterPage'
 import ResumeBuildPage from './pages/ResumeBuildPage'
+import EditorPage from './pages/Editor/EditorPage'
 import AIGeneratorPage from './pages/AIGeneratorPage'
 import ProfilePage from './pages/ProfilePage'
 import CompareView from './pages/CompareView'
@@ -21,7 +22,7 @@ import { AboutPage, PrivacyPage, TermsPage, ContactPage, DocsPage } from './page
 
 export default function App() {
   const location = useLocation()
-  const isEditorPage = location.pathname === '/resume-build' || location.pathname === '/ai-generator'
+  const isEditorPage = location.pathname === '/resume-build' || location.pathname === '/editor' || location.pathname === '/ai-generator'
   const [searchOpen, setSearchOpen] = useState(false)
 
   const openSearch = useCallback(() => setSearchOpen(true), [])
@@ -50,6 +51,7 @@ export default function App() {
             <Route path="/candidate" element={<CandidatePage />} />
             <Route path="/recruiter" element={<RecruiterPage />} />
             <Route path="/resume-build" element={<ResumeBuildPage />} />
+            <Route path="/editor" element={<EditorPage />} />
             <Route path="/ai-generator" element={<AIGeneratorPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />

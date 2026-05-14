@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { ScanLine, LogIn, LogOut, User, ChevronDown, Home, Cpu, Users, FileEdit, Wand2, Menu, X, UploadCloud, Columns, Search } from 'lucide-react'
 import DarkModeToggle from './DarkModeToggle'
 import useStore from '../store'
+import { useApiStatus } from '../hooks/useApiStatus'
 
 export default function Navbar({ onSearch }) {
   const user           = useStore((s) => s.user)
@@ -13,6 +14,7 @@ export default function Navbar({ onSearch }) {
   const location       = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const { data: apiStatus, isError: apiOffline } = useApiStatus()
 
   const handleLogoClick = () => {
     clearAnalysis()
@@ -23,7 +25,7 @@ export default function Navbar({ onSearch }) {
     { to: '/',            label: 'Home',         icon: Home,        showTo: ['all', 'candidate', 'recruiter'] },
     { to: '/candidate',   label: 'Candidate',    icon: Cpu,         showTo: ['all', 'candidate'] },
     { to: '/recruiter',   label: 'Recruiter',    icon: Users,       showTo: ['all', 'recruiter'] },
-    { to: '/resume-build', label: 'Resume Build', icon: FileEdit,    showTo: ['candidate'] },
+    { to: '/editor', label: 'Resume Editor', icon: FileEdit,    showTo: ['candidate'] },
     { to: '/ai-generator',  label: 'AI Generator',  icon: Wand2,       showTo: ['recruiter'] },
     { to: '/bulk-upload', label: 'Bulk Upload',  icon: UploadCloud, showTo: ['recruiter'] },
     { to: '/compare',     label: 'Compare',      icon: Columns,     showTo: ['recruiter'] },
@@ -79,6 +81,20 @@ export default function Navbar({ onSearch }) {
 
         {/* Right side */}
         <div className="flex items-center gap-2">
+          <div
+            className={`hidden md:flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold ${
+              apiOffline
+                ? 'border-red-500/25 bg-red-500/10 text-red-300'
+                : apiStatus?.database === 'degraded'
+                  ? 'border-amber-500/25 bg-amber-500/10 text-amber-300'
+                  : 'border-emerald-500/25 bg-emerald-500/10 text-emerald-300'
+            }`}
+            title={apiOffline ? 'Backend API offline' : `Backend ${apiStatus?.status || 'online'}, DB ${apiStatus?.database || 'unknown'}`}
+          >
+            <span className={`h-2 w-2 rounded-full ${apiOffline ? 'bg-red-400' : apiStatus?.database === 'degraded' ? 'bg-amber-400' : 'bg-emerald-400'}`} />
+            {apiOffline ? 'API Offline' : apiStatus?.database === 'degraded' ? 'API Degraded' : 'API Online'}
+          </div>
+
           {/* Search trigger */}
           <button
             onClick={onSearch}

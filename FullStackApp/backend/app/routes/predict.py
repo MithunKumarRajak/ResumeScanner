@@ -9,6 +9,7 @@ from app.services.common import get_top_tfidf_terms as _get_top_tfidf_terms
 from app.services.common import preprocess_text as _common_preprocess
 from app.services.common import clean_text as _clean_text
 from pathlib import Path
+import json
 import os
 import spacy
 import joblib
@@ -19,6 +20,7 @@ import sys
 from typing import Optional, List, Dict
 
 import numpy as np
+import scipy.sparse as sp
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, ConfigDict
 from sklearn.metrics.pairwise import cosine_similarity
@@ -39,6 +41,14 @@ class ResumeInput(BaseModel):
     model_config = ConfigDict(protected_namespaces=())
 
     resume_text: str
+    job_description: Optional[str] = None
+    model_version: Optional[str] = None
+
+
+class RescoreInput(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+
+    edited_resume_text: str
     job_description: Optional[str] = None
     model_version: Optional[str] = None
 
@@ -77,6 +87,9 @@ class PredictionOutput(BaseModel):
     match_score: Optional[float] = None
     resume_top_terms: Optional[List[str]] = None
     jd_top_terms: Optional[List[str]] = None
+    llm_fallback: Optional[Dict[str, object]] = None
+    llm_category: Optional[str] = None
+    llm_reason: Optional[str] = None
 
 
 #  Multi-model support (same as original main.py)
@@ -160,13 +173,30 @@ def _load_single_model(version_id: str, model_dir: str):
     artifacts = {}
     try:
         model_root = (base / model_dir).resolve()
+        pipeline_path = model_root / "pipeline.pkl"
         model_path = model_root / "model.pkl"
         tfidf_path = model_root / "tfidf.pkl"
         encoder_path = model_root / "encoder.pkl"
 
-        artifacts["model"] = joblib.load(model_path)
-        artifacts["tfidf"] = joblib.load(tfidf_path)
-        artifacts["label_encoder"] = joblib.load(encoder_path)
+        if pipeline_path.exists():
+            import cloudpickle
+            with open(pipeline_path, "rb") as f:
+                pipeline = cloudpickle.load(f)
+            artifacts["pipeline"] = pipeline
+            artifacts["model"] = pipeline["model"]
+            artifacts["tfidf"] = pipeline["tfidf"]
+            artifacts["label_encoder"] = pipeline["encoder"]
+            artifacts["preprocess_fn"] = pipeline.get("preprocess_fn")
+            artifacts["feature_fn"] = pipeline.get("feature_fn")
+            artifacts["feature_names"] = pipeline.get("feature_names")
+            artifacts["uses_transformer"] = bool(pipeline.get("uses_transformer"))
+            artifacts["inference_policy"] = pipeline.get("inference_policy") or {}
+            if pipeline.get("embedder_name"):
+                artifacts["embedder_name"] = pipeline["embedder_name"]
+        else:
+            artifacts["model"] = joblib.load(model_path)
+            artifacts["tfidf"] = joblib.load(tfidf_path)
+            artifacts["label_encoder"] = joblib.load(encoder_path)
         artifacts["model_type"] = MODEL_REGISTRY[version_id].get(
             "model_type", "classic_tfidf")
         artifacts["model_dir"] = model_root
@@ -234,6 +264,13 @@ def _resolve_model(version_id: Optional[str] = None):
 
 def _preprocess_text(text: str) -> str:
     return _common_preprocess(text, get_nlp())
+
+
+def _preprocess_for_model(text: str, model_bundle: dict) -> str:
+    preprocess_fn = model_bundle.get("preprocess_fn")
+    if callable(preprocess_fn):
+        return preprocess_fn(text)
+    return _preprocess_text(text)
 
 
 def _preprocess_v6_text(text: str):
@@ -357,12 +394,72 @@ def _build_candidate_guidance(classification: Dict[str, object], resume_terms: l
     }
 
 
+def _llm_fallback_judge(resume_text: str, classification: Dict[str, object]) -> Optional[Dict[str, object]]:
+    """Ask Gemini/Groq to choose among low-confidence model alternatives."""
+    enabled = os.getenv("RESUME_SCANNER_ENABLE_LLM_FALLBACK", "false").strip().lower()
+    if enabled not in {"1", "true", "yes", "on"}:
+        return None
+
+    top_categories = classification.get("top_categories") or []
+    if not top_categories:
+        return None
+
+    allowed = [str(item.get("category")) for item in top_categories[:5] if item.get("category")]
+    if not allowed:
+        return None
+
+    prompt = f"""You are a senior resume classifier. The ML model is uncertain.
+Choose the best category from this allowed list only:
+{json.dumps(allowed)}
+
+Return ONLY valid JSON:
+{{
+  "category": "one allowed category",
+  "confidence": 0.0,
+  "reason": "short reason using resume evidence"
+}}
+
+Resume text:
+{resume_text[:3500]}
+"""
+
+    text = None
+    try:
+        from app.routes import ai as ai_routes
+        model = ai_routes._get_gemini()
+        if model is not None:
+            response = model.generate_content(prompt)
+            text = response.text.strip()
+        if not text:
+            text = ai_routes._call_groq_api(prompt)
+        if not text:
+            return None
+
+        cleaned = ai_routes._clean_ai_json(text)
+        result = json.loads(cleaned)
+        category = str(result.get("category", "")).strip()
+        if category not in allowed:
+            return None
+        return {
+            "category": category,
+            "confidence": float(result.get("confidence") or 0.0),
+            "reason": str(result.get("reason") or "").strip(),
+            "allowed_categories": allowed,
+        }
+    except Exception as exc:
+        logger.warning("LLM fallback judge unavailable: %s", exc)
+        return None
+
+
 def _extract_structured_features(text: str) -> np.ndarray:
     text_lower = text.lower()
     years = 0.0
-    years_match = re.search(r"(\d+)\+?\s+years?", text_lower)
-    if years_match:
-        years = min(float(years_match.group(1)) / 30.0, 1.0)
+    year_matches = re.findall(
+        r"\b(\d{1,2})\+?\s+(?:years?|yrs?)\s+(?:of\s+)?(?:professional\s+|industry\s+|work\s+)?experience\b",
+        text_lower,
+    )
+    if year_matches:
+        years = min(max(int(x) for x in year_matches) / 30.0, 1.0)
 
     has_degree = 1.0 if any(kw in text_lower for kw in [
                             "bachelor", "b.s", "b.sc", "b.a"]) else 0.0
@@ -427,7 +524,16 @@ def _build_inference_vector(processed_text: str, raw_text: str, model_bundle: di
 
     tfidf_vector = tfidf.transform([processed_text])
     tfidf_dim = int(tfidf_vector.shape[1])
-    feature_vector = _extract_structured_features(raw_text)
+    feature_fn = model_bundle.get("feature_fn")
+    if callable(feature_fn):
+        feature_values = feature_fn(raw_text)
+        feature_names = model_bundle.get("feature_names") or list(feature_values.keys())
+        feature_vector = np.array(
+            [[feature_values[name] for name in feature_names]],
+            dtype=np.float32,
+        )
+    else:
+        feature_vector = _extract_structured_features(raw_text)
     feature_dim = int(feature_vector.shape[1])
     expected_dim = int(
         getattr(model, "n_features_in_", tfidf_dim) or tfidf_dim)
@@ -462,7 +568,7 @@ def _build_inference_vector(processed_text: str, raw_text: str, model_bundle: di
         return tfidf_vector, tfidf_vector
 
     if expected_dim == tfidf_dim + feature_dim:
-        hybrid = np.hstack([tfidf_vector.toarray(), feature_vector])
+        hybrid = sp.hstack([tfidf_vector, sp.csr_matrix(feature_vector)], format="csr")
         return hybrid, tfidf_vector
 
     if expected_dim in (384, 390):
@@ -481,6 +587,29 @@ def _build_inference_vector(processed_text: str, raw_text: str, model_bundle: di
     raise RuntimeError(
         f"Unsupported feature shape for model '{model_bundle.get('id', 'unknown')}': "
         f"expected {expected_dim}, tfidf {tfidf_dim}, feature {feature_dim}"
+    )
+
+
+def _classify_with_bundle(text: str, model_bundle: dict) -> Dict[str, object]:
+    processed = _preprocess_for_model(text, model_bundle)
+    model_vectorized, _ = _build_inference_vector(processed, text, model_bundle)
+    model = model_bundle["model"]
+    label_encoder = model_bundle["label_encoder"]
+    prediction = model.predict(model_vectorized)
+    probabilities = model.predict_proba(model_vectorized)[0]
+    predicted_category = label_encoder.inverse_transform(prediction)[0]
+    policy = model_bundle.get("inference_policy")
+    if not policy:
+        policy = classifier_svc._load_inference_policy(
+            str(model_bundle.get("model_dir") or ""))
+    return classifier_svc._build_prediction_payload(
+        predicted_category=predicted_category,
+        probabilities=probabilities,
+        label_encoder=label_encoder,
+        model_version=model_bundle.get("id", "unknown"),
+        model_type=model_bundle.get("model_type"),
+        feature_count=model_bundle.get("input_features"),
+        inference_policy=policy,
     )
 
 
@@ -505,7 +634,7 @@ def predict_resume(input_data: ResumeInput):
             status_code=400, detail="Resume text cannot be empty")
 
     try:
-        classification = classifier_svc.classify_resume(input_data.resume_text)
+        classification = _classify_with_bundle(input_data.resume_text, resolved)
 
         match_score = None
         resume_top_terms = None
@@ -513,7 +642,7 @@ def predict_resume(input_data: ResumeInput):
 
         if input_data.job_description and len(input_data.job_description.strip()) > 0:
             tfidf = resolved["tfidf"]
-            processed_text = _preprocess_text(input_data.resume_text)
+            processed_text = _preprocess_for_model(input_data.resume_text, resolved)
             _, tfidf_vector_for_terms = _build_inference_vector(
                 processed_text, input_data.resume_text, resolved
             )
@@ -521,7 +650,7 @@ def predict_resume(input_data: ResumeInput):
                 processed_jd, _ = _preprocess_v6_text(
                     input_data.job_description)
             else:
-                processed_jd = _preprocess_text(input_data.job_description)
+                processed_jd = _preprocess_for_model(input_data.job_description, resolved)
             jd_vectorized = tfidf.transform([processed_jd])
 
             similarity = cosine_similarity(
@@ -561,8 +690,21 @@ def predict_resume(input_data: ResumeInput):
             response_data["display_prediction"] = response_data.get(
                 "predicted_category")
         else:
-            response_data["prediction_status"] = "review_required"
-            response_data["display_prediction"] = "Manual review required"
+            llm_fallback = _llm_fallback_judge(input_data.resume_text, response_data)
+            if llm_fallback:
+                response_data["llm_fallback"] = llm_fallback
+                response_data["llm_category"] = llm_fallback["category"]
+                response_data["llm_reason"] = llm_fallback.get("reason")
+                response_data["display_prediction"] = llm_fallback["category"]
+                response_data["prediction_status"] = "llm_reviewed"
+                response_data["review_reason"] = (
+                    f"{response_data.get('review_reason') or 'low reliability prediction'}. "
+                    f"LLM fallback selected {llm_fallback['category']}."
+                )
+            else:
+                response_data["prediction_status"] = "review_required"
+                response_data["display_prediction"] = "Manual review required"
+        if not is_reliable and not response_data.get("llm_fallback"):
             if top_categories:
                 suggestions = ", ".join(
                     [str(item.get("category"))
@@ -582,6 +724,18 @@ def predict_resume(input_data: ResumeInput):
             status_code=500, detail=f"Prediction error: {str(e)}")
 
 
+@router.post("/api/rescore", response_model=PredictionOutput)
+def rescore_resume(input_data: RescoreInput):
+    """Re-score edited resume text from the embedded editor."""
+    return predict_resume(
+        ResumeInput(
+            resume_text=input_data.edited_resume_text,
+            job_description=input_data.job_description,
+            model_version=input_data.model_version,
+        )
+    )
+
+
 @router.get("/models")
 def get_models():
     """Return metadata about all registered model versions."""
@@ -595,7 +749,9 @@ def get_models():
         meta = MODEL_REGISTRY[version_id]
         model_root = (base / meta["dir"]).resolve()
         is_available = (
-            model_root / "model.pkl").exists() and (model_root / "tfidf.pkl").exists()
+            (model_root / "pipeline.pkl").exists()
+            or ((model_root / "model.pkl").exists() and (model_root / "tfidf.pkl").exists())
+        )
 
         entry = {
             "id": version_id,

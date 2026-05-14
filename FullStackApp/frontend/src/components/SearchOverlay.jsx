@@ -6,7 +6,7 @@ const PAGES = [
   { path: '/', label: 'Home', desc: 'Landing page', icon: Home, keywords: ['home', 'start', 'landing', 'main'] },
   { path: '/candidate', label: 'Candidate Analysis', desc: 'Upload & analyze your resume', icon: Cpu, keywords: ['candidate', 'upload', 'resume', 'analyze', 'scan', 'pdf', 'docx', 'parse'] },
   { path: '/recruiter', label: 'Recruiter Dashboard', desc: 'View ranked candidates', icon: Users, keywords: ['recruiter', 'dashboard', 'rank', 'hire', 'candidates', 'filter'] },
-  { path: '/resume-build', label: 'Resume Builder', desc: 'Build resume from parsed data', icon: FileEdit, keywords: ['resume', 'build', 'create', 'editor', 'write', 'template'] },
+  { path: '/editor', label: 'Resume Editor', desc: 'Edit and rescore your resume', icon: FileEdit, keywords: ['resume', 'build', 'create', 'editor', 'write', 'template', 'score'] },
   { path: '/ai-generator', label: 'AI Job Description Generator', desc: 'Generate JDs with AI', icon: Wand2, keywords: ['ai', 'generate', 'job', 'description', 'jd', 'gemini', 'groq'] },
   { path: '/bulk-upload', label: 'Bulk Upload', desc: 'Process up to 50 resumes', icon: UploadCloud, keywords: ['bulk', 'batch', 'multiple', 'upload', 'mass'] },
   { path: '/compare', label: 'Compare Candidates', desc: 'Side-by-side comparison', icon: Columns, keywords: ['compare', 'side', 'versus', 'vs', 'comparison'] },

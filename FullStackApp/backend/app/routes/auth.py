@@ -17,11 +17,14 @@ Also exposes the modern JWT endpoints:
   POST /auth/register  — register (returns UserOut)
   POST /auth/token     — OAuth2 form login → JWT
 """
+from app.config import settings
 from typing import Optional
+from datetime import timedelta, datetime
+import hashlib
+import asyncio
 from pydantic import BaseModel
 import json
 import secrets
-from datetime import timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
@@ -29,8 +32,9 @@ from sqlalchemy.orm import Session
 
 from app.database.session import get_db
 from app.models.user import User
+from app.models.password_reset_token import PasswordResetToken
 from app.models.user_data import UserData
-from app.schemas.user import UserCreate, UserOut, Token
+from app.schemas.user import UserCreate, UserOut, Token, ForgotPasswordRequest, ResetPasswordRequest
 from app.schemas.user_data import UserDataCreate
 from app.utils.auth import (
     get_password_hash,
@@ -38,7 +42,7 @@ from app.utils.auth import (
     create_access_token,
     get_current_active_user,
 )
-from app.config import settings
+from app.services.email_service import EmailService
 
 router = APIRouter(tags=["Auth"])
 
@@ -66,13 +70,14 @@ def _clear_auth_cookie(response: Response) -> None:
 @router.post("/auth/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 def register(payload: UserCreate, response: Response, db: Session = Depends(get_db)):
     """Register a new candidate or recruiter account (modern JWT flow)."""
-    if db.query(User).filter(User.email == payload.email).first():
+    email = payload.email.strip().lower()
+    if db.query(User).filter(User.email == email).first():
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Email already registered.",
         )
     user = User(
-        email=payload.email,
+        email=email,
         hashed_password=get_password_hash(payload.password),
         full_name=payload.full_name,
         role=payload.role,
@@ -95,7 +100,8 @@ def login_jwt(
     db: Session = Depends(get_db),
 ):
     """Login with email + password (OAuth2 form). Returns a JWT bearer token."""
-    user = db.query(User).filter(User.email == form_data.username).first()
+    email = form_data.username.strip().lower()
+    user = db.query(User).filter(User.email == email).first()
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -162,6 +168,32 @@ def _make_token(user: User) -> str:
         data={"sub": user.id, "email": user.email},
         expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
     )
+
+
+def _hash_reset_token(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def _build_reset_url(token: str) -> str:
+    return f"{settings.FRONTEND_URL.rstrip('/')}/reset-password?token={token}"
+
+
+def _issue_reset_token(db: Session, user: User) -> tuple[str, PasswordResetToken]:
+    db.query(PasswordResetToken).filter(
+        PasswordResetToken.user_id == user.id,
+        PasswordResetToken.is_used.is_(False),
+    ).delete(synchronize_session=False)
+    raw_token = secrets.token_urlsafe(32)
+    token_row = PasswordResetToken(
+        user_id=user.id,
+        token_hash=_hash_reset_token(raw_token),
+        expires_at=datetime.utcnow() +
+        timedelta(minutes=settings.PASSWORD_RESET_TOKEN_EXPIRE_MINUTES),
+    )
+    db.add(token_row)
+    db.commit()
+    db.refresh(token_row)
+    return raw_token, token_row
 
 
 @router.post("/auth/signup")
@@ -282,6 +314,7 @@ def legacy_change_password(
             status_code=401, detail="Current password is incorrect")
 
     current_user.hashed_password = get_password_hash(req.new_password)
+    current_user.password_changed_at = datetime.utcnow()
     db.commit()
 
     new_token = _make_token(current_user)
@@ -316,6 +349,53 @@ def legacy_logout(response: Response):
     """Clear the auth cookie on the client."""
     _clear_auth_cookie(response)
     return {"status": "logged_out"}
+
+
+@router.post("/auth/forgot-password")
+def legacy_forgot_password(req: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    """Send a password reset link if the email exists. Response is always generic."""
+    user = db.query(User).filter(
+        User.email == req.email.strip().lower()).first()
+    if user:
+        raw_token, _ = _issue_reset_token(db, user)
+        reset_url = _build_reset_url(raw_token)
+        send_result = asyncio.run(
+            EmailService().send_password_reset(user.email, reset_url))
+        return {
+            "status": "ok",
+            "message": "If the email exists, a password reset link has been sent.",
+            "reset_url": send_result.get("reset_url") if isinstance(send_result, dict) else None,
+        }
+
+    return {
+        "status": "ok",
+        "message": "If the email exists, a password reset link has been sent.",
+    }
+
+
+@router.post("/auth/reset-password")
+def legacy_reset_password(req: ResetPasswordRequest, db: Session = Depends(get_db)):
+    """Reset a password using a one-time token."""
+    token_hash = _hash_reset_token(req.token.strip())
+    token_row = db.query(PasswordResetToken).filter(
+        PasswordResetToken.token_hash == token_hash).first()
+    if not token_row or token_row.is_used or token_row.used_at is not None:
+        raise HTTPException(
+            status_code=400, detail="Invalid or expired reset token")
+    if token_row.expires_at < datetime.utcnow():
+        raise HTTPException(
+            status_code=400, detail="Invalid or expired reset token")
+
+    user = db.query(User).filter(User.id == token_row.user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user.hashed_password = get_password_hash(req.new_password)
+    user.password_changed_at = datetime.utcnow()
+    token_row.is_used = True
+    token_row.used_at = datetime.utcnow()
+    db.commit()
+    return {"status": "password_reset"}
 
 
 # ─

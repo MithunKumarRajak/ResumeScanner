@@ -449,6 +449,70 @@ def merge_small_classes(df: pd.DataFrame) -> pd.DataFrame:
     print(f'Classes reduced: {original_count} -> {new_count}')
     return df
 
+
+def compute_reliability_policy(y_true, y_pred, y_pred_proba):
+    """
+    Derive confidence/margin thresholds that trade off accuracy vs. coverage.
+    This helps inference route uncertain cases to review instead of forcing wrong labels.
+    """
+    y_true = np.asarray(y_true)
+    y_pred = np.asarray(y_pred)
+    probs = np.asarray(y_pred_proba)
+
+    if probs.ndim != 2 or probs.shape[0] == 0:
+        return {
+            'confidence_threshold': 0.6,
+            'margin_threshold': 0.15,
+            'target_precision': 0.85,
+            'estimated_precision': 0.0,
+            'estimated_coverage': 0.0,
+        }
+
+    top1 = probs.max(axis=1)
+    top2 = np.partition(
+        probs, -2, axis=1)[:, -2] if probs.shape[1] > 1 else np.zeros_like(top1)
+    margins = top1 - top2
+    correct = (y_pred == y_true)
+
+    best = {
+        'confidence_threshold': 0.6,
+        'margin_threshold': 0.15,
+        'target_precision': 0.85,
+        'estimated_precision': float(correct.mean()) if len(correct) else 0.0,
+        'estimated_coverage': 1.0,
+    }
+    best_score = -1.0
+
+    conf_grid = np.arange(0.50, 0.91, 0.05)
+    margin_grid = np.arange(0.05, 0.31, 0.05)
+
+    for conf_th in conf_grid:
+        for margin_th in margin_grid:
+            accepted = (top1 >= conf_th) & (margins >= margin_th)
+            coverage = float(accepted.mean())
+            if coverage < 0.15:
+                continue
+
+            precision = float(correct[accepted].mean()
+                              ) if accepted.any() else 0.0
+
+            # Prefer high precision, then higher coverage.
+            score = (precision * 0.8) + (coverage * 0.2)
+            if precision >= 0.85:
+                score += 0.2
+
+            if score > best_score:
+                best_score = score
+                best = {
+                    'confidence_threshold': round(float(conf_th), 2),
+                    'margin_threshold': round(float(margin_th), 2),
+                    'target_precision': 0.85,
+                    'estimated_precision': round(precision, 4),
+                    'estimated_coverage': round(coverage, 4),
+                }
+
+    return best
+
 # extract_features_v6
 
 
@@ -759,7 +823,21 @@ def train_v6(args):
     y_pred = clf.predict(X_test)
     y_pred_proba = clf.predict_proba(X_test)
     acc = accuracy_score(y_test, y_pred)
+    top3_idx = np.argsort(y_pred_proba, axis=1)[:, -3:]
+    top3_acc = float(np.mean([y_test[i] in top3_idx[i]
+                     for i in range(len(y_test))])) if len(y_test) else 0.0
+    reliability_policy = compute_reliability_policy(
+        y_test, y_pred, y_pred_proba)
+
     print(f"  Accuracy: {acc:.2%}  |  Training time: {train_time:.1f}s")
+    print(f"  Top-3 Accuracy: {top3_acc:.2%}")
+    print(
+        "  Reliability policy: "
+        f"conf>={reliability_policy['confidence_threshold']}, "
+        f"margin>={reliability_policy['margin_threshold']} "
+        f"(precision~{reliability_policy['estimated_precision']:.2%}, "
+        f"coverage~{reliability_policy['estimated_coverage']:.2%})"
+    )
     print(classification_report(y_test, y_pred,
           target_names=le.classes_, digits=3))
 
@@ -802,6 +880,7 @@ def train_v6(args):
         'version': 'v6',
         'trained_at': time.ctime(),
         'accuracy': float(acc),
+        'top3_accuracy': float(top3_acc),
         'num_samples': len(df),
         'num_classes': len(le.classes_),
         'languages_detected': df['lang'].value_counts().to_dict(),
@@ -814,7 +893,8 @@ def train_v6(args):
         },
         'semantic_model': matcher.model_name,
         'advanced_features': ['semantic_matching', 'bias_detection', 'xai_shap', 'multilingual', 'custom_training'],
-        'bias_audit': post_bias_report
+        'bias_audit': post_bias_report,
+        'inference_policy': reliability_policy,
     }
     with open(out_dir / 'manifest.json', 'w') as f:
         json.dump(manifest, f, indent=2)

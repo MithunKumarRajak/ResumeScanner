@@ -1,11 +1,16 @@
 import { useState, useEffect } from 'react'
-import { ArrowLeft, CheckSquare, Square, Download, Trophy, Loader2, Search, Users, GitCompare, UploadCloud } from 'lucide-react'
-import { Link, useLocation } from 'react-router-dom'
+import { ArrowLeft, CheckSquare, Square, Download, Trophy, Loader2, Search, Users, GitCompare, UploadCloud, X } from 'lucide-react'
+import { useLocation } from 'react-router-dom'
 import { compareCandidates, getUserData } from '../services/api'
 
 export default function CompareView() {
   const location = useLocation()
   const bulkState = location.state || {}
+  const bulkUploadedResumes = Array.isArray(bulkState.bulkUploadedResumes)
+    ? bulkState.bulkUploadedResumes
+    : Array.isArray(bulkState.bulkCandidates)
+      ? bulkState.bulkCandidates
+      : []
 
   const [candidates, setCandidates] = useState([])
   const [selectedIds, setSelectedIds] = useState([])
@@ -17,20 +22,33 @@ export default function CompareView() {
 
   // Load candidates: from bulk upload state OR fetch from API
   useEffect(() => {
-    // If navigated from Bulk Upload with candidates
-    if (bulkState.bulkCandidates && bulkState.bulkCandidates.length > 0) {
-      setCandidates(bulkState.bulkCandidates)
-      setFromBulk(true)
-      // Pre-select up to 4 candidates
-      if (bulkState.preSelectedIds && bulkState.preSelectedIds.length > 0) {
-        setSelectedIds(bulkState.preSelectedIds.slice(0, 4))
-      }
-      return
-    }
+    const state = location.state || {}
+    const stateBulkResumes = Array.isArray(state.bulkUploadedResumes)
+      ? state.bulkUploadedResumes
+      : Array.isArray(state.bulkCandidates)
+        ? state.bulkCandidates
+        : []
+    const sourceJobDescId = state.sourceJobDescId
 
-    // Otherwise fetch from API or use mocks
     const fetchResumes = async () => {
       try {
+        // If bulk upload data is provided, use it
+        if (stateBulkResumes.length > 0) {
+          setCandidates(stateBulkResumes)
+          setFromBulk(true)
+          // Auto-select all bulk uploaded resumes (up to 4)
+          const idsToSelect = Array.isArray(state.preSelectedIds) && state.preSelectedIds.length > 0
+            ? state.preSelectedIds
+            : stateBulkResumes.slice(0, 4).map(r => r.id)
+          setSelectedIds(idsToSelect.slice(0, 4))
+          if (sourceJobDescId) {
+            setJobDescId(sourceJobDescId)
+          }
+          return
+        }
+
+        setFromBulk(false)
+        // Otherwise, fetch from user data
         const data = await getUserData('resumes')
         if (data && data.resumes && data.resumes.length > 0) {
           setCandidates(data.resumes)
@@ -54,7 +72,7 @@ export default function CompareView() {
       }
     }
     fetchResumes()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [location.state])
 
   const toggleSelect = (id) => {
     if (selectedIds.includes(id)) {
@@ -119,15 +137,17 @@ export default function CompareView() {
       </div>
 
       {fromBulk && !compareData && (
-        <div className="flex items-center gap-3 p-4 rounded-xl bg-indigo-500/8 border border-indigo-500/20 animate-slide-up">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-500/15 text-indigo-400 shrink-0">
-            <UploadCloud className="h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-indigo-300">Loaded from Bulk Upload</p>
-            <p className="text-xs text-slate-400 mt-0.5">
-              {candidates.length} candidates imported • {selectedIds.length} pre-selected for comparison
-            </p>
+        <div className="glass-card p-4 border border-emerald-500/30 bg-emerald-500/10 animate-slide-up">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-emerald-500/20 rounded-lg">
+              <UploadCloud className="h-5 w-5 text-emerald-400" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-emerald-300">Bulk Upload Ready for Comparison</p>
+              <p className="text-xs text-emerald-200/80">
+                Found {candidates.length} resumes from your bulk upload. {selectedIds.length} pre-selected for comparison.
+              </p>
+            </div>
           </div>
         </div>
       )}
@@ -136,8 +156,11 @@ export default function CompareView() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 glass-card p-6">
             <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-700/50">
-              <h2 className="text-lg font-bold text-white">Select Candidates</h2>
-              <span className="text-sm font-medium px-2.5 py-1 rounded-md bg-slate-800 text-slate-300">
+              <div>
+                <h2 className="text-lg font-bold text-white">Select Candidates</h2>
+                <p className="text-xs text-slate-400 mt-1">Click to toggle selection • {candidates.length} total available</p>
+              </div>
+              <span className="text-sm font-medium px-3 py-1.5 rounded-md bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
                 {selectedIds.length} / 4 Selected
               </span>
             </div>
@@ -147,26 +170,44 @@ export default function CompareView() {
               <input type="text" placeholder="Search candidates..." className="form-input pl-10" />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 max-h-[500px] overflow-y-auto custom-scrollbar">
               {candidates.map(candidate => {
                 const isSelected = selectedIds.includes(candidate.id)
                 const isDisabled = !isSelected && selectedIds.length >= 4
+                const isBulkUploaded = bulkUploadedResumes.some(r => r.id === candidate.id)
                 
                 return (
                   <div 
                     key={candidate.id}
                     onClick={() => !isDisabled && toggleSelect(candidate.id)}
-                    className={`flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all ${
+                    className={`flex items-center justify-between p-4 rounded-xl border transition-all ${
                       isSelected 
-                        ? 'bg-indigo-500/10 border-indigo-500/30' 
+                        ? 'bg-indigo-500/20 border-indigo-500/50 ring-1 ring-indigo-500/30'
                         : isDisabled 
                           ? 'bg-slate-900/50 border-slate-800 opacity-50 cursor-not-allowed'
-                          : 'bg-slate-800/30 border-slate-700/50 hover:bg-slate-800/60'
+                          : isBulkUploaded
+                            ? 'bg-emerald-900/20 border-emerald-700/50 hover:bg-emerald-900/30 cursor-pointer'
+                            : 'bg-slate-800/30 border-slate-700/50 hover:bg-slate-800/60 cursor-pointer'
                     }`}
                   >
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-slate-200">{candidate.name}</p>
-                      <p className="text-xs text-slate-400">{candidate.role || 'Uploaded resume'}</p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-semibold text-slate-200 truncate">{candidate.name}</p>
+                        {isBulkUploaded && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-medium shrink-0 border border-emerald-500/30">
+                            <GitCompare className="h-3 w-3" />
+                            Bulk
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <p className="text-xs text-slate-400">
+                          {candidate.category || candidate.role || 'Uploaded resume'}
+                        </p>
+                        {candidate.uploadedAt && (
+                          <span className="text-xs text-slate-500">{new Date(candidate.uploadedAt).toLocaleDateString()}</span>
+                        )}
+                      </div>
                       {(candidate.confidence != null || candidate.experience_years != null) && (
                         <div className="flex items-center gap-3 mt-1.5">
                           {candidate.confidence != null && (
@@ -182,21 +223,51 @@ export default function CompareView() {
                         </div>
                       )}
                     </div>
-                    {isSelected ? (
-                      <CheckSquare className="h-5 w-5 text-indigo-400" />
-                    ) : (
-                      <Square className={`h-5 w-5 ${isDisabled ? 'text-slate-600' : 'text-slate-500'}`} />
-                    )}
+                    <div className="ml-3 shrink-0">
+                      {isSelected ? (
+                        <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-indigo-500">
+                          <CheckSquare className="h-4 w-4 text-white" />
+                        </div>
+                      ) : (
+                        <Square className={`h-5 w-5 ${isDisabled ? 'text-slate-600' : 'text-slate-400'}`} />
+                      )}
+                    </div>
                   </div>
                 )
               })}
             </div>
           </div>
-          
+
           <div className="space-y-4">
             <div className="glass-card p-6">
-              <h2 className="text-lg font-bold text-white mb-4">Configuration</h2>
+              <h2 className="text-lg font-bold text-white mb-4">Comparison Setup</h2>
               <div className="space-y-4">
+                {/* Selected Candidates Preview */}
+                <div className="p-3 bg-slate-900/50 border border-slate-700/50 rounded-lg">
+                  <p className="text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wide">Currently Selected</p>
+                  {selectedIds.length === 0 ? (
+                    <p className="text-xs text-slate-500 italic">No candidates selected. Choose at least 2.</p>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {selectedIds.map(id => {
+                        const candidate = candidates.find(c => c.id === id)
+                        return (
+                          <div key={id} className="flex items-center justify-between p-2 bg-slate-800/50 rounded border border-slate-700/50">
+                            <p className="text-sm text-slate-300 truncate">{candidate?.name}</p>
+                            <button
+                              onClick={() => toggleSelect(id)}
+                              className="text-slate-500 hover:text-red-400 transition-colors"
+                              title="Remove from selection"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+
                 <div>
                   <label className="block text-xs font-medium text-slate-400 mb-1.5">Job Description ID (Optional)</label>
                   <input 
@@ -204,24 +275,41 @@ export default function CompareView() {
                     value={jobDescId}
                     onChange={(e) => setJobDescId(e.target.value)}
                     placeholder="Enter Job ID" 
-                    className="form-input" 
+                    className="form-input text-sm"
                   />
+                  <p className="text-xs text-slate-500 mt-1">Match selected candidates against a specific job description</p>
                 </div>
-                
+
                 {error && (
                   <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-400">
                     {error}
                   </div>
                 )}
-                
-                <button 
+
+                <button
                   onClick={handleCompare} 
                   disabled={selectedIds.length < 2 || loading}
-                  className="btn-primary w-full flex items-center justify-center gap-2 mt-4"
+                  className={`btn-primary w-full flex items-center justify-center gap-2 mt-4 ${
+                    selectedIds.length < 2 ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                  title={selectedIds.length < 2 ? 'Select at least 2 candidates' : 'Compare selected candidates'}
                 >
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <GitCompare className="h-4 w-4" />}
-                  Compare Selected
+                  {loading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <GitCompare className="h-4 w-4" />
+                      Compare ({selectedIds.length})
+                    </>
+                  )}
                 </button>
+
+                <p className="text-xs text-slate-500 text-center">
+                  Compare 2-4 candidates side-by-side for detailed analysis
+                </p>
               </div>
             </div>
           </div>

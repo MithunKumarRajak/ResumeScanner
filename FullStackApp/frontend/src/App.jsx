@@ -11,6 +11,7 @@ import ResumeBuildPage from './pages/ResumeBuildPage'
 import AIGeneratorPage from './pages/AIGeneratorPage'
 import ProfilePage from './pages/ProfilePage'
 import CompareView from './pages/CompareView'
+import ResetPasswordPage from './pages/ResetPasswordPage'
 import BulkUpload from './components/BulkUpload'
 import ErrorBoundary from './components/ErrorBoundary'
 import NotFoundPage from './pages/NotFoundPage'
@@ -51,6 +52,7 @@ export default function App() {
             <Route path="/resume-build" element={<ResumeBuildPage />} />
             <Route path="/ai-generator" element={<AIGeneratorPage />} />
             <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/compare" element={<CompareView />} />
             <Route path="/bulk-upload" element={<BulkUpload />} />
             <Route path="/advanced" element={<AdvancedDashboard />} />

@@ -1,47 +1,51 @@
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { X, ScanLine } from 'lucide-react'
 import useStore from '../store'
 import LoginForm from './LoginForm'
 import SignupForm from './SignupForm'
+import ForgotPasswordForm from './ForgotPasswordForm'
 
 export default function AuthModal() {
   const isOpen = useStore((s) => s.isAuthModalOpen)
   const closeAuthModal = useStore((s) => s.closeAuthModal)
-  const [tab, setTab] = useState('login')
+  const authModalTab = useStore((s) => s.authModalTab)
+  const setAuthModalTab = useStore((s) => s.setAuthModalTab)
 
-  // Close on Escape key
+  const normalizedTab = ['login', 'signup', 'forgot'].includes(authModalTab) ? authModalTab : 'login'
+
   useEffect(() => {
     if (!isOpen) return
-    const handler = (e) => { if (e.key === 'Escape') closeAuthModal() }
+    const handler = (e) => {
+      if (e.key === 'Escape') closeAuthModal()
+    }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
   }, [isOpen, closeAuthModal])
 
-  // Prevent body scroll when open
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden'
     } else {
       document.body.style.overflow = ''
     }
-    return () => { document.body.style.overflow = '' }
+    return () => {
+      document.body.style.overflow = ''
+    }
   }, [isOpen])
 
   if (!isOpen) return null
 
+  const tab = normalizedTab
+
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-      {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/80 backdrop-blur-md animate-fade-in"
         onClick={closeAuthModal}
       />
 
-      {/* Modal */}
       <div className="relative w-full max-w-md animate-slide-up">
         <div className="rounded-2xl border border-slate-700/60 bg-[rgba(15,23,42,0.97)] backdrop-blur-xl p-6 sm:p-8 shadow-2xl shadow-black/50">
-
-          {/* Header */}
           <div className="mb-6 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-black shadow-lg">
@@ -61,34 +65,27 @@ export default function AuthModal() {
             </button>
           </div>
 
-          {/* Tab Switcher */}
-          <div className="mb-6 flex rounded-xl border border-slate-700/50 bg-slate-800/40 p-1">
-            <button
-              onClick={() => setTab('login')}
-              className={`flex-1 rounded-lg px-3 py-2.5 text-sm font-semibold cursor-pointer transition-all border-none ${
-                tab === 'login'
-                  ? 'bg-white text-black shadow-md'
-                  : 'bg-transparent text-slate-400 hover:text-slate-200'
-              }`}
-              id="auth-tab-login"
-            >
-              Sign In
-            </button>
-            <button
-              onClick={() => setTab('signup')}
-              className={`flex-1 rounded-lg px-3 py-2.5 text-sm font-semibold cursor-pointer transition-all border-none ${
-                tab === 'signup'
-                  ? 'bg-white text-black shadow-md'
-                  : 'bg-transparent text-slate-400 hover:text-slate-200'
-              }`}
-              id="auth-tab-signup"
-            >
-              Sign Up
-            </button>
-          </div>
+          {tab === 'login' && (
+            <LoginForm
+              onForgotPassword={() => setAuthModalTab('forgot')}
+              onSignUp={() => setAuthModalTab('signup')}
+            />
+          )}
 
-          {/* Form */}
-          {tab === 'login' ? <LoginForm /> : <SignupForm />}
+          {tab === 'signup' && (
+            <SignupForm onSignIn={() => setAuthModalTab('login')} />
+          )}
+
+          {tab === 'forgot' && (
+            <ForgotPasswordForm onBackToLogin={() => setAuthModalTab('login')} />
+          )}
+
+          {!['login', 'signup', 'forgot'].includes(tab) && (
+            <LoginForm
+              onForgotPassword={() => setAuthModalTab('forgot')}
+              onSignUp={() => setAuthModalTab('signup')}
+            />
+          )}
         </div>
       </div>
     </div>

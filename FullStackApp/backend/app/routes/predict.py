@@ -59,10 +59,17 @@ class PredictionOutput(BaseModel):
     category_count: Optional[int] = None
     feature_count: Optional[int] = None
     prediction_margin: Optional[float] = None
+    uncertainty_entropy: Optional[float] = None
+    reliability_score: Optional[float] = None
+    reliable_prediction: Optional[bool] = None
+    prediction_status: Optional[str] = None
+    display_prediction: Optional[str] = None
     needs_human_review: Optional[bool] = None
     review_reason: Optional[str] = None
+    applied_thresholds: Optional[Dict[str, float]] = None
     all_probabilities: Optional[Dict[str, float]] = None
     top_categories: Optional[List[CategoryScore]] = None
+    top_recommendations: Optional[List[CategoryScore]] = None
     role_suggestions: Optional[List[str]] = None
     resume_gaps: Optional[List[Dict[str, str]]] = None
     apply_now_readiness: Optional[Dict[str, object]] = None
@@ -543,6 +550,28 @@ def predict_resume(input_data: ResumeInput):
         response_data["match_score"] = match_score
         response_data["resume_top_terms"] = resume_top_terms
         response_data["jd_top_terms"] = jd_top_terms
+
+        # Safeguard: avoid treating uncertain top-1 category as final.
+        is_reliable = bool(response_data.get("reliable_prediction", True))
+        top_categories = response_data.get("top_categories") or []
+        response_data["top_recommendations"] = top_categories[:3]
+
+        if is_reliable:
+            response_data["prediction_status"] = "final"
+            response_data["display_prediction"] = response_data.get(
+                "predicted_category")
+        else:
+            response_data["prediction_status"] = "review_required"
+            response_data["display_prediction"] = "Manual review required"
+            if top_categories:
+                suggestions = ", ".join(
+                    [str(item.get("category"))
+                     for item in top_categories[:3] if item.get("category")]
+                )
+                if suggestions:
+                    reason = response_data.get(
+                        "review_reason") or "low reliability prediction"
+                    response_data["review_reason"] = f"{reason}. Top alternatives: {suggestions}"
 
         return PredictionOutput(
             **response_data,

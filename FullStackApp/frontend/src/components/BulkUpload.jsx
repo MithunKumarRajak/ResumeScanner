@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Upload, FileText, X, AlertCircle, Loader2, CheckCircle2, CheckCircle, BarChart, Server, Users, Award, Briefcase, GraduationCap, ArrowRight } from 'lucide-react'
+import { Upload, FileText, X, AlertCircle, Loader2, CheckCircle2, CheckCircle, Server, Users, Award, Briefcase, ArrowRight } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { bulkUpload, getBulkStatus } from '../services/api'
 
@@ -12,7 +12,7 @@ export default function BulkUpload() {
   const [files, setFiles] = useState([])
   const [jobDescId, setJobDescId] = useState('')
   const [error, setError] = useState('')
-  
+
   // Job status state
   const [bulkJobId, setBulkJobId] = useState(null)
   const [jobStatus, setJobStatus] = useState(null) // 'pending', 'processing', 'completed', 'failed'
@@ -114,18 +114,31 @@ export default function BulkUpload() {
   // Navigate to Compare page with the successful resume IDs pre-selected
   const handleCompareAll = () => {
     const successResults = results.filter(r => r.status === 'success')
-    const candidatesForCompare = successResults.map(r => ({
-      id: r.resume_id,
-      name: r.name || r.file_name,
-      role: r.category || 'Uploaded resume',
-      category: r.category,
+    if (successResults.length < 2) {
+      setError('Please ensure at least 2 resumes uploaded successfully to compare.')
+      return
+    }
+
+    const candidatesForCompare = successResults.map((r, index) => ({
+      id: r.resume_id || `bulk_resume_${bulkJobId || Date.now()}_${index}`,
+      resume_id: r.resume_id,
+      resumeId: r.resume_id,
+      name: r.name || r.candidate_name || r.file_name?.replace(/\.[^/.]+$/, '') || `Candidate ${index + 1}`,
+      file_name: r.file_name,
+      role: r.role || r.category || 'Uploaded resume',
+      category: r.category || 'Uncategorized',
       confidence: r.confidence,
       experience_years: r.experience_years,
+      uploadedAt: new Date().toISOString(),
     }))
+    const preSelectedIds = candidatesForCompare.slice(0, 4).map(c => c.id)
+
     navigate('/compare', {
       state: {
         bulkCandidates: candidatesForCompare,
-        preSelectedIds: candidatesForCompare.slice(0, 4).map(c => c.id),
+        bulkUploadedResumes: candidatesForCompare,
+        preSelectedIds,
+        sourceJobDescId: jobDescId || null,
       }
     })
   }
@@ -152,8 +165,8 @@ export default function BulkUpload() {
           </div>
           <div className="flex items-center gap-3">
             {successCount >= 2 && (
-              <button 
-                onClick={handleCompareAll} 
+              <button
+                onClick={handleCompareAll}
                 className="btn-primary flex items-center gap-2"
                 id="bulk-compare-btn"
               >

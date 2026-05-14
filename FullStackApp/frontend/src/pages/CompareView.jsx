@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { ArrowLeft, CheckSquare, Square, Download, Trophy, Loader2, Search, Users } from 'lucide-react'
+import { ArrowLeft, CheckSquare, Square, Download, Trophy, Loader2, Search, Users, GitCompare } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { compareCandidates, getUserData } from '../services/api'
 

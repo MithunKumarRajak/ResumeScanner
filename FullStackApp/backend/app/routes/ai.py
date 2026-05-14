@@ -14,7 +14,7 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, UploadFile, File, Depends
 from pydantic import BaseModel
 from app.models import User
-from app.utils.auth import get_current_active_user
+from app.utils.auth import get_current_active_user, get_optional_current_user
 
 router = APIRouter(tags=["AI"])
 
@@ -219,7 +219,7 @@ Keep the same JSON structure with fields: title, meta, about, tasks (array), req
 #  Resume Extraction Endpoint (PyMuPDF) ─
 
 @router.post("/extract-resume")
-async def extract_resume(file: UploadFile = File(...), current_user: User = Depends(get_current_active_user)):
+async def extract_resume(file: UploadFile = File(...), current_user: User = Depends(get_optional_current_user)):
     """Extract structured resume data from PDF or DOCX using PyMuPDF."""
     if not file.filename:
         raise HTTPException(status_code=400, detail="No file provided")

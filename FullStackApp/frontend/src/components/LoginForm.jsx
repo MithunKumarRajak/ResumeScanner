@@ -26,6 +26,8 @@ export default function LoginForm({ onForgotPassword = () => {}, onSignUp = () =
     try {
       const userData = await apiLogin(email, password)
       login(userData)
+      // Small delay to let the store update propagate and modal unmount cleanly
+      await new Promise((r) => setTimeout(r, 100))
       navigate(userData.role === 'recruiter' ? '/recruiter' : '/candidate')
     } catch (err) {
       const detail = err.response?.data?.detail || 'Login failed. Please check your credentials.'
@@ -34,6 +36,7 @@ export default function LoginForm({ onForgotPassword = () => {}, onSignUp = () =
       setLoading(false)
     }
   }
+
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">

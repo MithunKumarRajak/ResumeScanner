@@ -32,6 +32,7 @@ export default function SignupForm({ onSignIn = () => {} }) {
     try {
       const userData = await apiSignup(name.trim(), email, password, role)
       signup(userData)
+      await new Promise((r) => setTimeout(r, 100))
       navigate(userData.role === 'recruiter' ? '/recruiter' : '/candidate')
     } catch (err) {
       const detail = err.response?.data?.detail || 'Signup failed. Please try again.'

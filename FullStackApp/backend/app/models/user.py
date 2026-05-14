@@ -22,8 +22,7 @@ class User(Base):
     full_name = Column(String(255), nullable=True)
     role = Column(SAEnum(UserRole), default=UserRole.candidate, nullable=False)
     is_active = Column(Boolean, default=True)
-    password_changed_at = Column(
-        DateTime, default=datetime.utcnow, nullable=False)
+    password_changed_at = Column(DateTime, nullable=True, default=None)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow,
                         onupdate=datetime.utcnow)

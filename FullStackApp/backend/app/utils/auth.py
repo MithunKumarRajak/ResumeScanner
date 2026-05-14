@@ -1,7 +1,9 @@
 """
 JWT creation/verification and password hashing utilities.
 """
-from datetime import datetime, timedelta
+import time
+import calendar
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import Depends, HTTPException, Request, status
@@ -42,7 +44,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
             minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     )
     to_encode.update(
-        {"exp": expire, "iat": int(datetime.utcnow().timestamp())})
+        {"exp": expire, "iat": int(time.time())})
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
@@ -98,7 +100,15 @@ def get_current_user(
     if not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
     if token_data.issued_at and user.password_changed_at:
-        if token_data.issued_at < int(user.password_changed_at.timestamp()):
+        # Normalise password_changed_at to a UTC UNIX timestamp.
+        # If timezone-aware (from PostgreSQL), .timestamp() is correct.
+        # If naive (assumed UTC), use calendar.timegm to avoid local-tz bias.
+        pca = user.password_changed_at
+        if pca.tzinfo is not None:
+            pca_ts = int(pca.timestamp())
+        else:
+            pca_ts = int(calendar.timegm(pca.timetuple()))
+        if token_data.issued_at < pca_ts:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Session expired. Please sign in again.",

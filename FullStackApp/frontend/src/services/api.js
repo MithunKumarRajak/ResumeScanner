@@ -14,6 +14,8 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 })
 
+import useStore from '../store'
+
 //  Request interceptor ─
 api.interceptors.request.use(
   (config) => {
@@ -33,7 +35,13 @@ api.interceptors.request.use(
   },
   (error) => Promise.reject(error)
 )
-import useStore from '../store'
+
+// Timestamp of the last successful login — prevents race conditions
+// where stale 401s clear a freshly-saved token.
+let _lastLoginAt = 0;
+export function markLoginTimestamp() {
+  _lastLoginAt = Date.now();
+}
 
 //  Response interceptor 
 api.interceptors.response.use(
@@ -41,10 +49,20 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       const requestUrl = error.config?.url || '';
+
+      // Endpoints that work without auth — never trigger the modal
       const guestEndpoints = ['/predict', '/models', '/upload-resume', '/extract-resume', '/api/ats/check'];
       const isGuestAllowed = guestEndpoints.some((ep) => requestUrl.includes(ep));
 
-      if (!isGuestAllowed) {
+      // Auth & user-data endpoints — a 401 here is expected when not logged in;
+      // don't nuke the token or flash the modal for these.
+      const isAuthRelated = requestUrl.includes('/auth/') || requestUrl.includes('/user/data');
+
+      // Grace period: if the user just logged in (< 3 s ago), don't let a
+      // stale 401 from an older request wipe the new session.
+      const withinGracePeriod = Date.now() - _lastLoginAt < 3000;
+
+      if (!isGuestAllowed && !isAuthRelated && !withinGracePeriod) {
         localStorage.removeItem('rs_user');
         useStore.getState().openAuthModal();
       }
@@ -117,11 +135,13 @@ export async function getCategories() {
 //  Auth APIs 
 export async function apiSignup(name, email, password, role = 'candidate') {
   const { data } = await api.post('/auth/signup', { name, email, password, role })
+  markLoginTimestamp()
   return data.user
 }
 
 export async function apiLogin(email, password) {
   const { data } = await api.post('/auth/login', { email, password })
+  markLoginTimestamp()
   return data.user
 }
 

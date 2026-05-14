@@ -333,11 +333,13 @@ export default function ResumeBuildPage() {
   })
 
   // If user logs out while on this page, reset to entry
+  const prevUserRef = useRef(user)
   useEffect(() => {
-    if (!user) {
+    if (prevUserRef.current && !user) {
       setData({ ...EMPTY_DATA })
       setPhase('entry')
     }
+    prevUserRef.current = user
   }, [user])
 
   // If location.state has data and we're in entry phase, load it and switch to editor

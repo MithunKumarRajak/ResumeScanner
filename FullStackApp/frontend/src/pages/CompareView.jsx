@@ -1,20 +1,34 @@
 import { useState, useEffect } from 'react'
-import { ArrowLeft, CheckSquare, Square, Download, Trophy, Loader2, Search, Users, GitCompare } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { ArrowLeft, CheckSquare, Square, Download, Trophy, Loader2, Search, Users, GitCompare, UploadCloud } from 'lucide-react'
+import { Link, useLocation } from 'react-router-dom'
 import { compareCandidates, getUserData } from '../services/api'
 
 export default function CompareView() {
+  const location = useLocation()
+  const bulkState = location.state || {}
+
   const [candidates, setCandidates] = useState([])
   const [selectedIds, setSelectedIds] = useState([])
   const [jobDescId, setJobDescId] = useState('')
   const [loading, setLoading] = useState(false)
   const [compareData, setCompareData] = useState(null)
   const [error, setError] = useState('')
+  const [fromBulk, setFromBulk] = useState(false)
 
-  // Simulated fetch of available resumes
+  // Load candidates: from bulk upload state OR fetch from API
   useEffect(() => {
-    // In a real app, this would fetch from /api/resumes
-    // For now, we'll try to fetch from user data or use mock if none
+    // If navigated from Bulk Upload with candidates
+    if (bulkState.bulkCandidates && bulkState.bulkCandidates.length > 0) {
+      setCandidates(bulkState.bulkCandidates)
+      setFromBulk(true)
+      // Pre-select up to 4 candidates
+      if (bulkState.preSelectedIds && bulkState.preSelectedIds.length > 0) {
+        setSelectedIds(bulkState.preSelectedIds.slice(0, 4))
+      }
+      return
+    }
+
+    // Otherwise fetch from API or use mocks
     const fetchResumes = async () => {
       try {
         const data = await getUserData('resumes')
@@ -40,7 +54,7 @@ export default function CompareView() {
       }
     }
     fetchResumes()
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleSelect = (id) => {
     if (selectedIds.includes(id)) {
@@ -104,6 +118,20 @@ export default function CompareView() {
         )}
       </div>
 
+      {fromBulk && !compareData && (
+        <div className="flex items-center gap-3 p-4 rounded-xl bg-indigo-500/8 border border-indigo-500/20 animate-slide-up">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-500/15 text-indigo-400 shrink-0">
+            <UploadCloud className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-indigo-300">Loaded from Bulk Upload</p>
+            <p className="text-xs text-slate-400 mt-0.5">
+              {candidates.length} candidates imported • {selectedIds.length} pre-selected for comparison
+            </p>
+          </div>
+        </div>
+      )}
+
       {!compareData ? (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 glass-card p-6">
@@ -136,9 +164,23 @@ export default function CompareView() {
                           : 'bg-slate-800/30 border-slate-700/50 hover:bg-slate-800/60'
                     }`}
                   >
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <p className="font-semibold text-slate-200">{candidate.name}</p>
                       <p className="text-xs text-slate-400">{candidate.role || 'Uploaded resume'}</p>
+                      {(candidate.confidence != null || candidate.experience_years != null) && (
+                        <div className="flex items-center gap-3 mt-1.5">
+                          {candidate.confidence != null && (
+                            <span className={`text-[11px] font-semibold ${
+                              candidate.confidence >= 80 ? 'text-emerald-400' : candidate.confidence >= 50 ? 'text-amber-400' : 'text-slate-400'
+                            }`}>
+                              {Math.round(candidate.confidence)}% match
+                            </span>
+                          )}
+                          {candidate.experience_years != null && (
+                            <span className="text-[11px] text-slate-500">{candidate.experience_years} yr exp</span>
+                          )}
+                        </div>
+                      )}
                     </div>
                     {isSelected ? (
                       <CheckSquare className="h-5 w-5 text-indigo-400" />
@@ -224,6 +266,11 @@ export default function CompareView() {
                   {compareData.candidates.map(c => (
                     <th key={c.resume_id} className="p-4 text-center border-b border-slate-700/50 bg-slate-800/30 rounded-t-xl w-1/5">
                       <div className="font-bold text-white text-lg">{c.name}</div>
+                      {c.category && (
+                        <span className="inline-block mt-1 text-[11px] font-medium text-slate-400 bg-slate-800 px-2 py-0.5 rounded">
+                          {c.category}
+                        </span>
+                      )}
                       {c.resume_id === compareData.best_match_id && (
                         <span className="inline-flex items-center gap-1 mt-2 text-xs font-medium text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full">
                           <Trophy className="h-3 w-3" /> Best Match

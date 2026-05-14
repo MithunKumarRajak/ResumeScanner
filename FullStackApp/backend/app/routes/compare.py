@@ -39,11 +39,20 @@ class CandidateEntry(BaseModel):
     matched_skills: List[str]
     missing_skills: List[str]
     experience_years: int
+    category: Optional[str] = None
 
 class CompareResponse(BaseModel):
     candidates: List[CandidateEntry]
     best_match_id: Optional[str] = None
     skill_union: List[str]
+
+
+def _get_resume_skills(resume: Resume) -> List[str]:
+    """Extract skill names from Resume's ResumeSkill relationships."""
+    try:
+        return [rs.skill.name for rs in resume.skills if rs.skill]
+    except Exception:
+        return []
 
 
 @router.post("/candidates", response_model=CompareResponse)
@@ -69,19 +78,7 @@ def compare_candidates(
             q = q.filter(ResumeAnalysis.job_description_id == payload.job_description_id)
         analysis = q.order_by(ResumeAnalysis.created_at.desc()).first()
 
-        if not analysis:
-            # Create a minimal placeholder so comparison still works
-            analysis_data = CandidateEntry(
-                resume_id=rid,
-                name=resume.parsed_name,
-                overall_score=0,
-                keyword_score=0,
-                ats_score=None,
-                matched_skills=[],
-                missing_skills=[],
-                experience_years=resume.experience_years or 0,
-            )
-        else:
+        if analysis:
             matched = analysis.matched_keywords or []
             missing = analysis.missing_keywords or []
             all_skills.update(matched)
@@ -95,6 +92,24 @@ def compare_candidates(
                 matched_skills=matched,
                 missing_skills=missing,
                 experience_years=resume.experience_years or 0,
+                category=resume.predicted_category,
+            )
+        else:
+            # Fallback: use Resume-level data (from bulk upload / parsing)
+            resume_skills = _get_resume_skills(resume)
+            all_skills.update(resume_skills)
+            # Use ML confidence score as a proxy for overall_score
+            confidence = resume.confidence_score or 0
+            analysis_data = CandidateEntry(
+                resume_id=rid,
+                name=resume.parsed_name,
+                overall_score=round(confidence, 1),
+                keyword_score=0,
+                ats_score=None,
+                matched_skills=resume_skills,
+                missing_skills=[],
+                experience_years=resume.experience_years or 0,
+                category=resume.predicted_category,
             )
 
         candidates.append(analysis_data)
@@ -107,3 +122,4 @@ def compare_candidates(
         best_match_id=best_id,
         skill_union=sorted(all_skills),
     )
+

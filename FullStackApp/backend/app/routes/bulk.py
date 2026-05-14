@@ -76,6 +76,10 @@ def _process_bulk(bulk_job_id: str, file_infos: List[dict]):
                         pass  # classifier may not be loaded
                     result["status"] = "success"
                     result["category"] = resume.predicted_category
+                    result["name"] = resume.parsed_name
+                    result["confidence"] = resume.confidence_score
+                    result["experience_years"] = resume.experience_years
+                    result["education"] = resume.parsed_education
             except Exception as e:
                 result["status"] = "error"
                 result["error"] = str(e)

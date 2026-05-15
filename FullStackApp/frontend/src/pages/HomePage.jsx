@@ -106,11 +106,11 @@ export default function HomePage() {
         <div className="flex flex-col justify-center">
           <div className="mb-5 inline-flex w-fit items-center gap-2 rounded-full border border-slate-700 bg-slate-900/70 px-4 py-1.5">
             <Sparkles className="h-4 w-4 text-emerald-300" />
-            <span className="text-xs font-semibold text-slate-300">AI-assisted resume screening for candidates and recruiters</span>
+            <span className="text-xs font-semibold text-slate-300">ML-assisted resume screening for candidates and recruiters</span>
           </div>
 
           <h1 className="max-w-3xl text-4xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl">
-            ResumeScanner turns resumes into clear hiring decisions.
+            ResumeScanner turns resumes into clear hiring decisions!
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-8 text-slate-400 sm:text-lg">
             Upload a resume, compare it with a job description, review ATS issues, and save a report that candidates and recruiters can act on.

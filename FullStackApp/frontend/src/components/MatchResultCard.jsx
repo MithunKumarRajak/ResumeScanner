@@ -4,15 +4,15 @@ import ScoreCircle from './ScoreCircle'
 
 function ScoreBar({ value }) {
   const color =
-    value >= 70 ? 'from-green-500 to-emerald-400' :
+    value >= 70 ? 'from-[#2dd4a8] to-[#14b892]' :
     value >= 40 ? 'from-amber-500 to-yellow-400' :
     'from-red-500 to-rose-400'
 
   return (
     <div className="space-y-1.5">
-      <div className="flex justify-between text-xs text-slate-400">
+      <div className="flex justify-between text-xs text-[#9898a8]">
         <span>Resume–Job Match</span>
-        <span className="font-semibold text-white">{value}%</span>
+        <span className="font-semibold text-[#f0f0f5]">{value}%</span>
       </div>
       <div className="score-bar-track">
         <div
@@ -62,44 +62,44 @@ export default function MatchResultCard({ result }) {
       {/* Header Row */}
       <div className="glass-card p-6">
         <div className="flex items-center gap-2 mb-4">
-          <Zap className="h-5 w-5 text-amber-400" />
-          <p className="font-semibold text-white">Match Analysis</p>
+          <Zap className="h-5 w-5 text-[#2dd4a8]" />
+          <p className="font-semibold text-[#f0f0f5] font-display">Match Analysis</p>
         </div>
 
         <div className="flex flex-col sm:flex-row items-start gap-6">
           {matchScore !== null ? (
             <ScoreCircle score={matchScore} />
           ) : (
-            <div className="flex h-28 w-28 flex-col items-center justify-center rounded-full border border-slate-700/60 bg-slate-900/40 text-center">
-              <p className="text-3xl font-bold gradient-text">N/A</p>
-              <p className="mt-1 text-[11px] uppercase tracking-[0.2em] text-slate-500">No JD</p>
+            <div className="flex h-28 w-28 flex-col items-center justify-center rounded-full border border-[rgba(255,255,255,0.06)] bg-[rgba(26,26,34,0.4)] text-center">
+              <p className="text-3xl font-bold gradient-text font-display">N/A</p>
+              <p className="mt-1 text-[11px] uppercase tracking-[0.2em] text-[#5e5e72]">No JD</p>
             </div>
           )}
 
           <div className="flex-1 space-y-4 w-full">
             {/* Category */}
             <div>
-              <p className="text-xs uppercase tracking-wider text-slate-500 mb-1">Predicted Category</p>
+              <p className="text-xs uppercase tracking-wider text-[#5e5e72] mb-1 font-display">Predicted Category</p>
               <div className="flex flex-wrap items-center gap-2">
-                <p className="text-xl font-bold text-white">{category}</p>
+                <p className="text-xl font-bold text-[#f0f0f5] font-display">{category}</p>
                 {modelVersion && (
-                  <span className="rounded-full border border-slate-700/60 bg-slate-900/60 px-2.5 py-1 text-[11px] text-slate-400">
+                  <span className="rounded-full border border-[rgba(255,255,255,0.06)] bg-[rgba(26,26,34,0.6)] px-2.5 py-1 text-[11px] text-[#9898a8]">
                     {modelVersion}
                   </span>
                 )}
                 {modelType && (
-                  <span className="rounded-full border border-slate-700/60 bg-slate-900/60 px-2.5 py-1 text-[11px] text-slate-400">
+                  <span className="rounded-full border border-[rgba(255,255,255,0.06)] bg-[rgba(26,26,34,0.6)] px-2.5 py-1 text-[11px] text-[#9898a8]">
                     {modelType}
                   </span>
                 )}
               </div>
               {needsHumanReview && reviewReason && (
-                <p className="mt-2 rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+                <p className="mt-2 rounded-lg border border-amber-500/15 bg-amber-500/5 px-3 py-2 text-xs text-amber-300">
                   {reviewReason}
                 </p>
               )}
               {!needsHumanReview && (
-                <p className="mt-2 text-xs text-slate-400">
+                <p className="mt-2 text-xs text-[#5e5e72]">
                   This is the most likely category based on the resume content.
                 </p>
               )}
@@ -107,20 +107,20 @@ export default function MatchResultCard({ result }) {
 
             {/* Confidence bar */}
             <div className="space-y-1.5">
-              <div className="flex justify-between text-xs text-slate-400">
+              <div className="flex justify-between text-xs text-[#9898a8]">
                 <span>Classifier Confidence</span>
-                <span className="font-semibold text-white">{displayConfidencePct}%</span>
+                <span className="font-semibold text-[#f0f0f5]">{displayConfidencePct}%</span>
               </div>
               <div className="score-bar-track">
                 <div
-                  className="score-bar-fill bg-gradient-to-r from-indigo-500 to-violet-400"
+                  className="score-bar-fill bg-gradient-to-r from-[#6366f1] to-[#818cf8]"
                   style={{ width: `${displayConfidencePct}%` }}
                 />
               </div>
             </div>
 
             {typeof predictionMargin === 'number' && (
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-[#5e5e72]">
                 Prediction margin { (predictionMargin * 100).toFixed(1) }%
                 {needsHumanReview ? ' · manual review suggested' : ''}
               </p>
@@ -137,19 +137,19 @@ export default function MatchResultCard({ result }) {
           {sortedTopCategories.length > 0 && (
             <div className="glass-card p-5 space-y-3">
               <div className="flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-indigo-400" />
-                <p className="text-sm font-semibold text-white">Alternate Fits</p>
+                <TrendingUp className="h-4 w-4 text-[#6366f1]" />
+                <p className="text-sm font-semibold text-[#f0f0f5] font-display">Alternate Fits</p>
               </div>
               <div className="space-y-2">
                 {sortedTopCategories.map((item, index) => (
                   <div key={item.category} className="space-y-1">
-                    <div className="flex items-center justify-between text-xs text-slate-400">
+                    <div className="flex items-center justify-between text-xs text-[#9898a8]">
                       <span>{index + 1}. {item.category}</span>
-                      <span className="font-semibold text-white">{item.score.toFixed(1)}%</span>
+                      <span className="font-semibold text-[#f0f0f5]">{item.score.toFixed(1)}%</span>
                     </div>
                     <div className="score-bar-track">
                       <div
-                        className={`score-bar-fill ${index === 0 ? 'bg-gradient-to-r from-indigo-500 to-violet-400' : 'bg-gradient-to-r from-slate-500 to-slate-400'}`}
+                        className={`score-bar-fill ${index === 0 ? 'bg-gradient-to-r from-[#6366f1] to-[#818cf8]' : 'bg-gradient-to-r from-[#4c4c58] to-[#5e5e72]'}`}
                         style={{ width: `${item.score}%` }}
                       />
                     </div>
@@ -163,12 +163,12 @@ export default function MatchResultCard({ result }) {
             <div className="glass-card p-5 space-y-3">
               <div className="flex items-center gap-2">
                 <Zap className="h-4 w-4 text-amber-400" />
-                <p className="text-sm font-semibold text-white">Application Readiness</p>
+                <p className="text-sm font-semibold text-[#f0f0f5] font-display">Application Readiness</p>
               </div>
               <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs text-slate-400">
+                <div className="flex items-center justify-between text-xs text-[#9898a8]">
                   <span>{applyNowReadiness.label}</span>
-                  <span className="font-semibold text-white">{applyNowReadiness.score.toFixed(1)}%</span>
+                  <span className="font-semibold text-[#f0f0f5]">{applyNowReadiness.score.toFixed(1)}%</span>
                 </div>
                 <div className="score-bar-track">
                   <div
@@ -176,7 +176,7 @@ export default function MatchResultCard({ result }) {
                     style={{ width: `${Math.max(0, Math.min(100, applyNowReadiness.score))}%` }}
                   />
                 </div>
-                <p className="text-xs text-slate-400">{applyNowReadiness.detail}</p>
+                <p className="text-xs text-[#5e5e72]">{applyNowReadiness.detail}</p>
               </div>
             </div>
           )}
@@ -184,22 +184,24 @@ export default function MatchResultCard({ result }) {
           {(resumeGaps.length > 0 || improvementTips.length > 0) && (
             <div className="glass-card p-5 space-y-3 lg:col-span-2">
               <details>
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-lg border border-slate-700/60 bg-slate-900/30 px-3 py-2 text-sm font-semibold text-white">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-lg border border-[rgba(255,255,255,0.06)] bg-[rgba(26,26,34,0.3)] px-3 py-2 text-sm font-semibold text-[#f0f0f5] font-display">
                   <span>Why this result?</span>
-                  <ChevronDown className="h-4 w-4 text-slate-400" />
+                  <ChevronDown className="h-4 w-4 text-[#5e5e72]" />
                 </summary>
                 <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
                   {resumeGaps.length > 0 && (
                     <div className="space-y-3">
-                      <p className="text-sm font-semibold text-white">Top Improvements</p>
+                      <p className="text-sm font-semibold text-[#f0f0f5] font-display">Top Improvements</p>
                       <div className="space-y-2">
                         {resumeGaps.slice(0, 4).map((gap, index) => (
-                          <div key={`${gap.item}-${index}`} className="rounded-lg border border-slate-700/60 bg-slate-900/30 px-3 py-2">
+                          <div key={`${gap.item}-${index}`} className="rounded-lg border border-[rgba(255,255,255,0.06)] bg-[rgba(26,26,34,0.3)] px-3 py-2"
+                            style={{ borderLeft: `3px solid ${gap.priority === 'high' ? '#f87171' : '#fbbf24'}` }}
+                          >
                             <div className="flex items-center justify-between gap-3">
-                              <span className="text-sm font-medium text-white capitalize">{gap.item}</span>
-                              <span className={`text-[10px] uppercase tracking-wider ${gap.priority === 'high' ? 'text-red-300' : 'text-amber-300'}`}>{gap.priority}</span>
+                              <span className="text-sm font-medium text-[#f0f0f5] capitalize">{gap.item}</span>
+                              <span className={`text-[10px] uppercase tracking-wider ${gap.priority === 'high' ? 'text-red-400' : 'text-amber-400'}`}>{gap.priority}</span>
                             </div>
-                            <p className="mt-1 text-xs text-slate-400">{gap.suggestion}</p>
+                            <p className="mt-1 text-xs text-[#9898a8]">{gap.suggestion}</p>
                           </div>
                         ))}
                       </div>
@@ -208,10 +210,10 @@ export default function MatchResultCard({ result }) {
 
                   {improvementTips.length > 0 && (
                     <div className="space-y-3">
-                      <p className="text-sm font-semibold text-white">Suggested Edits</p>
+                      <p className="text-sm font-semibold text-[#f0f0f5] font-display">Suggested Edits</p>
                       <ul className="space-y-2">
                         {improvementTips.slice(0, 3).map((tip) => (
-                          <li key={tip} className="rounded-lg border border-slate-700/60 bg-slate-900/30 px-3 py-2 text-sm text-slate-300 leading-relaxed">
+                          <li key={tip} className="rounded-lg border border-[rgba(255,255,255,0.06)] bg-[rgba(26,26,34,0.3)] px-3 py-2 text-sm text-[#b8b8c1] leading-relaxed">
                             {tip}
                           </li>
                         ))}
@@ -225,9 +227,9 @@ export default function MatchResultCard({ result }) {
         </div>
       ) : (
         <div className="glass-card p-5 space-y-3">
-          <p className="text-sm font-semibold text-white">Category Summary</p>
-          <p className="text-sm text-slate-300 leading-relaxed">
-            The resume is most likely classified as <span className="font-semibold text-white">{category}</span>.
+          <p className="text-sm font-semibold text-[#f0f0f5] font-display">Category Summary</p>
+          <p className="text-sm text-[#b8b8c1] leading-relaxed">
+            The resume is most likely classified as <span className="font-semibold text-[#f0f0f5]">{category}</span>.
             Add a job description to unlock match score, readiness, and tailoring suggestions.
           </p>
           {sortedTopCategories.length > 0 && (
@@ -242,17 +244,17 @@ export default function MatchResultCard({ result }) {
         </div>
       )}
 
-      {/* Skills Grid */}
+      {/* Skills Grid — left accent borders */}
       {(matchingSkills.length > 0 || missingSkills.length > 0) && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Matching */}
           {matchingSkills.length > 0 && (
-            <div className="glass-card p-5 space-y-3">
+            <div className="glass-card p-5 space-y-3" style={{ borderLeft: '3px solid #2dd4a8', borderRadius: '4px 16px 16px 4px' }}>
               <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-green-400" />
-                <p className="text-sm font-semibold text-white">
+                <CheckCircle className="h-4 w-4 text-[#2dd4a8]" />
+                <p className="text-sm font-semibold text-[#f0f0f5] font-display">
                   Matching Skills
-                  <span className="ml-2 text-xs font-normal text-green-400">({matchingSkills.length})</span>
+                  <span className="ml-2 text-xs font-normal text-[#2dd4a8]">({matchingSkills.length})</span>
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -265,10 +267,10 @@ export default function MatchResultCard({ result }) {
 
           {/* Missing */}
           {missingSkills.length > 0 && (
-            <div className="glass-card p-5 space-y-3">
+            <div className="glass-card p-5 space-y-3" style={{ borderLeft: '3px solid #f87171', borderRadius: '4px 16px 16px 4px' }}>
               <div className="flex items-center gap-2">
                 <XCircle className="h-4 w-4 text-red-400" />
-                <p className="text-sm font-semibold text-white">
+                <p className="text-sm font-semibold text-[#f0f0f5] font-display">
                   Missing Skills
                   <span className="ml-2 text-xs font-normal text-red-400">({missingSkills.length})</span>
                 </p>
@@ -283,16 +285,14 @@ export default function MatchResultCard({ result }) {
         </div>
       )}
 
-      {/* Recommendation */}
+      {/* Recommendation — quote-style layout */}
       {recommendation && (
-        <div className="glass-card p-5">
-          <div className="flex items-start gap-3">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-500/15 text-indigo-400 mt-0.5">
-              <MessageSquare className="h-4 w-4" />
-            </div>
+        <div className="glass-card p-5 relative overflow-hidden">
+          <div className="absolute top-3 left-5 text-[48px] leading-none text-[rgba(45,212,168,0.1)] font-display select-none">"</div>
+          <div className="flex items-start gap-3 pl-6">
             <div>
-              <p className="text-sm font-semibold text-white mb-1">Recommendation</p>
-              <p className="text-sm text-slate-300 leading-relaxed">{recommendation}</p>
+              <p className="text-sm font-semibold text-[#f0f0f5] mb-1 font-display">Recommendation</p>
+              <p className="text-sm text-[#b8b8c1] leading-relaxed italic">{recommendation}</p>
             </div>
           </div>
         </div>

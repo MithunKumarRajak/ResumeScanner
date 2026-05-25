@@ -45,8 +45,8 @@ const ROLE_KEYWORDS = [
   'ui ux designer',
 ]
 const ACTIONS = [
-  { id: 'checker', icon: ClipboardCheck, title: 'Resume Checker', sub: 'with AI Feedback', color: 'indigo', needs: 'resume' },
-  { id: 'match', icon: GitCompare, title: 'Full Match Analysis', sub: 'Deep score breakdown', color: 'violet', needs: 'both' },
+  { id: 'checker', icon: ClipboardCheck, title: 'Resume Checker', sub: 'with AI Feedback', color: 'brand', needs: 'resume' },
+  { id: 'match', icon: GitCompare, title: 'Full Match Analysis', sub: 'Deep score breakdown', color: 'accent', needs: 'both' },
   { id: 'edit', icon: FileEdit, title: 'Resume Edit', sub: 'with parsed data', color: 'sky', needs: 'resume' },
   { id: 'coverletter', icon: Wand2, title: 'AI Cover Letter', sub: 'Generate customized letter', color: 'amber', needs: 'both' },
 ]
@@ -186,17 +186,20 @@ function MissingInputModal({ missingType, onProvide, onClose }) {
 function ActionCard({ action, onClick }) {
   const Icon = action.icon
   const colors = {
-    indigo: { bg: 'bg-indigo-500/12', text: 'text-indigo-400', ring: 'hover:ring-indigo-500/30', glow: 'group-hover:shadow-[0_0_30px_rgba(99,102,241,0.15)]' },
-    violet: { bg: 'bg-violet-500/12', text: 'text-violet-400', ring: 'hover:ring-violet-500/30', glow: 'group-hover:shadow-[0_0_30px_rgba(139,92,246,0.15)]' },
-    sky: { bg: 'bg-sky-500/12', text: 'text-sky-400', ring: 'hover:ring-sky-500/30', glow: 'group-hover:shadow-[0_0_30px_rgba(14,165,233,0.15)]' },
-    emerald: { bg: 'bg-emerald-500/12', text: 'text-emerald-400', ring: 'hover:ring-emerald-500/30', glow: 'group-hover:shadow-[0_0_30px_rgba(16,185,129,0.15)]' },
-    amber: { bg: 'bg-amber-500/12', text: 'text-amber-400', ring: 'hover:ring-amber-500/30', glow: 'group-hover:shadow-[0_0_30px_rgba(245,158,11,0.15)]' },
+    brand:  { bg: 'bg-[rgba(45,212,168,0.1)]', text: 'text-[#2dd4a8]', border: '#2dd4a8' },
+    accent: { bg: 'bg-[rgba(99,102,241,0.1)]', text: 'text-[#818cf8]', border: '#6366f1' },
+    sky:    { bg: 'bg-[rgba(14,165,233,0.1)]', text: 'text-sky-400', border: '#0ea5e9' },
+    amber:  { bg: 'bg-[rgba(245,158,11,0.1)]', text: 'text-amber-400', border: '#f59e0b' },
   }
-  const c = colors[action.color]
+  const c = colors[action.color] || colors.brand
   return (
-    <button onClick={onClick} className={`glass-card-hover group w-full text-left p-6 space-y-4 cursor-pointer ring-1 ring-transparent ${c.ring} ${c.glow} transition-all duration-300`} id={`action-${action.id}`}>
+    <button onClick={onClick} className="glass-card-hover group w-full text-left p-6 space-y-4 cursor-pointer transition-all duration-300" id={`action-${action.id}`}
+      style={{ borderLeft: `3px solid transparent` }}
+      onMouseEnter={e => e.currentTarget.style.borderLeftColor = c.border}
+      onMouseLeave={e => e.currentTarget.style.borderLeftColor = 'transparent'}
+    >
       <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${c.bg} ${c.text} group-hover:scale-110 transition-transform duration-300`}><Icon className="h-6 w-6" /></div>
-      <div><h3 className="text-base font-bold text-white mb-1">{action.title}</h3><p className="text-sm text-slate-400">{action.sub}</p></div>
+      <div><h3 className="text-base font-bold text-[#f0f0f5] mb-1 font-display">{action.title}</h3><p className="text-sm text-[#9898a8]">{action.sub}</p></div>
       <span className={`inline-flex items-center gap-1.5 text-xs font-semibold ${c.text} opacity-0 group-hover:opacity-100 transition-opacity`}>Select →</span>
     </button>
   )
@@ -212,17 +215,17 @@ function WorkflowStepper({ phase, activeAction, hasResume, hasJD, isAnalyzing })
   ]
 
   return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4">
+    <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] p-4" style={{ background: 'rgba(17,17,24,0.5)' }}>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {steps.map((step) => {
           const active = current === step.id
           const done = step.done || current > step.id
           return (
-            <div key={step.id} className={`flex items-center gap-3 rounded-xl border px-3 py-2 ${active ? 'border-emerald-500/30 bg-emerald-500/10' : done ? 'border-slate-700 bg-slate-900/70' : 'border-slate-800 bg-slate-900/40'}`}>
-              <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${done ? 'bg-emerald-400 text-black' : active ? 'bg-white text-black' : 'bg-slate-800 text-slate-400'}`}>
+            <div key={step.id} className={`flex items-center gap-3 rounded-xl border px-3 py-2 ${active ? 'border-[rgba(45,212,168,0.25)] bg-[rgba(45,212,168,0.06)]' : done ? 'border-[rgba(255,255,255,0.06)] bg-[rgba(26,26,34,0.6)]' : 'border-[rgba(255,255,255,0.04)] bg-[rgba(26,26,34,0.3)]'}`}>
+              <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold font-display ${done ? 'bg-[#2dd4a8] text-[#111118]' : active ? 'bg-gradient-to-br from-[#2dd4a8] to-[#6366f1] text-[#111118]' : 'bg-[rgba(42,42,50,0.5)] text-[#5e5e72]'}`}>
                 {done ? <CheckCircle2 className="h-4 w-4" /> : step.id}
               </span>
-              <span className={`text-sm font-semibold ${active || done ? 'text-white' : 'text-slate-500'}`}>{step.label}</span>
+              <span className={`text-sm font-semibold ${active || done ? 'text-[#f0f0f5]' : 'text-[#5e5e72]'}`}>{step.label}</span>
             </div>
           )
         })}
@@ -237,30 +240,30 @@ function ReportSummary({ result, atsData, parsedResume }) {
   const score = result.matchScore ?? result.confidencePct ?? 0
 
   return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-5">
+    <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] p-5" style={{ background: 'rgba(17,17,24,0.6)' }}>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-300">Analysis Report</p>
-          <h2 className="mt-2 text-2xl font-bold text-white">{parsedResume?.name || 'Candidate'} vs target role</h2>
-          <p className="mt-1 text-sm text-slate-400">{result.category || 'Predicted role'} · {result.modelVersion || 'Selected model'}</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-[#2dd4a8] font-display">Analysis Report</p>
+          <h2 className="mt-2 text-2xl font-bold text-[#f0f0f5] font-display">{parsedResume?.name || 'Candidate'} vs target role</h2>
+          <p className="mt-1 text-sm text-[#9898a8]">{result.category || 'Predicted role'} · {result.modelVersion || 'Selected model'}</p>
         </div>
-        <div className="rounded-xl border border-slate-700 bg-slate-900/70 px-5 py-3 text-right">
-          <p className="text-xs text-slate-500">Overall signal</p>
-          <p className="text-3xl font-bold text-white">{Math.round(score)}%</p>
+        <div className="rounded-xl border border-[rgba(255,255,255,0.06)] bg-[rgba(26,26,34,0.6)] px-5 py-3 text-right">
+          <p className="text-xs text-[#5e5e72] font-display">Overall signal</p>
+          <p className="text-3xl font-bold gradient-text font-display">{Math.round(score)}%</p>
         </div>
       </div>
       <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div className="rounded-xl bg-slate-900/70 p-4">
-          <p className="text-xs text-slate-500">Readiness</p>
-          <p className="mt-1 text-sm font-semibold text-white">{readiness}</p>
+        <div className="rounded-xl bg-[rgba(26,26,34,0.5)] p-4">
+          <p className="text-xs text-[#5e5e72] font-display">Readiness</p>
+          <p className="mt-1 text-sm font-semibold text-[#f0f0f5]">{readiness}</p>
         </div>
-        <div className="rounded-xl bg-slate-900/70 p-4">
-          <p className="text-xs text-slate-500">ATS status</p>
-          <p className="mt-1 text-sm font-semibold text-white">{atsData ? `${Math.round(atsData.ats_score)} / 100` : 'Run checker for ATS'}</p>
+        <div className="rounded-xl bg-[rgba(26,26,34,0.5)] p-4">
+          <p className="text-xs text-[#5e5e72] font-display">ATS status</p>
+          <p className="mt-1 text-sm font-semibold text-[#f0f0f5]">{atsData ? `${Math.round(atsData.ats_score)} / 100` : 'Run checker for ATS'}</p>
         </div>
-        <div className="rounded-xl bg-slate-900/70 p-4">
-          <p className="text-xs text-slate-500">Review flag</p>
-          <p className="mt-1 text-sm font-semibold text-white">{result.needsHumanReview ? 'Manual review suggested' : 'Model result stable'}</p>
+        <div className="rounded-xl bg-[rgba(26,26,34,0.5)] p-4">
+          <p className="text-xs text-[#5e5e72] font-display">Review flag</p>
+          <p className="mt-1 text-sm font-semibold text-[#f0f0f5]">{result.needsHumanReview ? 'Manual review suggested' : 'Model result stable'}</p>
         </div>
       </div>
     </div>
@@ -713,39 +716,38 @@ export default function CandidatePage() {
       <div className="w-full max-w-5xl mb-8">
         <WorkflowStepper phase={phase} activeAction={activeAction} hasResume={hasResume} hasJD={hasJD} isAnalyzing={isAnalyzing} />
       </div>
-      <div className="text-center mb-8 animate-slide-up">
-        <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-4 py-1.5">
-          <ShieldCheck className="h-3.5 w-3.5 text-emerald-300" />
-          <span className="text-xs font-semibold text-emerald-300 tracking-wide">Candidate Analysis Workflow</span>
+      <div className="text-left w-full max-w-5xl mb-8 animate-slide-up">
+        <div className="mb-4 inline-flex items-center gap-2.5 rounded-lg border border-[rgba(255,255,255,0.06)] bg-[rgba(26,26,34,0.6)] px-4 py-2" style={{ borderLeft: '3px solid #2dd4a8' }}>
+          <span className="text-xs font-semibold text-[#9898a8]">Candidate Analysis Workflow</span>
         </div>
-        <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white mb-3">
-          Analyze, Match & Improve
+        <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-[#f0f0f5] mb-3 font-display">
+          Analyze, Match & <span className="gradient-text">Improve</span>
         </h1>
-        <p className="max-w-lg mx-auto text-sm sm:text-base text-slate-400 leading-relaxed">
+        <p className="max-w-lg text-sm sm:text-base text-[#9898a8] leading-relaxed">
           Upload your resume, paste a job description, or both — then let our AI do the heavy lifting.
         </p>
       </div>
       <div className="w-full max-w-5xl animate-slide-up" style={{ animationDelay: '0.1s' }}>
         <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-0 items-stretch">
-          <div className="glass-card p-6 space-y-4 rounded-b-none md:rounded-b-[20px] md:rounded-r-none">
-            <div className="flex items-center gap-2"><FileText className="h-5 w-5 text-indigo-400" /><h2 className="text-base font-bold text-white">Resume Input</h2></div>
+          <div className="glass-card p-6 space-y-4 rounded-b-none md:rounded-b-[16px] md:rounded-r-none">
+            <div className="flex items-center gap-2"><FileText className="h-5 w-5 text-[#2dd4a8]" /><h2 className="text-base font-bold text-[#f0f0f5] font-display">Resume Input</h2></div>
             <MiniDropZone file={resumeFile} onFile={handleFileSet} onClear={handleFileClear} />
             {extractError && <p className="flex items-center gap-1.5 text-xs text-red-400"><AlertCircle className="h-3.5 w-3.5" />{extractError}</p>}
-            {checkerError && !extractError && <p className="flex items-center gap-1.5 text-xs text-amber-300"><AlertTriangle className="h-3.5 w-3.5" />{checkerError}</p>}
+            {checkerError && !extractError && <p className="flex items-center gap-1.5 text-xs text-amber-400"><AlertTriangle className="h-3.5 w-3.5" />{checkerError}</p>}
             <CardModelSelector value={selectedModel} onChange={setSelectedModel} models={availableModels} />
-            {modelLoadError && <p className="text-xs text-amber-300">{modelLoadError}</p>}
+            {modelLoadError && <p className="text-xs text-amber-400">{modelLoadError}</p>}
           </div>
           <div className="flex items-center justify-center md:flex-col py-4 md:py-0">
-            <div className="flex-1 h-px md:h-auto md:w-px bg-slate-700/50 md:flex-1" />
-            <span className="mx-4 md:mx-0 md:my-4 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-700/60 bg-slate-900/80 text-xs font-bold text-slate-400 tracking-wider">OR</span>
-            <div className="flex-1 h-px md:h-auto md:w-px bg-slate-700/50 md:flex-1" />
+            <div className="flex-1 h-px md:h-auto md:w-px bg-[rgba(255,255,255,0.04)] md:flex-1" />
+            <span className="mx-4 md:mx-0 md:my-4 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[rgba(255,255,255,0.06)] bg-[rgba(26,26,34,0.8)] text-xs font-bold text-[#5e5e72] tracking-wider font-display">OR</span>
+            <div className="flex-1 h-px md:h-auto md:w-px bg-[rgba(255,255,255,0.04)] md:flex-1" />
           </div>
-          <div className="glass-card p-6 space-y-4 rounded-t-none md:rounded-t-[20px] md:rounded-l-none">
-            <div className="flex items-center gap-2"><ClipboardCheck className="h-5 w-5 text-violet-400" /><h2 className="text-base font-bold text-white">Job Description</h2></div>
+          <div className="glass-card p-6 space-y-4 rounded-t-none md:rounded-t-[16px] md:rounded-l-none">
+            <div className="flex items-center gap-2"><ClipboardCheck className="h-5 w-5 text-[#6366f1]" /><h2 className="text-base font-bold text-[#f0f0f5] font-display">Job Description</h2></div>
             <textarea value={jobDesc} onChange={e => setJobDesc(e.target.value)} placeholder="Paste the full job description here…" className="form-textarea min-h-[200px]" id="candidate-jd-input" />
           </div>
         </div>
-        <div className="flex justify-center mt-8 animate-slide-up" style={{ animationDelay: '0.2s' }}>
+        <div className="flex justify-start mt-8 animate-slide-up" style={{ animationDelay: '0.2s' }}>
           <button onClick={handleProcess} disabled={!canProcess || processing} className="btn-primary flex items-center gap-3 px-10 py-3.5 text-base" id="candidate-process-btn">
             {processing ? <><Loader2 className="h-5 w-5 animate-spin" /> Processing…</> : <><Sparkles className="h-5 w-5" /> Process</>}
           </button>
@@ -763,18 +765,18 @@ export default function CandidatePage() {
       <div className="w-full max-w-3xl mb-8 animate-fade-in">
         <button onClick={() => setPhase('input')} className="btn-ghost flex items-center gap-2" id="dashboard-back-btn"><ArrowLeft className="h-4 w-4" /> Back to Input</button>
       </div>
-      <div className="text-center mb-10 animate-slide-up">
-        <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-4 py-1.5">
-          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" /><span className="text-xs font-semibold text-emerald-300 tracking-wide">Processing Complete</span>
+      <div className="text-left w-full max-w-3xl mb-10 animate-slide-up">
+        <div className="mb-3 inline-flex items-center gap-2 rounded-lg border border-[rgba(45,212,168,0.15)] bg-[rgba(45,212,168,0.05)] px-3 py-1.5">
+          <CheckCircle2 className="h-3.5 w-3.5 text-[#2dd4a8]" /><span className="text-xs font-semibold text-[#2dd4a8] tracking-wide">Processing Complete</span>
         </div>
-        <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white mb-2">Choose an <span className="gradient-text">Action</span></h1>
-        <p className="text-sm text-slate-400">Select what you'd like to do with your data</p>
+        <h1 className="text-2xl sm:text-4xl font-bold tracking-tight text-[#f0f0f5] mb-2 font-display">Choose an <span className="gradient-text">Action</span></h1>
+        <p className="text-sm text-[#9898a8]">Select what you'd like to do with your data</p>
       </div>
-      <div className="flex items-center justify-center gap-4 mb-8 animate-slide-up" style={{ animationDelay: '0.05s' }}>
-        {hasResume && <span className="flex items-center gap-1.5 rounded-full bg-sky-500/10 border border-sky-500/20 px-3 py-1.5 text-xs font-medium text-sky-300"><FileText className="h-3 w-3" /> Resume uploaded</span>}
-        {hasJD && <span className="flex items-center gap-1.5 rounded-full bg-violet-500/10 border border-violet-500/20 px-3 py-1.5 text-xs font-medium text-violet-300"><ClipboardCheck className="h-3 w-3" /> Job description</span>}
+      <div className="flex items-center justify-start gap-4 mb-8 w-full max-w-3xl animate-slide-up" style={{ animationDelay: '0.05s' }}>
+        {hasResume && <span className="flex items-center gap-1.5 rounded-lg bg-[rgba(45,212,168,0.06)] border border-[rgba(45,212,168,0.15)] px-3 py-1.5 text-xs font-medium text-[#2dd4a8]"><FileText className="h-3 w-3" /> Resume uploaded</span>}
+        {hasJD && <span className="flex items-center gap-1.5 rounded-lg bg-[rgba(99,102,241,0.06)] border border-[rgba(99,102,241,0.15)] px-3 py-1.5 text-xs font-medium text-[#818cf8]"><ClipboardCheck className="h-3 w-3" /> Job description</span>}
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-2xl animate-slide-up" style={{ animationDelay: '0.1s' }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-3xl animate-slide-up" style={{ animationDelay: '0.1s' }}>
         {ACTIONS.map(a => <ActionCard key={a.id} action={a} onClick={() => handleAction(a)} />)}
       </div>
       {missingFor && <MissingInputModal missingType={missingType} onProvide={handleMissingProvide} onClose={() => setMissingFor(null)} />}
@@ -813,7 +815,7 @@ export default function CandidatePage() {
               />
             )}
 
-            <div className="flex flex-wrap items-center justify-between gap-4 pt-6 border-t border-slate-700/50 mt-8">
+            <div className="flex flex-wrap items-center justify-between gap-4 pt-6 mt-8" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
               <button
                 onClick={() => navigate('/compare')}
                 className="btn-secondary flex items-center gap-2"
@@ -859,47 +861,47 @@ export default function CandidatePage() {
                   <Send className="h-4 w-4" /> Send Notification <ChevronDownIcon className="h-4 w-4" />
                 </button>
                 {notifMenuOpen && (
-                  <div className="absolute right-0 bottom-full mb-2 w-48 rounded-xl border border-slate-700 bg-slate-800 shadow-xl overflow-hidden z-10 animate-fade-in">
-                    <button onClick={() => handleSendNotification('shortlisted')} className="w-full text-left px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white border-none cursor-pointer">Shortlist</button>
-                    <button onClick={() => handleSendNotification('interview_invite')} className="w-full text-left px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white border-none cursor-pointer">Interview Invite</button>
-                    <button onClick={() => handleSendNotification('on_hold')} className="w-full text-left px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white border-none cursor-pointer">On Hold</button>
-                    <div className="h-px bg-slate-700 my-1"></div>
-                    <button onClick={() => handleSendNotification('rejected')} className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 border-none cursor-pointer">Reject</button>
+                  <div className="absolute right-0 bottom-full mb-2 w-48 rounded-xl border border-[rgba(255,255,255,0.06)] shadow-elevated overflow-hidden z-10 animate-fade-in" style={{ background: 'rgba(26,26,34,0.95)', backdropFilter: 'blur(12px)' }}>
+                    <button onClick={() => handleSendNotification('shortlisted')} className="w-full text-left px-4 py-2 text-sm text-[#b8b8c1] hover:bg-[rgba(45,212,168,0.05)] hover:text-[#f0f0f5] border-none cursor-pointer bg-transparent">Shortlist</button>
+                    <button onClick={() => handleSendNotification('interview_invite')} className="w-full text-left px-4 py-2 text-sm text-[#b8b8c1] hover:bg-[rgba(45,212,168,0.05)] hover:text-[#f0f0f5] border-none cursor-pointer bg-transparent">Interview Invite</button>
+                    <button onClick={() => handleSendNotification('on_hold')} className="w-full text-left px-4 py-2 text-sm text-[#b8b8c1] hover:bg-[rgba(45,212,168,0.05)] hover:text-[#f0f0f5] border-none cursor-pointer bg-transparent">On Hold</button>
+                    <div className="h-px bg-[rgba(255,255,255,0.04)] my-1"></div>
+                    <button onClick={() => handleSendNotification('rejected')} className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 border-none cursor-pointer bg-transparent">Reject</button>
                   </div>
                 )}
               </div>
             </div>
           </div>
         ) : (
-          <div className="glass-card p-12 flex flex-col items-center gap-4"><Loader2 className="h-10 w-10 animate-spin text-indigo-400" /><p className="text-slate-300 font-medium">Preparing analysis…</p></div>
+          <div className="glass-card p-12 flex flex-col items-center gap-4"><Loader2 className="h-10 w-10 animate-spin text-[#2dd4a8]" /><p className="text-[#b8b8c1] font-medium">Preparing analysis…</p></div>
         )
       )}
 
       {activeAction === 'coverletter' && (
         <div className="glass-card p-6 md:p-10 max-w-4xl mx-auto">
-          <div className="flex items-center gap-3 mb-6 border-b border-slate-700/50 pb-6">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/20 text-amber-400">
+          <div className="flex items-center gap-3 mb-6 pb-6" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-400">
               <Wand2 className="h-6 w-6" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-white">AI Cover Letter Generator</h2>
-              <p className="text-sm text-slate-400">Tailored to your resume and the target job description.</p>
+              <h2 className="text-xl font-bold text-[#f0f0f5] font-display">AI Cover Letter Generator</h2>
+              <p className="text-sm text-[#9898a8]">Tailored to your resume and the target job description.</p>
             </div>
           </div>
           
           {isGeneratingCL ? (
             <div className="flex flex-col items-center justify-center py-16">
               <Loader2 className="h-10 w-10 animate-spin text-amber-400 mb-4" />
-              <p className="text-slate-300 font-medium">Writing your personalized cover letter...</p>
-              <p className="text-xs text-slate-500 mt-2">This may take a few moments</p>
+              <p className="text-[#b8b8c1] font-medium">Writing your personalized cover letter...</p>
+              <p className="text-xs text-[#5e5e72] mt-2">This may take a few moments</p>
             </div>
           ) : coverLetter ? (
             <div className="animate-fade-in">
-              <div className="bg-slate-900/60 rounded-xl p-6 md:p-8 border border-slate-700/60 shadow-inner">
+              <div className="rounded-xl p-6 md:p-8 border border-[rgba(255,255,255,0.06)] shadow-inner" style={{ background: 'rgba(26,26,34,0.5)' }}>
                 <textarea 
                   value={coverLetter}
                   onChange={(e) => setCoverLetter(e.target.value)}
-                  className="w-full min-h-[450px] bg-transparent text-slate-200 text-[15px] leading-loose outline-none resize-y"
+                  className="w-full min-h-[450px] bg-transparent text-[#d4d4de] text-[15px] leading-loose outline-none resize-y"
                 />
               </div>
               <div className="flex justify-end mt-6">
@@ -915,8 +917,8 @@ export default function CandidatePage() {
               </div>
             </div>
           ) : (
-            <div className="text-center py-10 text-slate-400">
-              <AlertCircle className="h-8 w-8 mx-auto mb-3 text-slate-500" />
+            <div className="text-center py-10 text-[#5e5e72]">
+              <AlertCircle className="h-8 w-8 mx-auto mb-3 text-[#5e5e72]" />
               <p>Could not generate cover letter.</p>
             </div>
           )}
@@ -924,7 +926,7 @@ export default function CandidatePage() {
       )}
 
       {activeAction === 'edit' && (
-        parsedResume ? <ParsedResumeEditor /> : <div className="glass-card p-10 text-center text-slate-400">No parsed resume data available.</div>
+        parsedResume ? <ParsedResumeEditor /> : <div className="glass-card p-10 text-center text-[#5e5e72]">No parsed resume data available.</div>
       )}
 
       <div className="flex justify-center pt-4">

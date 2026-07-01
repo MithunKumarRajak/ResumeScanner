@@ -1,6 +1,7 @@
 import { CheckCircle, XCircle, Zap, MessageSquare, TrendingUp, ChevronDown } from 'lucide-react'
 
 import ScoreCircle from './ScoreCircle'
+import SecurityBadge from './SecurityBadge'
 
 function ScoreBar({ value }) {
   const color =
@@ -48,6 +49,11 @@ export default function MatchResultCard({ result }) {
     matchingSkills = [],
     missingSkills  = [],
     recommendation,
+    // Security pipeline fields (from agentic security layer)
+    scanPassed = null,
+    scanReason = null,
+    piiRedactionCount = null,
+    piiTypesFound = [],
   } = result
 
   const displayConfidencePct = confidencePct ?? Math.round((confidence || 0) * 100)
@@ -59,14 +65,22 @@ export default function MatchResultCard({ result }) {
   return (
     <div className="space-y-4 animate-slide-up">
 
-      {/* Header Row */}
+      {/* Header Row — contains the security badges + score/category breakdown */}
       <div className="glass-card p-6">
         <div className="flex items-center gap-2 mb-4">
           <Zap className="h-5 w-5 text-[#2dd4a8]" />
-          <p className="font-semibold text-[#f0f0f5] font-display">Match Analysis</p>
+          <h3 className="font-semibold text-[#f0f0f5]">Analysis Results</h3>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-start gap-6">
+        {/* Security pipeline status badges */}
+        <SecurityBadge
+          scanPassed={scanPassed}
+          scanReason={scanReason}
+          piiRedactionCount={piiRedactionCount}
+          piiTypesFound={piiTypesFound}
+        />
+
+        <div className="flex flex-col sm:flex-row items-start gap-6 mt-4">
           {matchScore !== null ? (
             <ScoreCircle score={matchScore} />
           ) : (

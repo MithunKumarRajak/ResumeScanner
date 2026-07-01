@@ -11,6 +11,13 @@ import os
 import re
 from typing import Optional
 
+# Import PII redaction tool — used before sending any resume text to external LLMs.
+# Redaction applies ONLY to outbound LLM payloads. It is NOT applied to:
+#   - The raw_text stored in the resumes DB table (recruiters need real contact info).
+#   - The frontend UI (candidates' real names/emails shown to recruiters).
+# This boundary is enforced here at the call sites.
+from app.tools.pii_redactor import redact_pii as _redact_pii
+
 from fastapi import APIRouter, HTTPException, UploadFile, File, Depends
 from pydantic import BaseModel
 from app.models import User
@@ -250,6 +257,12 @@ async def extract_resume(file: UploadFile = File(...), current_user: User = Depe
     if not text:
         raise HTTPException(status_code=400, detail="Could not extract text from this file")
 
+    # PII redaction happens here — before any text leaves the system to a third-party LLM.
+    # `text` (original) is returned to the frontend and stored in DB so recruiters keep
+    # real contact info. Only `text_for_llm` (redacted) goes to Gemini/Groq.
+    _redact_result = _redact_pii(text)
+    text_for_llm = _redact_result["redacted_text"]
+
     #  Structured field extraction via Gemini (V7 Upgrade)
     prompt = f"""You are an expert HR parser. Extract the following information from the resume text below.
 Respond ONLY with a valid JSON object matching this schema:
@@ -269,7 +282,7 @@ Respond ONLY with a valid JSON object matching this schema:
 }}
 
 Resume Text:
-{text}
+{text_for_llm}
 """
     parsed_json = None
     try:
@@ -297,8 +310,10 @@ Resume Text:
         }
 
     return {
-        "raw_text": text,
-        "parsed": parsed_json
+        "raw_text": text,  # Original text (real PII preserved for recruiter use)
+        "parsed": parsed_json,
+        "pii_redaction_count": _redact_result["redaction_count"],
+        "pii_types_found": _redact_result["types_found"],
     }
 
 # Remove legacy regex block
@@ -311,12 +326,16 @@ class ExplainMatchRequest(BaseModel):
 @router.post("/ai/explain-match")
 def explain_match(req: ExplainMatchRequest, current_user: User = Depends(get_current_active_user)):
     """Generate a conversational explanation of why a candidate matches the JD."""
+    # PII redaction happens here — before any text leaves the system to a third-party LLM.
+    _redact_for_explain = _redact_pii(req.resume_text)
+    _resume_text_for_llm = _redact_for_explain["redacted_text"]
+
     prompt = f"""You are an expert technical recruiter. You just scored a candidate's resume an {req.match_score}% match against a job description.
 Write a 3-4 sentence professional summary explaining EXACTLY why they are or aren't a good fit. Focus on specific skills overlapping or missing.
 Tone: Professional, direct, encouraging.
 
 Resume:
-{req.resume_text[:2000]}
+{_resume_text_for_llm[:2000]}
 
 Job Description:
 {req.job_description[:2000]}
@@ -341,6 +360,10 @@ Job Description:
 @router.post("/ai/generate-cover-letter")
 def generate_cover_letter(req: CoverLetterRequest, current_user: User = Depends(get_current_active_user)):
     """Generate a highly tailored cover letter based on resume and JD."""
+    # PII redaction happens here — before any text leaves the system to a third-party LLM.
+    _redact_for_cover = _redact_pii(req.resume_text)
+    _resume_for_cover_llm = _redact_for_cover["redacted_text"]
+
     prompt = f"""You are an expert career coach and professional copywriter. 
 Write a compelling, concise cover letter for the following candidate applying for the following job.
 Keep it under 300 words. Highlight the overlapping skills and experiences that make the candidate a great fit.
@@ -348,7 +371,7 @@ Tone: {req.tone}. Do NOT include placeholder brackets like [Your Name] if the in
 Respond with ONLY the text of the cover letter.
 
 Candidate Resume:
-{req.resume_text[:3000]}
+{_resume_for_cover_llm[:3000]}
 
 Job Description:
 {req.job_description[:3000]}

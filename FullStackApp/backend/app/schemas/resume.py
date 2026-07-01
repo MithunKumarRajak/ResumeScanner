@@ -63,3 +63,12 @@ class ParsedResumeOut(BaseModel):
     predicted_category: Optional[str]
     confidence_score:   Optional[float]
     message:            str
+
+    # Security pipeline fields (populated by the agentic security layer).
+    # These drive the frontend status badges without requiring extra API calls.
+    # scan_passed=None means the scan was not run (e.g., background task pending).
+    scan_passed:          Optional[bool]       = None
+    scan_reason:          Optional[str]        = None
+    pii_redaction_count:  Optional[int]        = None
+    pii_types_found:      Optional[List[str]]  = None
+

@@ -1,0 +1,94 @@
+# docker-compose.yml — Orchestrates backend + frontend + postgres for local development.
+#
+# SETUP (one-time):
+#   1. Copy FullStackApp/backend/.env.example to FullStackApp/backend/.env
+#      Then set GEMINI_API_KEY, SECRET_KEY, POSTGRES_PASSWORD.
+#   2. docker-compose up --build
+#   3. Access: Frontend http://localhost:5173  Backend http://localhost:8000
+#
+# SERVICES:
+#   postgres  — PostgreSQL 15 with persisted named volume
+#   backend   — FastAPI (uvicorn --reload, live-reloads source)
+#   frontend  — Vite React dev server (hot-module-replacement)
+
+version: '3.9'
+
+
+services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL 15 — primary database
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-resume_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-resume_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-resume_scanner}
+    ports:
+      - "5432:5432"
+    volumes:
+      # Persist DB data across docker-compose down/up cycles.
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-resume_user} -d ${POSTGRES_DB:-resume_scanner}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # FastAPI backend
+  # ---------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./FullStackApp/backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      # Database — uses the postgres service above.
+      DATABASE_URL: postgresql://${POSTGRES_USER:-resume_user}:${POSTGRES_PASSWORD:-resume_pass}@postgres:5432/${POSTGRES_DB:-resume_scanner}
+      # All other env vars come from the .env file.
+    env_file:
+      - ./FullStackApp/backend/.env
+    volumes:
+      # Live-reload: mount source so code changes are reflected without rebuild.
+      - ./FullStackApp/backend:/backend
+      # Mount ML model artifacts — these are large files that don't belong in the image.
+      - ./FullStackApp/model.pkl:/backend/../model.pkl:ro
+      - ./FullStackApp/tfidf.pkl:/backend/../tfidf.pkl:ro
+      - ./FullStackApp/encoder.pkl:/backend/../encoder.pkl:ro
+      - ./FullStackApp/v5:/backend/../v5:ro
+      - ./FullStackApp/v6:/backend/../v6:ro
+      # Uploads persist across restarts (so uploaded resumes aren't lost on restart).
+      - resume_uploads:/backend/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: on-failure
+
+  # ---------------------------------------------------------------------------
+  # Vite React frontend
+  # ---------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./FullStackApp/frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    env_file:
+      - ./FullStackApp/frontend/.env
+    volumes:
+      # Live-reload: mount source for hot module replacement.
+      - ./FullStackApp/frontend:/frontend
+      # Exclude node_modules from bind-mount (use container's version).
+      - /frontend/node_modules
+    depends_on:
+      - backend
+    restart: on-failure
+
+volumes:
+  # Named volumes — persist independently of containers.
+  postgres_data:
+    driver: local
+  resume_uploads:
+    driver: local

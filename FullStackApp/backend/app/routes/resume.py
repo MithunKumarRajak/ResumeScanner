@@ -26,6 +26,10 @@ from app.services import classifier as classifier_svc
 from app.utils.auth import get_current_active_user, get_optional_current_user, get_password_hash
 from app.utils.file_handler import validate_file, save_upload_file, delete_file
 
+# Security pipeline tools — scan runs at upload time; audit logger records each step.
+from app.tools.security_scanner import scan_file as _scan_file
+from app.tools.audit_logger import log_step as _log_step, build_scan_detail as _build_scan_detail
+
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Resumes"])
 
@@ -126,18 +130,50 @@ async def upload_resume(
     """
     Upload a PDF or DOCX resume.
     - Validates file type & size
+    - Runs magic-byte security scan (rejects mismatched/malicious files)
     - Saves to local storage
     - Triggers async parse + classify via BackgroundTasks
-    - Returns resume ID immediately (status: pending)
+    - Returns resume ID immediately (status: pending) with security scan result
     - Works for authenticated users and guests
     """
+    # Read file bytes first (needed for magic-byte scan before saving).
+    content = await file.read()
+
+    # SECURITY SCAN — runs BEFORE the file is saved to disk.
+    # This is the first step of the deterministic security pre-pipeline.
+    # If the scan fails, we reject immediately and never persist the file.
+    scan_result = _scan_file(content, file.filename or "unknown")
+    if not scan_result["passed"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Security scan failed: {scan_result.get('reason', 'File type not allowed.')} "
+                   f"(Detected: {scan_result.get('detected_type', 'unknown')})",
+        )
+
+    # Also run the existing content-type / extension check for defence-in-depth.
     validate_file(file)
 
     # Use authenticated user if available, otherwise use guest user
-    user_for_resume = current_user if current_user else _get_or_create_guest_user(
-        db)
+    user_for_resume = current_user if current_user else _get_or_create_guest_user(db)
 
-    file_url, file_name, file_size = await save_upload_file(file, user_for_resume.id)
+    # Write file bytes to disk (we already read them above for the scan).
+    import uuid
+    from pathlib import Path
+    from app.config import settings
+    upload_dir = Path(settings.UPLOAD_DIR) / str(user_for_resume.id)
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    ext = Path(file.filename or "resume").suffix.lower()
+    unique_name = f"{uuid.uuid4()}{ext}"
+    dest = upload_dir / unique_name
+    if len(content) > settings.MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"File size exceeds {settings.MAX_FILE_SIZE // (1024 * 1024)} MB limit.",
+        )
+    dest.write_bytes(content)
+    file_url = str(dest).replace("\\", "/")
+    file_name = file.filename or unique_name
+    file_size = len(content)
 
     resume = Resume(
         user_id=user_for_resume.id,
@@ -149,6 +185,15 @@ async def upload_resume(
     db.add(resume)
     db.commit()
     db.refresh(resume)
+
+    # Log the scan step to the audit trail now that we have a resume_id.
+    _log_step(
+        db_session=db,
+        step_name="scan",
+        status="passed",
+        detail=_build_scan_detail(scan_result),
+        resume_id=resume.id,
+    )
 
     # Kick off parsing in background (non-blocking)
     from app.database.session import SessionLocal
@@ -166,6 +211,10 @@ async def upload_resume(
         predicted_category=None,
         confidence_score=None,
         message="Resume uploaded. Parsing in progress — poll GET /resume/{id} for results.",
+        scan_passed=scan_result["passed"],
+        scan_reason=scan_result.get("reason"),
+        pii_redaction_count=None,  # populated after background task runs
+        pii_types_found=None,
     )
 
 

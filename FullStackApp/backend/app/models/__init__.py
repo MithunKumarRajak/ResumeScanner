@@ -17,3 +17,6 @@ from app.models.notification import EmailNotification, NotificationType, Notific
 
 #  Advanced models
 from app.models.advanced import CustomModelConfig, BiasAuditLog                             # noqa: F401
+
+#  Security pipeline models (agentic security layer)
+from app.models.audit_log import AuditLog                                                   # noqa: F401

@@ -80,3 +80,13 @@ sendgrid==6.12.5
 # - pytest + pytest-asyncio: backend tests in tests/*
 pytest==7.4.0
 pytest-asyncio==0.23.0
+
+# Agentic Security Layer dependencies (added for Kaggle capstone)
+# - python-magic: MIME detection from file bytes in app/tools/security_scanner.py
+#   Uses libmagic under the hood. On Linux/Docker: needs `apt-get install libmagic1`.
+# - python-magic-bin: Windows-only — provides the libmagic DLL for python-magic.
+#   Safe to include on Linux too (the package is a no-op there).
+# - mcp: Official MCP (Model Context Protocol) SDK for app/mcp_server.py.
+python-magic==0.4.27
+python-magic-bin==0.4.14
+mcp>=1.0.0

@@ -19,6 +19,11 @@ import logging
 import sys
 from typing import Optional, List, Dict
 
+# Import PII redaction tool — used before resume text is sent to Gemini/Groq
+# in the LLM fallback judge. The local ML scoring (classify_with_bundle) is
+# fully offline and does NOT require redacted text.
+from app.tools.pii_redactor import redact_pii as _redact_pii
+
 import numpy as np
 import scipy.sparse as sp
 from fastapi import APIRouter, HTTPException
@@ -452,7 +457,12 @@ def _llm_fallback_judge(resume_text: str, classification: Dict[str, object]) -> 
     if not allowed:
         return None
 
-    prompt = f"""You are a senior resume classifier. The ML model is uncertain.
+    # PII redaction happens here — before any text leaves the system to a third-party LLM.
+    # Only the LLM fallback payload is redacted; local ML scoring uses original text.
+    _redact_result = _redact_pii(resume_text)
+    _redacted_for_llm = _redact_result["redacted_text"]
+
+    prompt_with_redacted = f"""You are a senior resume classifier. The ML model is uncertain.
 Choose the best category from this allowed list only:
 {json.dumps(allowed)}
 
@@ -464,18 +474,19 @@ Return ONLY valid JSON:
 }}
 
 Resume text:
-{resume_text[:3500]}
+{_redacted_for_llm[:3500]}
 """
+
 
     text = None
     try:
         from app.routes import ai as ai_routes
         model = ai_routes._get_gemini()
         if model is not None:
-            response = model.generate_content(prompt)
+            response = model.generate_content(prompt_with_redacted)
             text = response.text.strip()
         if not text:
-            text = ai_routes._call_groq_api(prompt)
+            text = ai_routes._call_groq_api(prompt_with_redacted)
         if not text:
             return None
 

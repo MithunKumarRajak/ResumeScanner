@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, Float, Integer, Text, DateTime, ForeignKey, Boolean
+from sqlalchemy import Column, String, Float, Integer, Text, DateTime, ForeignKey, Boolean, JSON
 from sqlalchemy.orm import relationship
 from app.database.base import Base
 
@@ -34,7 +34,13 @@ class Resume(Base):
     language_confidence = Column(Float, nullable=True)
     has_hindi_content   = Column(Boolean, default=False)
 
-    #  Status 
+    #  Security / PII pipeline results ─
+    # Populated by the orchestrator background task after every upload.
+    # pii_types_found is stored as a JSON string (e.g. '["email","phone"]').
+    pii_redaction_count = Column(Integer,     nullable=True)
+    pii_types_found     = Column(Text,        nullable=True)  # JSON-encoded list
+
+    #  Status ─
     # pending | parsed | classified | error
     status        = Column(String(50), default="pending")
     error_message = Column(Text,       nullable=True)

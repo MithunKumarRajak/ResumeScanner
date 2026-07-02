@@ -18,7 +18,9 @@ TOOLS EXPOSED:
 HOW TO RUN:
   From the backend directory:
     python -m app.mcp_server         (MCP stdio transport — for MCP inspector)
-    python -m app.mcp_server --http  (HTTP transport on port 8001)
+
+  Note: only stdio transport is implemented. The server does not accept command-line
+  flags; any arguments passed are silently ignored.
 
 DEPENDENCIES:
   mcp — the official Python MCP SDK (pip install mcp).

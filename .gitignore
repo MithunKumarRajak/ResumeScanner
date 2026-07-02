@@ -54,6 +54,10 @@ yarn-error.log*
 Report/
 uploads/
 /FullStackApp/backend/uploads/
+# Training data — ~121 MB of raw PDFs, not needed by judges/evaluators.
+# See README.md → "Dataset" section for where to obtain it.
+Dataset/
+
 
 #  Databases 
 *.sqlite

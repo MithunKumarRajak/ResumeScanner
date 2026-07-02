@@ -33,6 +33,9 @@ class ResumeOut(BaseModel):
     preferred_role:     Optional[str]
     predicted_category: Optional[str]
     confidence_score:   Optional[float]
+    # Security / PII pipeline results (populated after background processing)
+    pii_redaction_count: Optional[int]       = None
+    pii_types_found:     Optional[str]       = None  # JSON-encoded list from DB
     status:             str
     created_at:         datetime
     updated_at:         datetime

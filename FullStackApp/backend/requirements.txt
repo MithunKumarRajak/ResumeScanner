@@ -1,16 +1,16 @@
 # Web API framework and server
 # - fastapi: app/main.py and all app/routes/* endpoints
 # - uvicorn: ASGI server entrypoint in main.py and app/main.py
-fastapi==0.104.1
-uvicorn==0.24.0
+fastapi==0.115.12
+uvicorn==0.34.3
 
 # Data validation and settings
 # - pydantic: request/response schemas in app/schemas/* and routes
 # - pydantic-settings: environment config in app/config.py
 # - email-validator: EmailStr validation used in user/notification schemas
-pydantic==2.5.0
-pydantic-settings==2.2.1
-email-validator==2.1.1
+pydantic==2.11.7
+pydantic-settings==2.8.1
+email-validator==2.2.0
 
 # Database and migrations
 # - SQLAlchemy: ORM models, DB sessions, and queries across app/models/* and app/routes/*
@@ -46,7 +46,7 @@ dateparser==1.4.0
 # - scipy: sparse matrix stacking for TF-IDF + structured features
 # - cloudpickle: unified ML pipeline artifact serialization
 numpy==2.2.3
-scipy==1.16.3
+scipy>=1.9.3,<1.16.0
 scikit-learn==1.7.2
 joblib==1.5.3
 cloudpickle==3.1.2
@@ -71,7 +71,7 @@ lingua-language-detector==2.1.1
 # - google-generativeai: Gemini integration in app/routes/ai.py
 # - sendgrid: email provider in app/services/email_service.py
 requests==2.32.5
-httpx==0.25.0
+httpx>=0.27
 python-dotenv==1.0.1
 google-generativeai==0.8.6
 sendgrid==6.12.5
@@ -85,8 +85,8 @@ pytest-asyncio==0.23.0
 # - python-magic: MIME detection from file bytes in app/tools/security_scanner.py
 #   Uses libmagic under the hood. On Linux/Docker: needs `apt-get install libmagic1`.
 # - python-magic-bin: Windows-only — provides the libmagic DLL for python-magic.
-#   Safe to include on Linux too (the package is a no-op there).
+#   This wheel does NOT exist for Linux/manylinux — using sys_platform guard is mandatory.
 # - mcp: Official MCP (Model Context Protocol) SDK for app/mcp_server.py.
 python-magic==0.4.27
-python-magic-bin==0.4.14
+python-magic-bin==0.4.14; sys_platform == "win32"
 mcp>=1.0.0

@@ -11,9 +11,6 @@
 #   backend   — FastAPI (uvicorn --reload, live-reloads source)
 #   frontend  — Vite React dev server (hot-module-replacement)
 
-version: '3.9'
-
-
 services:
   # ---------------------------------------------------------------------------
   # PostgreSQL 15 — primary database
@@ -30,7 +27,7 @@ services:
       # Persist DB data across docker-compose down/up cycles.
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-resume_user} -d ${POSTGRES_DB:-resume_scanner}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-resume_user} -d ${POSTGRES_DB:-resume_scanner}" ]
       interval: 10s
       timeout: 5s
       retries: 5

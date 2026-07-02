@@ -62,6 +62,13 @@ export function useMatch() {
         atsScore:        data.ats_score || 0,
         suggestions:     data.suggestions || [],
         recommendation:  buildRecommendation(score, data.category, matching, missing),
+        // Security pipeline fields — explicit snake_case → camelCase mapping.
+        // The ...data spread above does NOT propagate these because MatchResultCard
+        // destructures by name; without explicit mapping they silently become undefined.
+        scanPassed:         data.scan_passed ?? null,
+        scanReason:         data.scan_reason ?? null,
+        piiRedactionCount:  data.pii_redaction_count ?? null,
+        piiTypesFound:      data.pii_types_found ?? [],
       }
 
       setMatchResult(result)

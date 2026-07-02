@@ -17,6 +17,7 @@ from typing import Optional
 #   - The frontend UI (candidates' real names/emails shown to recruiters).
 # This boundary is enforced here at the call sites.
 from app.tools.pii_redactor import redact_pii as _redact_pii
+from app.tools.audit_logger import log_step as _log_step, build_redact_detail as _build_redact_detail
 
 from fastapi import APIRouter, HTTPException, UploadFile, File, Depends
 from pydantic import BaseModel
@@ -262,6 +263,23 @@ async def extract_resume(file: UploadFile = File(...), current_user: User = Depe
     # real contact info. Only `text_for_llm` (redacted) goes to Gemini/Groq.
     _redact_result = _redact_pii(text)
     text_for_llm = _redact_result["redacted_text"]
+    # Audit: log the redact step for this endpoint.
+    try:
+        from app.database.session import SessionLocal as _SessionLocal
+        _audit_db = _SessionLocal()
+        try:
+            _log_step(
+                db_session=_audit_db,
+                step_name="redact",
+                status="passed",
+                detail=_build_redact_detail(_redact_result),
+                resume_id=None,
+            )
+        finally:
+            _audit_db.close()
+    except Exception as _exc:
+        import logging as _log
+        _log.getLogger(__name__).warning("[ai/extract-resume] audit log failed: %s", _exc)
 
     #  Structured field extraction via Gemini (V7 Upgrade)
     prompt = f"""You are an expert HR parser. Extract the following information from the resume text below.
@@ -329,6 +347,23 @@ def explain_match(req: ExplainMatchRequest, current_user: User = Depends(get_cur
     # PII redaction happens here — before any text leaves the system to a third-party LLM.
     _redact_for_explain = _redact_pii(req.resume_text)
     _resume_text_for_llm = _redact_for_explain["redacted_text"]
+    # Audit: log the redact step for explain-match.
+    try:
+        from app.database.session import SessionLocal as _SessionLocal
+        _audit_db = _SessionLocal()
+        try:
+            _log_step(
+                db_session=_audit_db,
+                step_name="redact",
+                status="passed",
+                detail=_build_redact_detail(_redact_for_explain),
+                resume_id=None,
+            )
+        finally:
+            _audit_db.close()
+    except Exception as _exc:
+        import logging as _log
+        _log.getLogger(__name__).warning("[ai/explain-match] audit log failed: %s", _exc)
 
     prompt = f"""You are an expert technical recruiter. You just scored a candidate's resume an {req.match_score}% match against a job description.
 Write a 3-4 sentence professional summary explaining EXACTLY why they are or aren't a good fit. Focus on specific skills overlapping or missing.
@@ -363,6 +398,23 @@ def generate_cover_letter(req: CoverLetterRequest, current_user: User = Depends(
     # PII redaction happens here — before any text leaves the system to a third-party LLM.
     _redact_for_cover = _redact_pii(req.resume_text)
     _resume_for_cover_llm = _redact_for_cover["redacted_text"]
+    # Audit: log the redact step for cover letter generation.
+    try:
+        from app.database.session import SessionLocal as _SessionLocal
+        _audit_db = _SessionLocal()
+        try:
+            _log_step(
+                db_session=_audit_db,
+                step_name="redact",
+                status="passed",
+                detail=_build_redact_detail(_redact_for_cover),
+                resume_id=None,
+            )
+        finally:
+            _audit_db.close()
+    except Exception as _exc:
+        import logging as _log
+        _log.getLogger(__name__).warning("[ai/cover-letter] audit log failed: %s", _exc)
 
     prompt = f"""You are an expert career coach and professional copywriter. 
 Write a compelling, concise cover letter for the following candidate applying for the following job.

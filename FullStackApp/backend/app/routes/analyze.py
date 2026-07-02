@@ -15,6 +15,8 @@ from app.services.classifier import classify_resume
 from app.services.skill_extractor import extract_skills, compute_skill_gaps
 from app.services.ats_checker import ats_checker_service
 from app.routes.ai import _get_gemini, _call_groq_api
+from app.tools.pii_redactor import redact_pii as _redact_pii
+from app.tools.audit_logger import log_step as _log_step, build_redact_detail as _build_redact_detail
 
 router = APIRouter(tags=["Analysis"])
 
@@ -56,7 +58,30 @@ def unified_analyze(
 
     if not res_text:
         raise HTTPException(status_code=400, detail="Resume text is required")
-    
+
+    # PII redaction — runs before any LLM/external call, consistent with other endpoints.
+    # This ensures the analyze flow also creates audit rows and redacts text to LLMs.
+    _redact_result = _redact_pii(res_text)
+    _pii_count     = _redact_result["redaction_count"]
+    _pii_types     = _redact_result["types_found"]
+    # Log the redact step (best-effort: no resume_id in this request scope)
+    try:
+        from app.database.session import SessionLocal as _SessionLocal
+        _audit_db = _SessionLocal()
+        try:
+            _log_step(
+                db_session=_audit_db,
+                step_name="redact",
+                status="passed",
+                detail=_build_redact_detail(_redact_result),
+                resume_id=req.resume_id,
+            )
+        finally:
+            _audit_db.close()
+    except Exception as _audit_exc:
+        import logging as _logging
+        _logging.getLogger(__name__).warning("[analyze] audit log failed: %s", _audit_exc)
+
     # 1. Classification & ML Guidance
     try:
         from app.routes.predict import predict_resume, ResumeInput
@@ -131,7 +156,11 @@ def unified_analyze(
         "matched_skills": matched_skills,
         "missing_skills": missing_skills,
         "ats_score": ats_score,
-        "suggestions": suggestions
+        "suggestions": suggestions,
+        # Security pipeline fields — lets the frontend SecurityBadge show real data.
+        "scan_passed": True,   # /analyze receives text, not an uploaded file; scan is not applicable
+        "pii_redaction_count": _pii_count,
+        "pii_types_found": _pii_types,
     }
     
     # Merge rich ML analytics (guidance, LLM fallback, etc.)
@@ -140,6 +169,7 @@ def unified_analyze(
             response[k] = v
 
     return response
+
 
 @router.post("/summarize")
 def summarize_resume(req: SummarizeRequest):

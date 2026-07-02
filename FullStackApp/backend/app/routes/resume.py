@@ -74,48 +74,112 @@ def _sync_resume_skills(db: Session, resume: Resume, skill_names: List[str],
 
 #  Background task: parse + classify ─
 
+import json as _json
+
+# Orchestrator — the single entry point for the full agentic security pipeline.
+# Both this background task and cli.py use the same function.
+from app.agents.orchestrator import run_security_pipeline as _run_security_pipeline
+
+
 def _parse_and_classify(resume_id: str, file_url: str, db_factory):
-    """Runs after the upload response is sent."""
+    """
+    Background task: run the full agentic security pipeline on the uploaded file.
+
+    Flow (mirrors cli.py's `score` command exactly):
+      1. Read bytes from the saved file path (file was already persisted before this task runs)
+      2. Run run_security_pipeline: scan → extract → redact → LLM reasoning → score_resume
+      3. Also run NLP parsing (parser_svc.parse_resume) for recruiter-facing fields
+         (name, education, skills). These use raw_text, not the redacted version —
+         recruiters need real contact info in the UI.
+      4. Persist all results onto the Resume row (classification, pii counts, status).
+
+    GUARDRAILS (enforced by run_security_pipeline itself):
+      - scan_file and redact_pii are hardcoded and always run — not LLM-controlled.
+      - Redacted text goes to LLM calls only; raw_text is stored in DB for recruiters.
+    """
     db: Session = db_factory()
     try:
         resume = db.query(Resume).filter(Resume.id == resume_id).first()
         if not resume:
             return
 
-        # 1. Extract text
+        # Read file bytes from disk (already saved during upload).
+        from pathlib import Path
+        file_path = Path(file_url)
+        if not file_path.exists():
+            logger.error(f"[_parse_and_classify] File not found: {file_url}")
+            resume.status = "error"
+            resume.error_message = "Upload file missing from disk."
+            db.commit()
+            return
+        file_bytes = file_path.read_bytes()
+        filename = resume.file_name or file_path.name
+
+        # ---------------------------------------------------------------
+        # STEP A: Run full agentic security pipeline
+        # (scan → extract text → redact → LLM reasoning → score_resume)
+        # This is the EXACT same call that cli.py uses.
+        # ---------------------------------------------------------------
+        pipeline_result = _run_security_pipeline(
+            file_bytes=file_bytes,
+            filename=filename,
+            db_session=db,
+            resume_id=resume_id,
+        )
+
+        # ---------------------------------------------------------------
+        # STEP B: NLP parsing for recruiter-facing fields
+        # Uses raw_text (not redacted) so recruiters see real contact info.
+        # ---------------------------------------------------------------
         raw_text = parser_svc.extract_text(file_url)
         resume.raw_text = raw_text
         resume.status = "parsed"
 
-        # 2. NLP parse
         parsed = parser_svc.parse_resume(raw_text)
         resume.parsed_name = parsed["name"]
         resume.parsed_education = parsed["education"]
         resume.experience_years = parsed["experience_years"]
 
-        # 3. Sync skills
         _sync_resume_skills(db, resume, parsed["skills"], SkillSource.parsed)
 
-        # 4. Classify
-        clf = classifier_svc.classify_resume(raw_text)
-        resume.predicted_category = clf["predicted_category"]
-        resume.confidence_score = clf["confidence"]
+        # ---------------------------------------------------------------
+        # STEP C: Persist pipeline results
+        # ---------------------------------------------------------------
+        score = pipeline_result.get("score", {})
+        if score and not score.get("error"):
+            resume.predicted_category = score.get("predicted_category", "Unknown")
+            resume.confidence_score = score.get("confidence", 0.0)
+        else:
+            # Fallback: if orchestrator scoring failed, mark unknown
+            resume.predicted_category = "Unknown"
+            resume.confidence_score = 0.0
+
+        resume.pii_redaction_count = pipeline_result.get("pii_redaction_count", 0)
+        resume.pii_types_found = _json.dumps(pipeline_result.get("pii_types_found", []))
         resume.status = "classified"
 
         db.commit()
         logger.info(
-            f" Resume {resume_id} parsed & classified as '{clf['predicted_category']}'")
+            f"[_parse_and_classify] Resume {resume_id} processed via orchestrator. "
+            f"Category: '{resume.predicted_category}', "
+            f"PII redacted: {resume.pii_redaction_count}"
+        )
 
     except Exception as e:
         db.rollback()
-        resume = db.query(Resume).filter(Resume.id == resume_id).first()
-        if resume:
-            resume.status = "error"
-            resume.error_message = str(e)
-            db.commit()
-        logger.error(f" Parse/classify error for {resume_id}: {e}")
+        try:
+            resume = db.query(Resume).filter(Resume.id == resume_id).first()
+            if resume:
+                resume.status = "error"
+                resume.error_message = str(e)
+                db.commit()
+        except Exception:
+            pass
+        logger.error(f"[_parse_and_classify] Error for {resume_id}: {e}")
     finally:
         db.close()
+
+
 
 
 #  Routes

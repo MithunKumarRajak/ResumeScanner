@@ -5,6 +5,7 @@ import html2pdf from 'html2pdf.js'
 import useStore from '../store'
 import { extractResume, rescoreResume, summarizeResume } from '../services/api'
 import { Sparkles } from 'lucide-react'
+import SecurityBadge from '../components/SecurityBadge'
 
 const TEMPLATES = [
   { id: 'modern', name: 'Modern', color: '#6366f1' },
@@ -293,6 +294,8 @@ export default function ResumeBuildPage() {
   const [isExtracting, setIsExtracting] = useState(false)
   const [extractError, setExtractError] = useState('')
   const [isSummarizing, setIsSummarizing] = useState(false)
+  const [extractPiiCount, setExtractPiiCount] = useState(null)
+  const [extractPiiTypes, setExtractPiiTypes] = useState([])
 
   // Load stored data from store or localStorage
   const stored = resumeBuildData || JSON.parse(localStorage.getItem('rs_resume_build') || 'null')
@@ -450,6 +453,9 @@ export default function ResumeBuildPage() {
           projects: parsed.projects || '',
           certifications: parsed.certifications || '',
         })
+        // Capture security pipeline data from /extract-resume response
+        setExtractPiiCount(result.pii_redaction_count ?? null)
+        setExtractPiiTypes(result.pii_types_found ?? [])
       }
       setPhase('editor')
     } catch (err) {
@@ -537,6 +543,17 @@ export default function ResumeBuildPage() {
               </button>
             </div>
           </div>
+
+          {/* Security badge — shows PII redaction status from /extract-resume */}
+          {extractPiiCount !== null && (
+            <div className="animate-fade-in">
+              <SecurityBadge
+                scanPassed={true}
+                piiRedactionCount={extractPiiCount}
+                piiTypesFound={extractPiiTypes}
+              />
+            </div>
+          )}
 
           {(liveScore || rescoreStatus) && (
             <div className="glass-card p-4 space-y-2 border-indigo-500/20">

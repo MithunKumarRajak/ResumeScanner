@@ -2,22 +2,24 @@
 app/mcp_server.py — MCP (Model Context Protocol) server for the security pipeline.
 
 PURPOSE:
-  Exposes the security pipeline tools as MCP-compatible tools so they can be
+  Exposes all five agent skills as MCP-compatible tools so they can be
   discovered and invoked by MCP-aware clients (e.g., Claude Desktop, ADK agents,
   or any MCP inspector tool).
 
   This satisfies the Kaggle rubric's "MCP server" requirement while keeping the
   implementation self-contained and runnable without a full web server.
 
-TOOLS EXPOSED:
-  1. scan_file      — file-type / MIME validation
-  2. redact_pii     — PII detection and redaction
-  3. score_resume   — ML-based resume classification
-  4. log_audit      — write a step to the audit_log table
+TOOLS EXPOSED (5 total — matches the agent_skills.py registry):
+  1. scan_file          — file-type / MIME validation           (SkillScanFile)
+  2. redact_pii         — PII detection and redaction           (SkillRedactPII)
+  3. score_resume       — ML-based resume classification        (SkillScoreResume)
+  4. generate_feedback  — LLM-driven resume feedback agent      (SkillGenerateFeedback)
+  5. log_audit          — write a step to the audit_log table   (SkillLogAudit)
 
 HOW TO RUN:
   From the backend directory:
     python -m app.mcp_server         (MCP stdio transport — for MCP inspector)
+    npx @modelcontextprotocol/inspector python -m app.mcp_server  (visual inspector)
 
   Note: only stdio transport is implemented. The server does not accept command-line
   flags; any arguments passed are silently ignored.
@@ -96,6 +98,48 @@ def _handle_score_resume(params: dict) -> dict:
         return result
     except Exception as exc:
         return {"error": str(exc)}
+
+
+def _handle_generate_feedback(params: dict) -> dict:
+    """
+    MCP tool: generate_feedback
+    Run the FeedbackAgent — LLM-driven resume improvement advice.
+
+    This tool invokes Agent 2 (FeedbackAgent) which uses Gemini or Groq
+    to produce structured, actionable resume improvement feedback.
+    Only PII-redacted text is ever sent to the external LLM.
+
+    Params:
+        redacted_resume_text: str      — PII-redacted resume text
+        score_result:         dict/str — JSON output from score_resume tool
+        job_description:      str|None — Optional JD for targeted gap analysis
+    """
+    from app.agents.feedback_agent import run_feedback_agent
+
+    redacted_text = params.get("redacted_resume_text", "")
+    score_result = params.get("score_result", {})
+    job_description = params.get("job_description")
+
+    # Accept score_result as a JSON string (MCP clients may serialize it)
+    if isinstance(score_result, str):
+        import json as _json
+        try:
+            score_result = _json.loads(score_result)
+        except Exception:
+            score_result = {}
+
+    if not redacted_text.strip():
+        return {"error": "redacted_resume_text is empty"}
+    if not score_result:
+        return {"error": "score_result is required — run score_resume first"}
+
+    return run_feedback_agent(
+        redacted_resume_text=redacted_text,
+        score_result=score_result,
+        job_description=job_description,
+        db_session=None,   # MCP tools run without a DB session
+        resume_id=None,
+    )
 
 
 def _handle_log_audit(params: dict) -> dict:
@@ -202,6 +246,35 @@ MCP_TOOLS: list[dict] = [
         "handler": _handle_score_resume,
     },
     {
+        "name": "generate_feedback",
+        "description": (
+            "Run FeedbackAgent (Agent 2) — LLM-driven resume improvement advice. "
+            "Takes PII-redacted resume text + ML score result and produces structured "
+            "feedback: skill gaps, prioritised improvements, ATS score estimates, "
+            "and a recruiter-facing summary. Requires score_resume output first. "
+            "Returns: {skill_gaps, improvements, ats_summary, category_fit, agent_used_llm}."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "redacted_resume_text": {
+                    "type": "string",
+                    "description": "PII-redacted resume text (output of redact_pii.redacted_text)",
+                },
+                "score_result": {
+                    "type": "string",
+                    "description": "JSON string of score result from score_resume tool",
+                },
+                "job_description": {
+                    "type": "string",
+                    "description": "Optional job description for targeted skill gap analysis",
+                },
+            },
+            "required": ["redacted_resume_text", "score_result"],
+        },
+        "handler": _handle_generate_feedback,
+    },
+    {
         "name": "log_audit",
         "description": (
             "Write one row to the audit_log table recording a pipeline step. "
@@ -213,7 +286,7 @@ MCP_TOOLS: list[dict] = [
             "properties": {
                 "step_name": {
                     "type": "string",
-                    "description": "Step name: 'scan' | 'redact' | 'score' | 'llm_call'",
+                    "description": "Step name: 'scan' | 'redact' | 'score' | 'feedback' | 'llm_call'",
                 },
                 "status": {
                     "type": "string",

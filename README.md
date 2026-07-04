@@ -1,4 +1,4 @@
-﻿# Resume Scanner — Complete Setup & Operations Guide
+# Resume Scanner — Complete Setup & Operations Guide
 
 > **Kaggle AI Agents: Intensive Vibe Coding Capstone Project** (Google-sponsored)
 >
@@ -49,29 +49,59 @@ The frontend provides a React UI for resume upload, job description generation, 
 
 ## 2. Architecture
 
+![Multi-Agent System Architecture](Report/architecture_diagram.png)
+
+### Multi-Agent Pipeline (2 agents + 5 skills + MCP server)
+
 ```
-Upload Request
-      |
-      v
-+------------------+
-| Security Scanner |  <- TOOL: magic-byte MIME validation (always runs first)
-+--------+---------+
-    PASS |   FAIL --> HTTP 400 -- file rejected, never touches disk
-         v
-+------------------+
-|  PII Redactor    |  <- TOOL: regex strips email/phone/PAN before LLM payloads
-+--------+---------+
-         v
-+------------------+
-|  ORCHESTRATOR    |  <- AGENT: LLM decides is this scoreable? -> calls score_resume tool
-|  (ADK-equiv.)    |
-+--------+---------+
-    +----+----+-----------+
-    v         v           v
-Gemini/Groq  ML Score   Audit Log
-(redacted    (original   (Postgres,
- text only)   text,       no raw PII)
-              local)
+Resume Upload
+      │
+      ▼
+┌─────────────────────────────────────────────┐
+│  AGENT 1 — SecurityOrchestratorAgent        │  orchestrator.py
+│                                             │
+│  Step 1: SkillScanFile                      │  TOOL — magic-byte MIME validation
+│          FAIL → HTTP 400 (pipeline halted)  │  Catches renamed files (malware.exe → .pdf)
+│          PASS ↓                             │
+│  Step 2: SkillRedactPII                     │  TOOL — regex strips email/phone/PAN/Aadhaar
+│          (always runs — hardcoded, no LLM)  │  PII never leaves system to external API
+│          ↓                                  │
+│  Step 3: SkillScoreResume ← LLM decides    │  TOOL — local ML classifier (offline, no PII risk)
+│          local TF-IDF + classifier          │
+└──────────────┬──────────────────────────────┘
+               │  score_result (category, confidence)
+               ▼
+┌─────────────────────────────────────────────┐
+│  AGENT 2 — FeedbackAgent                    │  feedback_agent.py
+│                                             │
+│  Input: redacted_text + score_result        │
+│  LLM: Gemini / Groq (redacted text only)   │
+│                                             │
+│  Outputs:                                   │
+│    • skill_gaps       (top 3-5 gaps)        │
+│    • improvements     (ATS-prioritized)     │
+│    • category_fit     (Strong/Good/Moderate)│
+│    • ats_summary      (recruiter headline)  │
+└──────────────┬──────────────────────────────┘
+               │
+               ▼
+┌─────────────────────────────────────────────┐
+│  Outputs                                    │
+│    • PostgreSQL audit_log (immutable trail) │
+│    • FastAPI REST API (8000)                │
+│    • React + Vite frontend UI (5173)        │
+└─────────────────────────────────────────────┘
+
+┌────────────────────────────┐  ┌──────────────────────────┐
+│  MCP Server                │  │  Agent Skills CLI        │
+│  (app/mcp_server.py)       │  │  (cli_agent.py)          │
+│  5 tools over stdio:       │  │  5 skills:               │
+│  • scan_file               │  │  • SkillScanFile         │
+│  • redact_pii              │  │  • SkillRedactPII        │
+│  • score_resume            │  │  • SkillScoreResume      │
+│  • generate_feedback       │  │  • SkillGenerateFeedback │
+│  • log_audit               │  │  • SkillLogAudit         │
+└────────────────────────────┘  └──────────────────────────┘
 ```
 
 **Stack:**
@@ -81,10 +111,12 @@ Gemini/Groq  ML Score   Audit Log
 | Backend API | FastAPI + Uvicorn |
 | Database | PostgreSQL 15 |
 | ORM / Migrations | SQLAlchemy 2 + Alembic |
-| ML Model | scikit-learn (TF-IDF + classifier) |
+| ML Model | scikit-learn (TF-IDF + classifier, v6) |
 | LLM Integration | Google Gemini, Groq (llama-3.3-70b) |
-| Agent Protocol | MCP SDK + ADK-equivalent tool loop |
+| Agent Protocol | MCP SDK + ADK-equivalent tool-calling loop |
+| Agent Skills | 5-skill registry (ADK FunctionTool pattern) |
 | Frontend | React 18 + Vite + Zustand + TanStack Query |
+| Containerisation | Docker Compose (postgres + backend + frontend) |
 
 ---
 

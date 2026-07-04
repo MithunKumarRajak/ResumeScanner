@@ -487,14 +487,15 @@ To use the MCP Inspector:
 npx @modelcontextprotocol/inspector python -m app.mcp_server
 ```
 
-**Tools exposed:**
+**Tools exposed (5 total — matches the agent_skills.py registry):**
 
-| Tool | Description |
-|---|---|
-| `scan_file` | Validate file MIME type from base64-encoded bytes |
-| `redact_pii` | Detect and redact PII from resume text |
-| `score_resume` | ML-classify a resume (local, offline) |
-| `log_audit` | Write a step to the `audit_log` DB table |
+| Tool | Skill | Description |
+|---|---|---|
+| `scan_file` | SkillScanFile | Validate file MIME type from base64-encoded bytes |
+| `redact_pii` | SkillRedactPII | Detect and redact PII from resume text |
+| `score_resume` | SkillScoreResume | ML-classify a resume (local, offline) |
+| `generate_feedback` | SkillGenerateFeedback | LLM-driven resume improvement feedback (FeedbackAgent) |
+| `log_audit` | SkillLogAudit | Write a step to the `audit_log` DB table |
 
 > Note: Only stdio transport is implemented. HTTP transport is not supported. Any command-line flags passed to `python -m app.mcp_server` are silently ignored.
 

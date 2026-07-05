@@ -63,11 +63,11 @@ from app.tools.audit_logger import log_step, build_scan_detail, build_redact_det
 logger = logging.getLogger(__name__)
 
 
-# ---------------------------------------------------------------------------
+
 # Tool definitions (ADK-equivalent pattern)
 # Each tool has: name, description, input_schema, and a handler function.
 # The LLM uses these definitions to decide which tool to call and with what args.
-# ---------------------------------------------------------------------------
+
 
 def _tool_score_resume(resume_text: str, model_version: Optional[str] = None) -> dict:
     """
@@ -118,9 +118,9 @@ _TOOLS = {
 }
 
 
-# ---------------------------------------------------------------------------
+
 # Agent reasoning phase
-# ---------------------------------------------------------------------------
+
 
 def _run_agent_reasoning(
     redacted_text: str,
@@ -281,9 +281,9 @@ Instructions:
     return score_result
 
 
-# ---------------------------------------------------------------------------
+
 # Public API
-# ---------------------------------------------------------------------------
+
 
 def run_security_pipeline(
     file_bytes: bytes,

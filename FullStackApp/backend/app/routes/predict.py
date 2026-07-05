@@ -100,7 +100,8 @@ class PredictionOutput(BaseModel):
 #  Multi-model support (same as original main.py)
 
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
+_file_parents = Path(__file__).resolve().parents
+REPO_ROOT = _file_parents[4] if len(_file_parents) > 4 else _file_parents[3]
 
 loaded_models = {}     # { "ResumeModel_v2": {...}, ... }
 loaded_embedders = {}

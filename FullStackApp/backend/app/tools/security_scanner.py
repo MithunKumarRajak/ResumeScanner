@@ -30,10 +30,10 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
+
 # Allowlist of accepted MIME types (true type detected from bytes, not header).
 # Maps MIME type → set of expected file extensions as an extra sanity check.
-# ---------------------------------------------------------------------------
+
 _ALLOWED_MIME_TYPES: dict[str, list[str]] = {
     "application/pdf": [".pdf"],
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],

@@ -56,9 +56,9 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 
-# ---------------------------------------------------------------------------
+
 # FeedbackAgent — structured resume improvement reasoning
-# ---------------------------------------------------------------------------
+
 
 class FeedbackAgent:
     """
@@ -454,10 +454,10 @@ Return ONLY valid JSON in this exact format (no markdown, no extra text):
             logger.error("[FeedbackAgent] Audit log failed (non-fatal): %s", exc)
 
 
-# ---------------------------------------------------------------------------
+
 # Module-level singleton — callers import and call run() directly.
 # This avoids constructing a new FeedbackAgent on every request.
-# ---------------------------------------------------------------------------
+
 
 _feedback_agent = FeedbackAgent()
 

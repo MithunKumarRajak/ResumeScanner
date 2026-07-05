@@ -1,3 +1,48 @@
+# Kaggle Submission Copy-Paste Cheat Sheet
+
+Use the fields below to fill out your Kaggle Writeup submission form.
+
+---
+
+### [1] Title (56 / 80 characters)
+```text
+ResumeScanner: Privacy-First Multi-Agent Resume Analysis
+```
+
+---
+
+### [2] Subtitle (126 / 140 characters)
+```text
+A two-agent system that scans, redacts, classifies, and gives feedback on resumes without sending raw candidate PII to external LLMs.
+```
+
+---
+
+### [3] Card and Thumbnail Image (560 x 280)
+*Action:* Upload the generated image located at:
+```text
+Report/kaggle_cover_image.png
+```
+
+---
+
+### [4] Submission Tracks
+*Action:* Select:
+```text
+Agents for Business
+```
+
+---
+
+### [5] Media Gallery
+*Action:* 
+- Paste your YouTube video link here once recorded: `[Insert YouTube Link]`
+- Upload the architecture diagram image located at: `Report/architecture_diagram.png`
+
+---
+
+### [6] Project Description (Copy everything inside the box below)
+```markdown
 # ResumeScanner: Privacy-First Multi-Agent Resume Analysis
 
 **Subtitle:** A two-agent system that scans, redacts, classifies, and gives actionable feedback on resumes — without ever sending a candidate's raw personal data to an external LLM.
@@ -44,7 +89,7 @@ When a recruiter uploads a resume, the system:
 3. **Classifies** the resume using a local, fully offline ML classifier (TF-IDF + calibrated SGD/SVM ensemble, v6). No external API call. No PII risk.
 4. **Reasons** about the result using LLM agent logic — the agent decides if the text is scoreable, synthesizes the ML prediction with the redaction summary, and returns a structured assessment.
 5. **Generates feedback** via a second LLM agent: top skill gaps, prioritised improvement actions with estimated ATS score boosts, a recruiter-facing headline.
-6. **Logs** every pipeline step (scan, redact, llm\_call, score, feedback) to an immutable audit trail in PostgreSQL, with counts and categories only — never raw PII values.
+6. **Logs** every pipeline step (scan, redact, llm_call, score, feedback) to an immutable audit trail in PostgreSQL, with counts and categories only — never raw PII values.
 
 Beyond resume upload, the app also provides: job description generation and refinement, cover letter generation, side-by-side candidate comparison, ATS score checking, and a resume builder with live rescoring.
 
@@ -74,7 +119,7 @@ Resume Upload (PDF / DOCX)
 │  Step 3: LLM reasoning (Gemini → Groq)     │
 │     Is this text scoreable?                │
 │     → tool call: SkillScoreResume          │
-│     → local TF-IDF + classifier (offline) │
+│     → local TF-IDF + classifier (offline)  │
 └────────────────┬───────────────────────────┘
                  │ score_result
                  ▼
@@ -83,7 +128,7 @@ Resume Upload (PDF / DOCX)
 │  (app/agents/feedback_agent.py)            │
 │                                            │
 │  Input: redacted_text + score_result       │
-│  LLM: Gemini / Groq (redacted text only)  │
+│  LLM: Gemini / Groq (redacted text only)   │
 │  Outputs:                                  │
 │    skill_gaps     (top 3–5 gaps)           │
 │    improvements   (prioritised + ATS pts)  │
@@ -122,9 +167,9 @@ Five tools are exposed with complete `inputSchema` definitions:
 | `redact_pii` | SkillRedactPII | Regex PII redaction from text |
 | `score_resume` | SkillScoreResume | Local ML classification (offline) |
 | `generate_feedback` | SkillGenerateFeedback | LLM-driven feedback via FeedbackAgent |
-| `log_audit` | SkillLogAudit | Write a step to the audit\_log table |
+| `log_audit` | SkillLogAudit | Write a step to the audit_log table |
 
-Run: `python -m app.mcp_server`
+Run: `python -m app.mcp_server`  
 Inspect: `npx @modelcontextprotocol/inspector python -m app.mcp_server`
 
 ### Concept 3 — Security Features
@@ -143,7 +188,7 @@ Four distinct security layers, all implemented in code:
 
 `agent_skills.py` implements an ADK-style `SkillRegistry` — a central registry of five self-describing `Skill` dataclass objects. Each skill carries its name, description, input/output schema, handler callable, category, `requires_llm` flag, and examples. The registry exposes `list_skills()`, `get()`, `invoke()`, and `to_mcp_tool_list()` — the last of which feeds directly into the MCP server without duplicating tool definitions.
 
-`cli_agent.py` (638 lines) wraps the registry as a command-line interface:
+`cli_agent.py` wraps the registry as a command-line interface:
 
 ```bash
 python cli_agent.py list-skills
@@ -195,7 +240,7 @@ This boundary is enforced in code. The `orchestrator.py` module docstring is the
 
 **Fallback chain:** Every LLM call follows the same pattern: try Gemini Flash → try Groq llama-3.3-70b → use deterministic fallback. The entire app works without any API key — the ML scorer, file scanner, and PII redactor are all local.
 
-**Audit trail:** Every pipeline step (scan, redact, llm\_call, score, feedback) writes one row to `audit_log`. The immutable trail can be inspected via `GET /api/audit-log` (no auth required, visible in Swagger at `/docs`) or directly in PostgreSQL:
+**Audit trail:** Every pipeline step (scan, redact, llm_call, score, feedback) writes one row to `audit_log`. The immutable trail can be inspected via `GET /api/audit-log` (no auth required, visible in Swagger at `/docs`) or directly in PostgreSQL:
 
 ```sql
 SELECT step_name, status, detail, resume_id, timestamp
@@ -223,7 +268,7 @@ The `FeedbackAgent` runs on the redacted text + score:
 - Returns 3 prioritised improvements with ATS score boosts (+15, +12, +8)
 - Category fit: Strong
 
-The React UI shows the `SecurityBadge` component: scan passed, 3 PII fields redacted, category and confidence. The audit log in PostgreSQL has five rows: scan/passed, redact/passed, llm\_call/passed, score/passed, feedback/passed.
+The React UI shows the `SecurityBadge` component: scan passed, 3 PII fields redacted, category and confidence. The audit log in PostgreSQL has five rows: scan/passed, redact/passed, llm_call/passed, score/passed, feedback/passed.
 
 CLI equivalent:
 ```bash
@@ -253,3 +298,12 @@ The two-agent architecture is not decorative. The SecurityOrchestratorAgent and 
 **Demo Notebook:** https://github.com/MithunKumarRajak/ResumeScanner/blob/main/notebooks/kaggle_demo.ipynb
 **Track:** Agents for Business
 **Video:** [YouTube link — replace this before submitting]
+```
+
+---
+
+### [7] Project links
+Add this link:
+```text
+https://github.com/MithunKumarRajak/ResumeScanner
+```

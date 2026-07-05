@@ -35,10 +35,10 @@ import os
 import sys
 from pathlib import Path
 
-# ---------------------------------------------------------------------------
+
 # Ensure the backend app/ package is on the Python path when running directly
 # (e.g., python cli.py scan ... from the backend/ directory).
-# ---------------------------------------------------------------------------
+
 _BACKEND_DIR = Path(__file__).resolve().parent
 if str(_BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(_BACKEND_DIR))
@@ -49,9 +49,9 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
 
-# ---------------------------------------------------------------------------
+
 # Load .env so DATABASE_URL and API keys are available even in standalone mode.
-# ---------------------------------------------------------------------------
+
 try:
     from dotenv import load_dotenv
     _env_path = _BACKEND_DIR / ".env"
@@ -61,9 +61,9 @@ except ImportError:
     pass  # dotenv not critical for CLI scan/redact
 
 
-# ---------------------------------------------------------------------------
+
 # Command implementations
-# ---------------------------------------------------------------------------
+
 
 def cmd_scan(args: argparse.Namespace) -> int:
     """Run security_scanner on a file and print JSON result."""
@@ -175,9 +175,9 @@ def cmd_score(args: argparse.Namespace) -> int:
     return 0 if result.get("scan_passed") else 2
 
 
-# ---------------------------------------------------------------------------
+
 # CLI entry point
-# ---------------------------------------------------------------------------
+
 
 def main() -> int:
     parser = argparse.ArgumentParser(

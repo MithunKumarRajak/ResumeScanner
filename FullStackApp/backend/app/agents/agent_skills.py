@@ -46,9 +46,9 @@ from typing import Any, Callable, Optional
 logger = logging.getLogger(__name__)
 
 
-# ---------------------------------------------------------------------------
+
 # Skill data class — the ADK FunctionTool equivalent
-# ---------------------------------------------------------------------------
+
 
 @dataclass
 class Skill:
@@ -94,9 +94,9 @@ class Skill:
             return self.handler(params)
 
 
-# ---------------------------------------------------------------------------
+
 # Skill Registry — discovery and dispatch
-# ---------------------------------------------------------------------------
+
 
 class SkillRegistry:
     """
@@ -169,9 +169,9 @@ class SkillRegistry:
         ]
 
 
-# ---------------------------------------------------------------------------
+
 # Skill handler implementations
-# ---------------------------------------------------------------------------
+
 
 def _handler_scan_file(params: dict, **_kwargs) -> dict:
     """
@@ -326,9 +326,9 @@ def _handler_log_audit(params: dict, **kwargs) -> dict:
     return {"logged": True, "step_name": step_name, "status": status}
 
 
-# ---------------------------------------------------------------------------
+
 # Skill definitions — registered at module load time
-# ---------------------------------------------------------------------------
+
 
 _SKILL_SCAN_FILE = Skill(
     name="SkillScanFile",
@@ -502,9 +502,9 @@ _SKILL_LOG_AUDIT = Skill(
 )
 
 
-# ---------------------------------------------------------------------------
+
 # Module-level singleton registry — import this and call registry methods.
-# ---------------------------------------------------------------------------
+
 
 SKILL_REGISTRY = SkillRegistry()
 

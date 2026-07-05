@@ -64,9 +64,9 @@ import textwrap
 import time
 from typing import Optional
 
-# ---------------------------------------------------------------------------
+
 # ANSI color helpers (no third-party deps required)
-# ---------------------------------------------------------------------------
+
 
 class C:
     """Terminal color codes — cross-platform (auto-disabled if not a TTY)."""
@@ -120,9 +120,9 @@ def _print_step(icon: str, label: str, value: str = "", color=None) -> None:
     print(line)
 
 
-# ---------------------------------------------------------------------------
+
 # Command: list-skills
-# ---------------------------------------------------------------------------
+
 
 def cmd_list_skills(_args) -> int:
     """List all registered agent skills with their categories and descriptions."""
@@ -152,9 +152,9 @@ def cmd_list_skills(_args) -> int:
     return 0
 
 
-# ---------------------------------------------------------------------------
+
 # Command: describe
-# ---------------------------------------------------------------------------
+
 
 def cmd_describe(args) -> int:
     """Show detailed info about a specific skill."""
@@ -187,9 +187,9 @@ def cmd_describe(args) -> int:
     return 0
 
 
-# ---------------------------------------------------------------------------
+
 # Command: run
-# ---------------------------------------------------------------------------
+
 
 def cmd_run(args) -> int:
     """Run a single skill by name."""
@@ -261,9 +261,9 @@ def cmd_run(args) -> int:
     return 0
 
 
-# ---------------------------------------------------------------------------
+
 # Command: run-pipeline (full multi-agent pipeline)
-# ---------------------------------------------------------------------------
+
 
 def cmd_run_pipeline(args) -> int:
     """
@@ -432,9 +432,9 @@ def cmd_run_pipeline(args) -> int:
     return 0
 
 
-# ---------------------------------------------------------------------------
+
 # Command: architecture
-# ---------------------------------------------------------------------------
+
 
 def cmd_architecture(_args) -> int:
     """Display the multi-agent system architecture diagram."""
@@ -507,9 +507,9 @@ def cmd_architecture(_args) -> int:
     return 0
 
 
-# ---------------------------------------------------------------------------
+
 # Helpers
-# ---------------------------------------------------------------------------
+
 
 def _setup_django_path() -> None:
     """Add the backend directory to sys.path so app imports work from CLI."""
@@ -549,9 +549,9 @@ def _extract_text(file_path: str, ext: str) -> Optional[str]:
     return None
 
 
-# ---------------------------------------------------------------------------
+
 # CLI entry point
-# ---------------------------------------------------------------------------
+
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(

@@ -12,9 +12,9 @@
 #   frontend  — Vite React dev server (hot-module-replacement)
 
 services:
-  # ---------------------------------------------------------------------------
+
   # PostgreSQL 15 — primary database
-  # ---------------------------------------------------------------------------
+
   postgres:
     image: postgres:15-alpine
     environment:
@@ -32,9 +32,8 @@ services:
       timeout: 5s
       retries: 5
 
-  # ---------------------------------------------------------------------------
   # FastAPI backend
-  # ---------------------------------------------------------------------------
+
   backend:
     build:
       context: ./FullStackApp/backend
@@ -56,6 +55,10 @@ services:
       - ./FullStackApp/encoder.pkl:/backend/../encoder.pkl:ro
       - ./FullStackApp/v5:/backend/../v5:ro
       - ./FullStackApp/v6:/backend/../v6:ro
+      # Mount model files from repository root so they can be imported in the container
+      - ./ResumeModel_v6.py:/backend/../ResumeModel_v6.py:ro
+      - ./ResumeModel_v5.py:/backend/../ResumeModel_v5.py:ro
+      - ./ResumeModel_v3.py:/backend/../ResumeModel_v3.py:ro
       # Uploads persist across restarts (so uploaded resumes aren't lost on restart).
       - resume_uploads:/backend/uploads
     depends_on:
@@ -63,9 +66,8 @@ services:
         condition: service_healthy
     restart: on-failure
 
-  # ---------------------------------------------------------------------------
   # Vite React frontend
-  # ---------------------------------------------------------------------------
+
   frontend:
     build:
       context: ./FullStackApp/frontend

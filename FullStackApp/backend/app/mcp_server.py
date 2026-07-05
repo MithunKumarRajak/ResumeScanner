@@ -37,9 +37,9 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
+
 # Tool handlers (thin wrappers around the actual tool functions)
-# ---------------------------------------------------------------------------
+
 
 def _handle_scan_file(params: dict) -> dict:
     """
@@ -175,9 +175,9 @@ def _handle_log_audit(params: dict) -> dict:
     return {"logged": True, "step_name": step_name, "status": status}
 
 
-# ---------------------------------------------------------------------------
+
 # Tool registry — MCP schema format
-# ---------------------------------------------------------------------------
+
 
 MCP_TOOLS: list[dict] = [
     {
@@ -311,9 +311,9 @@ MCP_TOOLS: list[dict] = [
 _TOOL_LOOKUP: dict[str, dict] = {t["name"]: t for t in MCP_TOOLS}
 
 
-# ---------------------------------------------------------------------------
+
 # MCP transport: try official SDK, fall back to JSON-RPC stdio loop
-# ---------------------------------------------------------------------------
+
 
 def _run_with_mcp_sdk() -> None:
     """Run as an MCP server using the official `mcp` Python SDK."""

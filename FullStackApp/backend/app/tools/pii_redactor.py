@@ -45,10 +45,10 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 
-# ---------------------------------------------------------------------------
+
 # PII patterns
 # Each entry: (pattern_name, compiled_regex, replacement_token)
-# ---------------------------------------------------------------------------
+
 
 _PII_PATTERNS: list[tuple[str, re.Pattern, str]] = [
 

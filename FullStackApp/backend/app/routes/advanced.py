@@ -17,7 +17,8 @@ from ..schemas.advanced import (SemanticMatchRequest, SemanticMatchResponse, Exp
 from ..models.analysis import ResumeAnalysis
 from ..models.advanced import BiasAuditLog, CustomModelConfig
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
+_file_parents = Path(__file__).resolve().parents
+REPO_ROOT = _file_parents[4] if len(_file_parents) > 4 else _file_parents[3]
 
 
 def _resolve_model_dir() -> Path:

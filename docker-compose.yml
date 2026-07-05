@@ -56,9 +56,9 @@ services:
       - ./FullStackApp/v5:/backend/../v5:ro
       - ./FullStackApp/v6:/backend/../v6:ro
       # Mount model files from repository root so they can be imported in the container
-      - ./ResumeModel_v6.py:/backend/../ResumeModel_v6.py:ro
-      - ./ResumeModel_v5.py:/backend/../ResumeModel_v5.py:ro
-      - ./ResumeModel_v3.py:/backend/../ResumeModel_v3.py:ro
+      - ./ml_pipelines/ResumeModel_v6.py:/backend/../ResumeModel_v6.py:ro
+      - ./ml_pipelines/ResumeModel_v5.py:/backend/../ResumeModel_v5.py:ro
+      - ./ml_pipelines/ResumeModel_v3.py:/backend/../ResumeModel_v3.py:ro
       # Uploads persist across restarts (so uploaded resumes aren't lost on restart).
       - resume_uploads:/backend/uploads
     depends_on:

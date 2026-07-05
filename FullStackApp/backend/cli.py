@@ -47,6 +47,9 @@ if str(_BACKEND_DIR) not in sys.path:
 _REPO_ROOT = _BACKEND_DIR.parent.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
+_ml_pipelines = _REPO_ROOT / "ml_pipelines"
+if _ml_pipelines.exists() and str(_ml_pipelines) not in sys.path:
+    sys.path.insert(0, str(_ml_pipelines))
 
 
 

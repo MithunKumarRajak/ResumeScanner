@@ -1,0 +1,61 @@
+About the job
+Job Title: Senior Software Developer
+
+Location: Bhopal / Remote / Hybrid
+
+Department: IT / Engineering
+
+Experience: 5–10 Years
+
+Job Summary
+
+We are seeking an experienced Senior Software Developer to lead the design, development, and deployment of scalable software solutions. The candidate will play a key role in technical decision-making, mentoring junior developers, and ensuring high-quality code standards.
+
+Key Responsibilities
+
+Design and develop complex, scalable, and high-performance applications
+Lead end-to-end development lifecycle (requirement → deployment)
+Write clean, maintainable, and efficient code
+Review code and ensure best practices are followed
+Mentor and guide junior developers
+Collaborate with product managers, designers, and QA teams
+Identify and fix performance bottlenecks and bugs
+Architect system design and recommend technical solutions
+Ensure security, scalability, and reliability of applications
+Stay updated with latest technologies and implement innovations
+
+Required Skills
+
+Strong expertise in Java / Python / JavaScript (Node.js)
+Experience with frameworks like Spring Boot, Django, React, Angular
+Deep understanding of system design and architecture
+Strong knowledge of databases (MySQL, PostgreSQL, MongoDB)
+Experience with REST APIs & Microservices architecture
+Proficiency in Git and version control systems
+Knowledge of cloud platforms (AWS / Azure / GCP)
+Familiarity with CI/CD pipelines and DevOps practices
+
+Qualifications
+
+Bachelor’s or Master’s degree in Computer Science, IT, or related field
+Proven experience in software development and team handling
+
+Preferred Skills
+
+Experience in Agile/Scrum methodology
+Knowledge of containerization tools (Docker, Kubernetes)
+Exposure to performance optimization and security practices
+
+Soft Skills
+
+Strong leadership and mentoring ability
+Excellent communication skills
+Problem-solving and decision-making skills
+Ability to handle multiple projects
+
+Benefits
+
+Competitive salary package
+Flexible working environment
+Career growth and leadership opportunities
+Learning & development programs

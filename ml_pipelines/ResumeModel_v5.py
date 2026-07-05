@@ -42,7 +42,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 
 
-PROJECT_ROOT = Path(__file__).resolve().parent if "__file__" in globals() else Path.cwd()
+PROJECT_ROOT = Path(__file__).resolve().parent.parent if "__file__" in globals() else Path.cwd()
 NLP_MODEL = 'en_core_web_sm'
 _NLP = None
 

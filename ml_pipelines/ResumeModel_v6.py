@@ -26,8 +26,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, classification_report
 
 
-PROJECT_ROOT = Path(__file__).resolve(
-).parent if "__file__" in globals() else Path.cwd()
+PROJECT_ROOT = Path(__file__).resolve().parent.parent if "__file__" in globals() else Path.cwd()
 
 
 def resolve_project_path(path_value) -> Path:

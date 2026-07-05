@@ -32,6 +32,10 @@ def _ensure_repo_root_on_path() -> None:
     repo_root_str = str(REPO_ROOT)
     if repo_root_str not in sys.path:
         sys.path.insert(0, repo_root_str)
+    # Support local non-Docker development after ML script move
+    ml_pipelines_dir = str(REPO_ROOT / 'ml_pipelines')
+    if os.path.exists(ml_pipelines_dir) and ml_pipelines_dir not in sys.path:
+        sys.path.insert(0, ml_pipelines_dir)
 
 
 # Lazy-loaded singletons (avoid reloading on every request)

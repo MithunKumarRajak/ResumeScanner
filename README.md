@@ -237,23 +237,23 @@ frontend | VITE v5.x.x  ready in Xms
 | Swagger API Docs | http://localhost:8000/docs |
 | ReDoc API Docs | http://localhost:8000/redoc |
 
-### 5b. Apply database migrations (REQUIRED on first run)
+### 5b. Sync database migrations (REQUIRED on first run)
 
-This step is required on first run and after any schema change. In a **new terminal**:
+Because the FastAPI application automatically creates all tables and types on startup (`Base.metadata.create_all`), running `alembic upgrade head` on a fresh database will crash with `DuplicateObject` or `Relation already exists` errors. 
+
+To synchronize Alembic on the first run, you must **stamp** the database at the latest revision instead. In a **new terminal**:
 
 ```bash
 # Open a shell inside the backend container
 docker-compose exec backend bash
 
-# Inside the container -- run all pending migrations
-alembic upgrade head
+# Inside the container -- stamp the database at the head migration
+alembic stamp head
 
 # Expected output:
-# INFO  [alembic.runtime.migration] Running upgrade  -> 97a323ec476e ...
-# INFO  [alembic.runtime.migration] Running upgrade 97a323ec476e -> 46b39fab543a ...
-# INFO  [alembic.runtime.migration] Running upgrade 46b39fab543a -> 7f0b2a1c4c9d ...
-# INFO  [alembic.runtime.migration] Running upgrade 7f0b2a1c4c9d -> a1b2c3d4e5f6 ...
+# INFO  [alembic.runtime.migration] Running stamp_revision  -> a1b2c3d4e5f6
 
+# (Note: For future model/schema changes during development, you will run "alembic upgrade head" instead)
 exit
 ```
 
@@ -722,9 +722,9 @@ pip install python-magic-bin
 
 The `requirements.txt` installs this automatically on Windows via the `sys_platform == "win32"` marker.
 
-### `alembic upgrade head` fails -- "column already exists"
+### `alembic upgrade head` fails -- "column already exists" / "type already exists"
 
-The column was added manually before the migration ran. Fix by marking it as already applied:
+The column, table, or custom type (such as `bulkjobstatus`) was already created by the application during the initial startup auto-initialization. Fix this by marking the migration as already applied (stamping it):
 
 ```bash
 alembic stamp head
@@ -886,6 +886,6 @@ If you want to retrain the models:
 
 1. Obtain a dataset of labeled resumes by job category
 2. Place PDFs in `Dataset/<category>/` subdirectories
-3. Run `python ResumeModel_v6.py` from the repo root
+3. Run `python ml_pipelines/ResumeModel_v6.py` from the repo root
 
 The app uses the pre-trained artifacts from `FullStackApp/model.pkl` and `FullStackApp/v6/`.

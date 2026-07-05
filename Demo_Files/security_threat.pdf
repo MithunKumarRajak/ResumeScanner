@@ -1,0 +1,2 @@
+This is a fake executable / plain text payload designed to simulate a security threat.
+By naming this file with a '.pdf' extension, we are testing whether the security scanner detects the true MIME type (text/plain) and blocks the upload.

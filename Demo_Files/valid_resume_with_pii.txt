@@ -1,0 +1,28 @@
+John Doe
+Email: john.doe@example.com
+Phone: +91-9876543210
+Aadhaar: 1234 5678 9012
+PAN: ABCDE1234F
+
+Summary:
+Results-driven Software Engineer with 5 years of experience building scalable web applications. Expert in Python, FastAPI, React, and PostgreSQL. Experienced in Docker containerization and CI/CD pipelines.
+
+Skills:
+- Languages: Python, JavaScript, SQL, HTML, CSS
+- Frameworks: FastAPI, Flask, React, Node.js
+- Databases: PostgreSQL, MongoDB, Redis
+- Tools: Git, Docker, Kubernetes, Jenkins, AWS
+
+Experience:
+Senior Software Engineer | Tech Solutions Inc. | 2022 - Present
+- Designed and implemented FastAPI-based microservices, improving throughput by 40%.
+- Containerized applications using Docker and orchestrated them using Kubernetes.
+- Integrated automated testing suites, raising coverage from 60% to 92%.
+
+Software Engineer | CodeCraft Ltd | 2020 - 2022
+- Maintained a legacy Django application and migrated parts of it to FastAPI.
+- Developed interactive user interfaces using React and Tailwind CSS.
+- Optimized SQL queries, reducing database load by 25%.
+
+Education:
+Bachelor of Technology in Computer Science | Global Engineering College | 2016 - 2020

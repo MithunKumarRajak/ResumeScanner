@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import './SemanticMatchPanel.css'
+import { advancedSemanticMatch } from '../services/api'
 
 interface MatchResult {
   semantic_score: number
@@ -36,18 +37,13 @@ export default function SemanticMatchPanel({ resumeText }: Props) {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch('/api/v1/advanced/match', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          resume_text: resumeText,
-          job_description: jdText,
-          include_explanation: true,
-          include_bias_check: true
-        })
+      const data = await advancedSemanticMatch({
+        resume_text: resumeText,
+        job_description: jdText,
+        include_explanation: true,
+        include_bias_check: true,
       })
-      if (!res.ok) throw new Error(await res.text())
-      setResult(await res.json())
+      setResult(data)
     } catch (e: any) {
       setError(e.message)
     } finally {

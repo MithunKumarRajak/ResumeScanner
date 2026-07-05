@@ -342,6 +342,25 @@ export async function getBulkStatus(jobId) {
   return data
 }
 
+export async function advancedSemanticMatch(payload) {
+  const { data } = await api.post('/api/v1/advanced/match', payload)
+  return data
+}
+
+export async function advancedBiasCheck(resumeText) {
+  const { data } = await api.post('/api/v1/advanced/bias-check', { resume_text: resumeText })
+  return data
+}
+
+export async function advancedFineTune(companyName, csvBase64, epochs = 5) {
+  const { data } = await api.post('/api/v1/advanced/fine-tune', {
+    company_name: companyName,
+    csv_base64: csvBase64,
+    epochs,
+  })
+  return data
+}
+
 export async function generateCoverLetter(resumeText, jobDescription, tone = "Professional & Confident") {
   const { data } = await api.post('/ai/generate-cover-letter', {
     resume_text: resumeText,

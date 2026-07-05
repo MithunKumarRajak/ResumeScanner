@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { advancedBiasCheck } from '../services/api'
 
 interface BiasResult {
   gender_indicators_found: string[]
@@ -18,12 +19,8 @@ export default function BiasCheckWidget({ resumeText }: Props) {
   const runCheck = async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/v1/advanced/bias-check', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ resume_text: resumeText })
-      })
-      setResult(await res.json())
+      const data = await advancedBiasCheck(resumeText)
+      setResult(data)
     } finally {
       setLoading(false)
     }

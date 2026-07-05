@@ -2,6 +2,7 @@ import { useState } from 'react'
 import SemanticMatchPanel from '../components/SemanticMatchPanel'
 import BiasCheckWidget from '../components/BiasCheckWidget'
 import AnalyticsTab from '../components/AnalyticsTab'
+import { advancedFineTune } from '../services/api'
 
 export default function AdvancedDashboard() {
   const [activeTab, setActiveTab] = useState<'match' | 'bias' | 'finetune' | 'analytics'>('analytics')
@@ -15,12 +16,7 @@ export default function AdvancedDashboard() {
     const reader = new FileReader()
     reader.onload = async (e) => {
       const base64 = btoa(e.target?.result as string)
-      const res = await fetch('/api/v1/advanced/fine-tune', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ company_name: ftCompany, csv_base64: base64, epochs: 5 })
-      })
-      const data = await res.json()
+      const data = await advancedFineTune(ftCompany, base64, 5)
       setFtStatus(data.message)
     }
     reader.readAsBinaryString(ftFile)

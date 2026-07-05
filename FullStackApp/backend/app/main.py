@@ -85,18 +85,22 @@ app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
     description="""
-## Resume Screening & Job Matching API
+## Resume Screening & Job Matching API — AI Agents Capstone
 
-Production-ready backend with:
+Production-ready multi-agent backend with:
 
+* 🤖 **Multi-Agent Pipeline** — SecurityOrchestratorAgent (scan + redact + score) + FeedbackAgent (LLM feedback)
+* 🔒 **Agentic Security Layer** — magic-byte MIME validation, regex PII redaction before every LLM call, immutable audit trail
+* 🔌 **MCP Server** — 5 tools over stdio (`python -m app.mcp_server`)
+* 🛠️ **Agent Skills CLI** — `python cli_agent.py run-pipeline resume.pdf`
 * 📄 **Resume Upload & Parsing** — PDF/DOCX extraction + spaCy NER
-* 🏷️ **ML Classification** — trained SVM/RF model predicts job category
+* 🏷️ **ML Classification** — trained SVM/RF model predicts job category (v6)
 * 🔗 **Job Matching** — TF-IDF cosine similarity score with skill breakdown
 * 🏆 **Candidate Ranking** — sorted leaderboard per job
 * 💡 **Job Recommendations** — personalised suggestions for candidates
 * 🔐 **JWT Auth** — register, login, protected endpoints
 
-**Docs:** `/docs` (Swagger) | `/redoc` (ReDoc)
+**Docs:** `/docs` (Swagger) | `/redoc` (ReDoc) | **Audit trail:** `GET /api/audit-log`
     """,
     lifespan=lifespan,
     docs_url="/docs",
@@ -153,6 +157,15 @@ async def global_exception_handler(request: Request, exc: Exception):
         content={"detail": "An internal server error occurred."},
     )
 
+#  /status alias — matches README curl examples: curl http://localhost:8000/status
+
+@app.get("/status", tags=["System"], include_in_schema=False)
+def status_alias(request: Request):
+    """Alias for /api/status — backwards-compatible with README curl examples."""
+    from app.routes.status import api_status
+    return api_status(request)
+
+
 #  Health & root ─
 
 
@@ -196,6 +209,8 @@ def root():
             "bulk":        ["POST /api/bulk/upload", "GET /api/bulk/{id}/status"],
             "notifications": ["POST /api/notifications/send"],
             "advanced":      ["POST /api/v1/advanced/match", "POST /api/v1/advanced/explain", "POST /api/v1/advanced/bias-check", "POST /api/v1/advanced/detect-language", "POST /api/v1/advanced/fine-tune", "GET /api/v1/advanced/fine-tune/status/{id}", "GET /api/v1/advanced/bias-report"],
+            "audit":         ["GET /api/audit-log"],
+            "agent":         ["GET /api/status", "GET /api/audit-log"],
         },
     }
 

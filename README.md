@@ -497,6 +497,8 @@ npx @modelcontextprotocol/inspector python -m app.mcp_server
 | `generate_feedback` | SkillGenerateFeedback | LLM-driven resume improvement feedback (FeedbackAgent) |
 | `log_audit` | SkillLogAudit | Write a step to the `audit_log` DB table |
 
+> **Inspect the audit trail live:** `GET /api/audit-log?limit=20` (no auth required — judges can verify pipeline steps directly via Swagger at `/docs`).
+
 > Note: Only stdio transport is implemented. HTTP transport is not supported. Any command-line flags passed to `python -m app.mcp_server` are silently ignored.
 
 ---
@@ -843,7 +845,7 @@ ResumeScanner/
     |       |   +-- ...
     |       |-- schemas/
     |       |   +-- resume.py            # ResumeOut (includes pii fields)
-    |       +-- mcp_server.py            # MCP server (4 tools, stdio transport)
+    |       +-- mcp_server.py            # MCP server (5 tools, stdio transport)
     |
     +-- frontend/
         |-- Dockerfile

@@ -54,12 +54,38 @@ class TestScanFile:
         assert "reason" in result
 
     def test_exe_bytes_rejected(self):
-        """Windows PE magic bytes (MZ) must be rejected - core security test."""
+        """Windows PE magic bytes (MZ) must be rejected when libmagic is available.
+
+        This is the primary security guarantee of the pipeline:
+        a file containing Windows PE magic bytes (0x4D5A = 'MZ') must never
+        be allowed through, even if the caller names it 'resume.pdf'.
+
+        When python-magic / libmagic is not installed, the scanner degrades to
+        extension-only mode and cannot detect renamed executables — this is a
+        documented limitation (see security_scanner.py). The test handles both
+        cases so the suite stays green in both CI and Docker (where libmagic IS
+        installed and the full check runs).
+        """
         scan_file = self._get_scan_file()
         fake_exe = b"MZ\x90\x00\x03\x00\x00\x00" + b"\x00" * 100
         result = scan_file(fake_exe, "resume.pdf")
-        assert isinstance(result["passed"], bool)
-        assert "detected_type" in result
+
+        detected = result.get("detected_type", "")
+        is_degraded = detected.startswith("extension-only/")
+
+        if is_degraded:
+            # libmagic unavailable — extension-only mode cannot catch renamed files.
+            # This is a documented limitation; verify the degraded-mode output shape only.
+            assert result["passed"] is True, "Extension-only mode should pass .pdf extension"
+            assert "detected_type" in result
+            # Degraded mode: reason is None (pass) — no rejection since extension is .pdf
+        else:
+            # libmagic IS available — the scan MUST reject PE bytes.
+            assert result["passed"] is False, (
+                f"Expected scan to FAIL for PE executable bytes, but got passed=True "
+                f"(detected_type={detected})"
+            )
+            assert result.get("reason"), "Rejection must include a reason string"
 
 
 # ===========================================================================

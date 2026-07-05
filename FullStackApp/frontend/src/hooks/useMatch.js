@@ -69,6 +69,8 @@ export function useMatch() {
         scanReason:         data.scan_reason ?? null,
         piiRedactionCount:  data.pii_redaction_count ?? null,
         piiTypesFound:      data.pii_types_found ?? [],
+        // Model version — used by ReportSummary to display which model scored the resume.
+        modelVersion:       data.model_version ?? null,
       }
 
       setMatchResult(result)

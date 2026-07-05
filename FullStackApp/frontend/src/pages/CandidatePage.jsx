@@ -12,6 +12,7 @@ import ExperienceTimeline from '../components/ExperienceTimeline'
 import { checkATS, extractExperience, sendNotification, uploadResume, generateCoverLetter, saveAnalysisReport } from '../services/api'
 import MatchResultCard from '../components/MatchResultCard'
 import ParsedResumeEditor from '../components/ParsedResumeEditor'
+import SecurityBadge from '../components/SecurityBadge'
 import { useMatch } from '../hooks/useMatch'
 import { useModels } from '../hooks/useModels'
 import useStore from '../store'
@@ -266,6 +267,18 @@ function ReportSummary({ result, atsData, parsedResume }) {
           <p className="mt-1 text-sm font-semibold text-[#f0f0f5]">{result.needsHumanReview ? 'Manual review suggested' : 'Model result stable'}</p>
         </div>
       </div>
+      {/* Security pipeline badges — show scan status and PII redaction count to recruiters */}
+      {(result.scanPassed !== undefined || result.piiRedactionCount !== null) && (
+        <div className="mt-4 pt-4 border-t border-[rgba(255,255,255,0.05)]">
+          <p className="text-xs text-[#5e5e72] mb-1 font-display uppercase tracking-wider">Security pipeline</p>
+          <SecurityBadge
+            scanPassed={result.scanPassed ?? null}
+            scanReason={result.scanReason ?? null}
+            piiRedactionCount={result.piiRedactionCount ?? null}
+            piiTypesFound={result.piiTypesFound ?? []}
+          />
+        </div>
+      )}
     </div>
   )
 }

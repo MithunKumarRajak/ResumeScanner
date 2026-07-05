@@ -13,3 +13,16 @@ dependencies = [
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+# Run tests from the backend directory so app imports resolve correctly.
+# Usage: cd FullStackApp/backend && pytest -v
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+# Suppress verbose deprecation warnings from third-party packages
+filterwarnings = [
+    "ignore::DeprecationWarning:passlib",
+    "ignore::DeprecationWarning:jose",
+]

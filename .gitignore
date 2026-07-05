@@ -1,4 +1,4 @@
-﻿# ============================================================
+# ============================================================
 #  Global ignores
 # ============================================================
 .DS_Store
@@ -65,6 +65,7 @@ FullStackApp/backend/uploads/
 # Sample/test resume PDFs dropped locally during development
 FullStackApp/backend/Resume/
 FullStackApp/backend/Job-Description/
+Demo_Files/resume.pdf
 
 # Training dataset -- ~121 MB of raw PDFs, not needed by judges.
 # See README.md Section 16 for how to obtain it.

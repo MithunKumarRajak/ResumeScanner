@@ -78,26 +78,26 @@ class C:
             return f"\033[{code}m{text}\033[0m"
         return text
 
-    green   = staticmethod(lambda t: C._wrap("92", t))
-    yellow  = staticmethod(lambda t: C._wrap("93", t))
-    red     = staticmethod(lambda t: C._wrap("91", t))
-    cyan    = staticmethod(lambda t: C._wrap("96", t))
-    bold    = staticmethod(lambda t: C._wrap("1",  t))
-    dim     = staticmethod(lambda t: C._wrap("2",  t))
+    green = staticmethod(lambda t: C._wrap("92", t))
+    yellow = staticmethod(lambda t: C._wrap("93", t))
+    red = staticmethod(lambda t: C._wrap("91", t))
+    cyan = staticmethod(lambda t: C._wrap("96", t))
+    bold = staticmethod(lambda t: C._wrap("1",  t))
+    dim = staticmethod(lambda t: C._wrap("2",  t))
     magenta = staticmethod(lambda t: C._wrap("95", t))
 
 
 # Emoji-based step icons (fallback to ASCII on Windows if needed)
-ICON_OK    = "✅"
-ICON_LOCK  = "🔒"
+ICON_OK = "✅"
+ICON_LOCK = "🔒"
 ICON_ROBOT = "🤖"
 ICON_SCORE = "🎯"
 ICON_BRAIN = "💡"
-ICON_WARN  = "⚠️ "
-ICON_ERR   = "❌"
-ICON_LIST  = "📋"
-ICON_ARCH  = "🏗️"
-ICON_TIME  = "⏱️"
+ICON_WARN = "⚠️ "
+ICON_ERR = "❌"
+ICON_LIST = "📋"
+ICON_ARCH = "🏗️"
+ICON_TIME = "⏱️"
 
 
 def _print_header(title: str) -> None:
@@ -120,7 +120,6 @@ def _print_step(icon: str, label: str, value: str = "", color=None) -> None:
     print(line)
 
 
-
 # Command: list-skills
 
 
@@ -141,16 +140,17 @@ def cmd_list_skills(_args) -> int:
         print(f"\n  {C.cyan(C.bold(category))}")
         for skill in cat_skills:
             llm_tag = C.yellow(" [LLM]") if skill.requires_llm else ""
-            db_tag  = C.dim(" [DB]")  if skill.requires_db  else ""
+            db_tag = C.dim(" [DB]") if skill.requires_db else ""
             print(f"    {C.bold(skill.name)}{llm_tag}{db_tag}")
             # Wrap description to 56 chars
-            wrapped = textwrap.fill(skill.description, width=56, initial_indent="      ", subsequent_indent="      ")
+            wrapped = textwrap.fill(
+                skill.description, width=56, initial_indent="      ", subsequent_indent="      ")
             print(C.dim(wrapped))
 
-    print(f"\n  {C.dim('[LLM] = makes LLM API calls   [DB] = requires database')}")
+    print(
+        f"\n  {C.dim('[LLM] = makes LLM API calls   [DB] = requires database')}")
     print()
     return 0
-
 
 
 # Command: describe
@@ -169,15 +169,19 @@ def cmd_describe(args) -> int:
 
     _print_header(f"Skill: {skill.name}")
     print(f"\n  Category:    {C.cyan(skill.category)}")
-    print(f"  Requires LLM: {C.yellow('Yes') if skill.requires_llm else C.dim('No')}")
-    print(f"  Requires DB:  {C.yellow('Yes') if skill.requires_db  else C.dim('No')}")
+    print(
+        f"  Requires LLM: {C.yellow('Yes') if skill.requires_llm else C.dim('No')}")
+    print(
+        f"  Requires DB:  {C.yellow('Yes') if skill.requires_db  else C.dim('No')}")
     print(f"\n  Description:")
-    wrapped = textwrap.fill(skill.description, width=56, initial_indent="    ", subsequent_indent="    ")
+    wrapped = textwrap.fill(skill.description, width=56,
+                            initial_indent="    ", subsequent_indent="    ")
     print(wrapped)
 
     print(f"\n  Input Schema:")
     for param, spec in skill.input_schema.items():
-        print(f"    {C.bold(param)} ({spec.get('type', 'any')}): {spec.get('description', '')}")
+        print(
+            f"    {C.bold(param)} ({spec.get('type', 'any')}): {spec.get('description', '')}")
 
     if skill.examples:
         print(f"\n  Example:")
@@ -185,7 +189,6 @@ def cmd_describe(args) -> int:
 
     print()
     return 0
-
 
 
 # Command: run
@@ -237,12 +240,14 @@ def cmd_run(args) -> int:
             return 1
 
     if not params:
-        print(f"{ICON_WARN}  No parameters provided. Use --file, --text, or --json-params.")
+        print(
+            f"{ICON_WARN}  No parameters provided. Use --file, --text, or --json-params.")
         print(f"  Input schema: {list(skill.input_schema.keys())}")
         return 1
 
     _print_header(f"Running {skill_name}")
-    print(f"  Params: {C.dim(json.dumps({k: str(v)[:60] for k, v in params.items()}))}\n")
+    print(
+        f"  Params: {C.dim(json.dumps({k: str(v)[:60] for k, v in params.items()}))}\n")
 
     t0 = time.perf_counter()
     result = SKILL_REGISTRY.invoke(skill_name, params)
@@ -259,7 +264,6 @@ def cmd_run(args) -> int:
 
     print()
     return 0
-
 
 
 # Command: run-pipeline (full multi-agent pipeline)
@@ -303,19 +307,24 @@ def cmd_run_pipeline(args) -> int:
     # AGENT 1 — SecurityOrchestratorAgent
     # -----------------------------------------------------------------------
     print(f"  {C.bold(C.cyan('AGENT 1  —  SecurityOrchestratorAgent'))}")
-    print(f"  {C.dim('Role: security validation, PII protection, ML classification')}\n")
+    print(
+        f"  {C.dim('Role: security validation, PII protection, ML classification')}\n")
 
     # --- Step 1: Scan file ---
-    print(f"  {ICON_OK}  Step 1 — {C.bold('SkillScanFile')}  {C.dim('(MIME validation)')}")
+    print(
+        f"  {ICON_OK}  Step 1 — {C.bold('SkillScanFile')}  {C.dim('(MIME validation)')}")
     t = time.perf_counter()
     scan_result = SKILL_REGISTRY.invoke("SkillScanFile", {
         "file_path": file_path,
         "filename": filename,
     })
-    print(f"     Detected type: {C.cyan(scan_result.get('detected_type', 'unknown'))}")
-    print(f"     Scan passed:   {C.green('YES') if scan_result.get('passed') else C.red('NO')}")
+    print(
+        f"     Detected type: {C.cyan(scan_result.get('detected_type', 'unknown'))}")
+    print(
+        f"     Scan passed:   {C.green('YES') if scan_result.get('passed') else C.red('NO')}")
     if not scan_result.get("passed"):
-        print(f"     {ICON_ERR}  Reason: {C.red(scan_result.get('reason', 'unknown'))}")
+        print(
+            f"     {ICON_ERR}  Reason: {C.red(scan_result.get('reason', 'unknown'))}")
         print(f"\n  {C.red('Pipeline halted — file rejected by security scan.')}")
         return 1
     print(f"     {C.dim(f'({time.perf_counter()-t:.2f}s)')}\n")
@@ -324,7 +333,8 @@ def cmd_run_pipeline(args) -> int:
     ext = os.path.splitext(filename)[1].lower()
     raw_text = _extract_text(file_path, ext)
     if not raw_text:
-        print(f"  {ICON_ERR}  Could not extract text from file (image-only or blank).")
+        print(
+            f"  {ICON_ERR}  Could not extract text from file (image-only or blank).")
         return 1
 
     # --- Step 2: Redact PII ---
@@ -338,20 +348,32 @@ def cmd_run_pipeline(args) -> int:
         print(f"     {C.yellow(f'{count} PII item(s) redacted')}: {types}")
     else:
         print(f"     {C.green('No PII found')} in resume text")
-    print(f"     {C.dim('LLM payloads will use redacted text only — PII stays local.')}")
+    print(
+        f"     {C.dim('LLM payloads will use redacted text only — PII stays local.')}")
     print(f"     {C.dim(f'({time.perf_counter()-t:.2f}s)')}\n")
 
     # --- Step 3: Score resume ---
     print(f"  {ICON_SCORE}  Step 3 — {C.bold('SkillScoreResume')}  {C.dim('(local ML classification, offline)')}")
     t = time.perf_counter()
-    score_result = SKILL_REGISTRY.invoke("SkillScoreResume", {"resume_text": raw_text})
+    score_result = SKILL_REGISTRY.invoke(
+        "SkillScoreResume", {"resume_text": raw_text})
     category = score_result.get("predicted_category", "Unknown")
     confidence = score_result.get("confidence", 0.0)
     print(f"     Category:   {C.cyan(category)}")
     print(f"     Confidence: {C.bold(f'{confidence:.1%}')}")
     top = score_result.get("top_categories", [])
     if top:
-        top_str = " | ".join([f"{c['category']} ({c['confidence']:.0%})" for c in top[:3]])
+        top_parts = []
+        for c in top[:3]:
+            label = c.get("category", "Unknown")
+            # Model payloads may expose either `confidence` or `score`.
+            raw_val = c.get("confidence", c.get("score", 0.0))
+            try:
+                val = float(raw_val)
+            except (TypeError, ValueError):
+                val = 0.0
+            top_parts.append(f"{label} ({val:.0%})")
+        top_str = " | ".join(top_parts)
         print(f"     Top 3:      {C.dim(top_str)}")
     if score_result.get("error"):
         print(f"     {ICON_WARN}  {C.yellow(score_result['error'])}")
@@ -361,13 +383,15 @@ def cmd_run_pipeline(args) -> int:
     # AGENT 2 — FeedbackAgent
     # -----------------------------------------------------------------------
     print(f"  {C.bold(C.magenta('AGENT 2  —  FeedbackAgent'))}")
-    print(f"  {C.dim('Role: LLM-driven resume feedback + improvement prioritization')}\n")
+    print(
+        f"  {C.dim('Role: LLM-driven resume feedback + improvement prioritization')}\n")
 
     print(f"  {ICON_BRAIN}  Step 4 — {C.bold('SkillGenerateFeedback')}  {C.dim('(LLM reasoning)')}")
     if jd_text:
         print(f"     Using JD: {C.dim(args.jd)}")
     else:
-        print(f"     {C.dim('No JD provided — using predicted category for gap analysis.')}")
+        print(
+            f"     {C.dim('No JD provided — using predicted category for gap analysis.')}")
 
     t = time.perf_counter()
     feedback_result = SKILL_REGISTRY.invoke("SkillGenerateFeedback", {
@@ -376,9 +400,11 @@ def cmd_run_pipeline(args) -> int:
         "job_description": jd_text,
     })
     used_llm = feedback_result.get("agent_used_llm", False)
-    llm_tag = C.cyan("Gemini/Groq") if used_llm else C.yellow("rule-based fallback")
+    llm_tag = C.cyan(
+        "Gemini/Groq") if used_llm else C.yellow("rule-based fallback")
     print(f"     LLM source:    {llm_tag}")
-    print(f"     Category fit:  {C.bold(feedback_result.get('category_fit', 'Unknown'))}")
+    print(
+        f"     Category fit:  {C.bold(feedback_result.get('category_fit', 'Unknown'))}")
     print(f"     {C.dim(f'({time.perf_counter()-t:.2f}s)')}\n")
 
     # -----------------------------------------------------------------------
@@ -392,7 +418,8 @@ def cmd_run_pipeline(args) -> int:
     print(f"  {ICON_OK}  Security scan:   {C.green('PASSED')}  ({scan_result.get('detected_type')})")
     pii_str = f"{count} item(s) — {types}" if count > 0 else "none detected"
     print(f"  {ICON_LOCK}  PII redacted:    {C.yellow(pii_str) if count else C.green(pii_str)}")
-    print(f"  {ICON_SCORE}  ML Category:     {C.cyan(category)} ({confidence:.1%} confidence)")
+    print(
+        f"  {ICON_SCORE}  ML Category:     {C.cyan(category)} ({confidence:.1%} confidence)")
     print(f"  {ICON_BRAIN}  Category fit:    {C.bold(feedback_result.get('category_fit', 'Unknown'))}")
     print()
 
@@ -423,14 +450,14 @@ def cmd_run_pipeline(args) -> int:
     summary = feedback_result.get("ats_summary", "")
     if summary:
         print(f"  Recruiter Summary:")
-        wrapped = textwrap.fill(summary, width=56, initial_indent="    ", subsequent_indent="    ")
+        wrapped = textwrap.fill(
+            summary, width=56, initial_indent="    ", subsequent_indent="    ")
         print(C.dim(wrapped))
         print()
 
     print(f"  {ICON_TIME}  Total pipeline time: {total_elapsed:.2f}s")
     print()
     return 0
-
 
 
 # Command: architecture
@@ -507,7 +534,6 @@ def cmd_architecture(_args) -> int:
     return 0
 
 
-
 # Helpers
 
 
@@ -549,7 +575,6 @@ def _extract_text(file_path: str, ext: str) -> Optional[str]:
     return None
 
 
-
 # CLI entry point
 
 
@@ -584,7 +609,8 @@ def build_parser() -> argparse.ArgumentParser:
         "describe",
         help="Show detailed info about a skill",
     )
-    desc_p.add_argument("skill_name", help="Name of the skill (e.g., SkillScanFile)")
+    desc_p.add_argument(
+        "skill_name", help="Name of the skill (e.g., SkillScanFile)")
 
     # run
     run_p = subparsers.add_parser(
@@ -593,8 +619,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     run_p.add_argument("skill_name", help="Name of the skill to run")
     run_p.add_argument("--file",        metavar="PATH", help="Input file path")
-    run_p.add_argument("--text",        metavar="TEXT", help="Inline input text")
-    run_p.add_argument("--json-params", metavar="JSON", help="Raw JSON params dict")
+    run_p.add_argument("--text",        metavar="TEXT",
+                       help="Inline input text")
+    run_p.add_argument("--json-params", metavar="JSON",
+                       help="Raw JSON params dict")
 
     # run-pipeline
     pipe_p = subparsers.add_parser(
@@ -602,7 +630,8 @@ def build_parser() -> argparse.ArgumentParser:
         help="Run the full multi-agent pipeline on a resume file",
     )
     pipe_p.add_argument("file", help="Path to the resume file (PDF or DOCX)")
-    pipe_p.add_argument("--jd", metavar="PATH", help="Path to job description text file")
+    pipe_p.add_argument("--jd", metavar="PATH",
+                        help="Path to job description text file")
 
     # architecture
     subparsers.add_parser(

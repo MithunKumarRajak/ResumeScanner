@@ -175,9 +175,7 @@ def _handle_log_audit(params: dict) -> dict:
     return {"logged": True, "step_name": step_name, "status": status}
 
 
-
 # Tool registry — MCP schema format
-
 
 MCP_TOOLS: list[dict] = [
     {
@@ -311,7 +309,6 @@ MCP_TOOLS: list[dict] = [
 _TOOL_LOOKUP: dict[str, dict] = {t["name"]: t for t in MCP_TOOLS}
 
 
-
 # MCP transport: try official SDK, fall back to JSON-RPC stdio loop
 
 
@@ -350,17 +347,27 @@ def _run_with_mcp_sdk() -> None:
     asyncio.run(_main())
 
 
-def _run_fallback_stdio_loop() -> None:
+def _run_fallback_stdio_loop(reason: str | None = None) -> None:
     """
     Fallback JSON-RPC stdio loop when the `mcp` SDK is not installed.
 
     Implements the minimal subset of the MCP protocol needed for tools/list
     and tools/call — enough for any MCP inspector to discover and invoke tools.
     """
-    logger.info(
-        "[mcp_server] 'mcp' SDK not installed — running fallback JSON-RPC stdio loop. "
-        "Install with: pip install mcp"
-    )
+    if reason:
+        logger.info(
+            "[mcp_server] Running fallback JSON-RPC stdio loop: %s", reason)
+    else:
+        logger.info(
+            "[mcp_server] 'mcp' SDK not installed — running fallback JSON-RPC stdio loop. "
+            "Install with: pip install mcp"
+        )
+
+    if sys.stdout.closed:
+        logger.error(
+            "[mcp_server] stdout is closed; cannot start fallback stdio loop.")
+        return
+
     print(
         json.dumps({
             "jsonrpc": "2.0",
@@ -424,12 +431,42 @@ def _run_fallback_stdio_loop() -> None:
         print(json.dumps(response), flush=True)
 
 
+def _check_mcp_sdk_compatibility() -> tuple[bool, str]:
+    """Best-effort runtime check for known MCP SDK incompatibilities."""
+    try:
+        from importlib.metadata import version
+        anyio_version = version("anyio")
+        major = int(anyio_version.split(".", 1)[0])
+        if major < 4:
+            return False, f"anyio {anyio_version} is incompatible with this MCP SDK path (needs anyio>=4)"
+    except Exception:
+        # If metadata lookup fails, don't block SDK startup.
+        return True, ""
+
+    return True, ""
+
+
 def main() -> None:
     """Entry point — tries official MCP SDK, falls back to JSON-RPC stdio loop."""
+    compatible, reason = _check_mcp_sdk_compatibility()
+    if not compatible:
+        _run_fallback_stdio_loop(reason=reason)
+        return
+
     try:
         _run_with_mcp_sdk()
     except ImportError:
         _run_fallback_stdio_loop()
+    except Exception as exc:
+        logger.warning(
+            "[mcp_server] MCP SDK startup failed (%s). Falling back to JSON-RPC stdio loop.",
+            exc,
+        )
+        if sys.stdout.closed:
+            logger.error(
+                "[mcp_server] stdout closed after SDK failure; cannot run fallback loop.")
+            return
+        _run_fallback_stdio_loop(reason=f"MCP SDK startup failed: {exc}")
 
 
 if __name__ == "__main__":

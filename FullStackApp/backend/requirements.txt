@@ -1,7 +1,7 @@
 # Web API framework and server
 # - fastapi: app/main.py and all app/routes/* endpoints
 # - uvicorn: ASGI server entrypoint in main.py and app/main.py
-fastapi==0.104.1
+fastapi==0.115.12
 uvicorn==0.34.3
 
 # Data validation and settings
